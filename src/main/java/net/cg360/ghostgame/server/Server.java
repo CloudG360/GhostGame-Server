@@ -2,8 +2,6 @@ package net.cg360.ghostgame.server;
 
 public class Server {
 
-    private
-
     private static Server instance;
 
     public Server(String[] launchArguments){
