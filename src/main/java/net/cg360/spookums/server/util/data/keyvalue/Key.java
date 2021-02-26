@@ -1,7 +1,7 @@
 package net.cg360.spookums.server.util.data.keyvalue;
 
-import net.cg360.nsapi.commons.Check;
-import net.cg360.nsapi.commons.id.Identifier;
+import net.cg360.spookums.server.util.Check;
+import net.cg360.spookums.server.util.id.Identifier;
 
 import java.util.Objects;
 
