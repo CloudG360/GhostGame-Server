@@ -2,7 +2,7 @@ plugins {
     id 'java'
 }
 
-group 'net.cg360.ghostgame'
+group 'net.cg360.spookums'
 version 'InDev-1.0'
 
 repositories {
@@ -10,5 +10,6 @@ repositories {
 }
 
 dependencies {
-    compile "org.java-websocket:Java-WebSocket:1.5.1"
+    compile  'com.google.code.gson:gson:2.8.6'
+    compile 'org.java-websocket:Java-WebSocket:1.5.1'
 }
