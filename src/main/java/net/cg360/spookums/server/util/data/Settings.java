@@ -7,50 +7,31 @@ import net.cg360.spookums.server.util.data.keyvalue.Value;
 import java.util.HashMap;
 import java.util.Map;
 
-//TODO: Make all get...() methods search the other lists
-// for potentially valid properties.
-
-//TODO: Replace Settings with a Key driven data access
-
 /**
  * A way of storing settings/properties with
  * the option to lock them.
  *
  * Uses String keys rather than Identifier keys.
  */
-public final class Settings {
+public class Settings {
 
-    private Map<Key<?>, Value<?>> dataMap;
-    private boolean isLocked;
+    protected Map<Key<?>, Value<?>> dataMap;
 
 
     public Settings () {
         this.dataMap = new HashMap<>();
-        this.isLocked = false;
     }
 
     /** Used to duplicate a Settings instance.*/
     protected Settings(Settings duplicate) {
         this.dataMap = new HashMap<>(duplicate.dataMap);
-        this.isLocked = false;
     }
 
-
-
-    /** Prevents setting data within this Settings object. */
-    public Settings lock() {
-        // Duplicate maps + make them unmodifiable if unlocked still.
-        if(!this.isLocked) {
-            this.dataMap = Immutable.uMap(this.dataMap, true);
-            this.isLocked = true;
-        }
-        return this;
-    }
 
 
     /** Sets a key within the settings if they are unlocked. */
     public <T> Settings set(Key<T> key, T value) {
-        if(!isLocked) dataMap.put(key, new Value<>(value));
+        dataMap.put(key, new Value<>(value));
         return this;
     }
 
@@ -74,9 +55,8 @@ public final class Settings {
     }
 
     /** @return a copy of these settings which is unlocked. */
-    public Settings getUnlockedCopy() {
+    public Settings getCopy() {
         return new Settings(this);
     }
 
-    public boolean isLocked() { return isLocked; }
 }
