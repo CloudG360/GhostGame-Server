@@ -1,8 +1,12 @@
-package net.cg360.ghostgame.server;
+package net.cg360.spookums.server;
+
+import net.cg360.spookums.server.util.data.Settings;
 
 public class Server {
 
     private static Server instance;
+
+    private Settings settings;
 
     public Server(String[] launchArguments){
 
