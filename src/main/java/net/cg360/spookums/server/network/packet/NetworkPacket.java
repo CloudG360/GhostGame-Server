@@ -18,8 +18,8 @@ public abstract class NetworkPacket {
     }
 
     protected abstract byte genPacketID();
-    protected abstract short encodeBody(); // returns: body size
-    protected abstract short decodeBody(); // returns: body size
+    protected abstract short encodeBody(); // Takes data and puts it into the body buffer. returns: body size
+    protected abstract void decodeBody(); // Takes data from the body buffer and converts it to fields.
 
     public final ByteBuffer encode() {
         ByteBuffer data = ByteBuffer.wrap(new byte[MAX_BUFFER_SIZE]);
@@ -38,15 +38,19 @@ public abstract class NetworkPacket {
     }
 
     public final NetworkPacket decode(ByteBuffer fullPacket) {
-        data.clear();
-        packetID = fullPacket.get();
-        bodySize = fullPacket.getShort(); // Really should be converted to an int if it's unsigned
+        fullPacket.clear(); // Ensure buffers are ready for reading.
+        this.body.clear();
 
-        data.p
+        this.packetID = fullPacket.get();
+        this.bodySize = fullPacket.getShort(); // Really should be converted to an int if it's unsigned
 
         for(int i = 0; i < bodySize; i++) {
-
+            this.body.put(fullPacket.get()); // Copy bytes
         }
+
+        this.body.clear();
+        decodeBody();
+        return this;
     }
 
     public ByteBuffer getBodyData() { return body; }
