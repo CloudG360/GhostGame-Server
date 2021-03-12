@@ -4,31 +4,52 @@ import java.nio.ByteBuffer;
 
 public abstract class NetworkPacket {
 
-    private ByteBuffer data;
+    public static final short MAX_BUFFER_SIZE = 1024;
 
-    public NetworkPacket(int dataBufferSize){
-        this.data = ByteBuffer.wrap(new byte[dataBufferSize + 3]);
+    private ByteBuffer body;
+    private byte packetID;
+
+    protected short bodySize;
+
+    public NetworkPacket(){
+        this.body = ByteBuffer.wrap(new byte[MAX_BUFFER_SIZE - 3]); // 3 bytes are reserved for meta.
+        this.packetID = genPacketID();
+        this.bodySize = 0;
     }
 
-    public abstract byte getPacketID();
-    protected abstract void encodeBody();
-    protected abstract void decodeBody();
+    protected abstract byte genPacketID();
+    protected abstract short encodeBody(); // returns: body size
+    protected abstract short decodeBody(); // returns: body size
 
-    public final void encode() {
-        this.data.clear();
-        this.data.put(getPacketID());
-        this.data.putShort((short) 0); //Skip packet size marker for later.
+    public final ByteBuffer encode() {
+        ByteBuffer data = ByteBuffer.wrap(new byte[MAX_BUFFER_SIZE]);
 
-        this.data.mark();
-        encodeBody();
+        short size = encodeBody();
+        data.put(packetID);
+        data.putShort(size);
 
-        this.data.
+        this.body.clear(); // Go to the start of the body.
+
+        for(short i = 0; i < size; i++) {
+            data.put(body.get()); // Copy bytes from body up to the size
+        }
+
+        return data;
     }
 
-    public final void decode() {
-        data.reset();
-        byte packetType = data.get();
+    public final NetworkPacket decode(ByteBuffer fullPacket) {
+        data.clear();
+        packetID = fullPacket.get();
+        bodySize = fullPacket.getShort(); // Really should be converted to an int if it's unsigned
+
+        data.p
+
+        for(int i = 0; i < bodySize; i++) {
+
+        }
     }
 
-    public ByteBuffer getData() { return data; }
+    public ByteBuffer getBodyData() { return body; }
+    public byte getPacketID() { return packetID; }
+    public short getBodySize() { return bodySize; }
 }
