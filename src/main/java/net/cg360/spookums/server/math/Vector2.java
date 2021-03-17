@@ -36,9 +36,19 @@ public class Vector2 {
         return mul(1 / x, 1 / z);
     }
 
+    public Vector2 normalize() {
+        double magnitude = getMagnitude();
+        this.x = this.x / magnitude;
+        this.z = this.z / magnitude;
+        return this;
+    }
+
+    public double getMagnitude() {
+        return Math.sqrt((this.x * this.x) + (this.z * this.z));
+    }
+
 
 
     public double getX() { return x; }
-    public double getY() { return y; }
     public double getZ() { return z; }
 }
