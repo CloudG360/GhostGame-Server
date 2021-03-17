@@ -1,9 +1,8 @@
 package net.cg360.spookums.server.entity;
 
 import net.cg360.spookums.server.entity.behaviour.EntityBehaviourTree;
-import net.cg360.spookums.server.math.Vector3;
+import net.cg360.spookums.server.math.Vector2;
 
-import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
 
 public abstract class Entity {
@@ -14,12 +13,16 @@ public abstract class Entity {
 
     protected int runtimeID;
 
-    protected Vector3 lastPosition;
-    protected Vector3 position;
-    protected Vector3 acceleration;
-    protected Vector3 velocity;
+    protected Vector2 lastPosition;
+    protected Vector2 position;
+    protected Vector2 acceleration;
+    protected Vector2 velocity;
 
     public Entity() {
+
+    }
+
+    public void tick() {
 
     }
 
