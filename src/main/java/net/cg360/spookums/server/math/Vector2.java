@@ -64,6 +64,12 @@ public class Vector2 {
         return Math.acos(dotProduct / (this.getMagnitude() * other.getMagnitude())); // Arc cosine = inverse cos
     }
 
+    public double distance(Vector2 other) {
+        double deltaX = (this.x - other.x);
+        double deltaZ = (this.z - other.z);
+        return Math.sqrt((deltaX * deltaX) + (deltaZ * deltaZ));
+    }
+
 
 
     public double getMagnitude() {
