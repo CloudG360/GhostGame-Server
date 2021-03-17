@@ -12,6 +12,18 @@ public class Vector2 {
     }
 
 
+    public Vector2 duplicate() {
+        return new Vector2(this.x, this.z);
+    }
+
+    public Vector2 copy(Vector2 vec) {
+        this.x = vec.x;
+        this.z = vec.z;
+        return this;
+    }
+
+
+
     public Vector2 add(Vector2 vec) { return add(vec.x, vec.z); }
     public Vector2 add(double x, double z) {
         this.x += x;
