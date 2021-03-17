@@ -55,11 +55,20 @@ public class Vector2 {
         return this;
     }
 
-    public double getMagnitude() {
-        return Math.sqrt((this.x * this.x) + (this.z * this.z));
+    public double dot(Vector2 other) {
+        return (this.x * other.x) + (this.z + other.z);
+    }
+
+    public double angle(Vector2 other) {
+        double dotProduct = dot(other);
+        return Math.acos(dotProduct / (this.getMagnitude() * other.getMagnitude())); // Arc cosine = inverse cos
     }
 
 
+
+    public double getMagnitude() {
+        return Math.sqrt((this.x * this.x) + (this.z * this.z));
+    }
 
     public double getX() { return x; }
     public double getZ() { return z; }
