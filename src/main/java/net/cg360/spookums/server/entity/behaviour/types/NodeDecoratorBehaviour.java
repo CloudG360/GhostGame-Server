@@ -5,8 +5,4 @@ import net.cg360.spookums.server.entity.Entity;
 
 public abstract class NodeDecoratorBehaviour extends NodeBaseBehaviour {
 
-    @Override
-    protected boolean loadParametersFromJson(JsonObject object) {
-        return false;
-    }
 }

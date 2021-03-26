@@ -1,20 +1,20 @@
 package net.cg360.spookums.server.entity.behaviour.types;
 
-import com.google.gson.JsonObject;
 import net.cg360.spookums.server.entity.Entity;
 import net.cg360.spookums.server.entity.behaviour.EntityBehaviourTree;
+import net.cg360.spookums.server.util.data.Settings;
 
 public abstract class NodeBaseBehaviour {
 
     private EntityBehaviourTree tree;
+    protected Settings settings;
+
+
+    protected abstract void create(Settings settings);
 
     public abstract NodeState tick(Entity entity);
 
-    protected final boolean loadObjectFromJson(JsonObject object){
-        return loadParametersFromJson(object);
-    }
-
-    protected abstract boolean loadParametersFromJson(JsonObject object);
 
     public final EntityBehaviourTree getTree() { return tree; }
+    public Settings getSettings() { return settings; }
 }
