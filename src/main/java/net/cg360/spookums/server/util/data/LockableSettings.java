@@ -23,7 +23,7 @@ public final class LockableSettings extends Settings {
     }
 
     /** Used to duplicate a Settings instance.*/
-    protected LockableSettings(LockableSettings duplicate, boolean lock) {
+    public LockableSettings(Settings duplicate, boolean lock) {
         super(duplicate);
         this.isLocked = lock;
     }
@@ -54,7 +54,6 @@ public final class LockableSettings extends Settings {
      * Returns a property with the same type as the key. If not
      * present, the object from the 2nd parameter is returned.
      */
-    @SuppressWarnings("unchecked")
     public <T> T getOrElse(Key<T> id, T orElse) {
         return super.getOrElse(id, orElse);
     }
