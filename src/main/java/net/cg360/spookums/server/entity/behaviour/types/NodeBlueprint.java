@@ -24,7 +24,7 @@ public class NodeBlueprint<T extends NodeBaseBehaviour> {
 
 
 
-    public Key<T> getKey() { return new Key<>(getIdentifier().getID()); }
+    public Key<NodeBlueprint<T>> getKey() { return new Key<>(getIdentifier().getID()); }
     public Identifier getIdentifier() { return identifier; }
     public Class<T> getNodeClass() { return nodeClass; }
     public Settings getDefaultSettings() { return defaultSettings; }
