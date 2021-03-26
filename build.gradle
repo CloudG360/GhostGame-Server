@@ -1,6 +1,4 @@
-plugins {
-    id 'java'
-}
+apply plugin: 'java'
 
 group 'net.cg360.spookums'
 version 'InDev-1.0'
@@ -13,3 +11,14 @@ dependencies {
     compile  'com.google.code.gson:gson:2.8.6'
     compile group:'org.xerial', name:'sqlite-jdbc', version:'3.8.11.2'
 }
+
+jar {
+    manifest {
+        attributes(
+                'Class-Path': configurations.compile.collect { it.getName() }.join(' '),
+                'Main-Class': 'net.cg360.spookums.server.Server'
+        )
+    }
+}
+
+

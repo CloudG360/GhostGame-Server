@@ -3,10 +3,8 @@ package net.cg360.spookums.server;
 import net.cg360.spookums.server.util.data.Settings;
 
 import java.awt.*;
-import java.io.Console;
 import java.io.File;
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
