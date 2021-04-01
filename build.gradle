@@ -10,9 +10,17 @@ repositories {
 dependencies {
     compile  'com.google.code.gson:gson:2.8.6'
     compile group:'org.xerial', name:'sqlite-jdbc', version:'3.8.11.2'
+    compile group: 'org.slf4j', name: 'slf4j-simple', version: '1.6.1'
+
+    implementation group: 'org.slf4j', name: 'slf4j-api', version: '1.7.25'
 }
 
 jar {
+
+    from {
+        configurations.compile.collect { it.isDirectory() ? it : zipTree(it) }
+    }
+
     manifest {
         attributes(
                 'Class-Path': configurations.compile.collect { it.getName() }.join(' '),

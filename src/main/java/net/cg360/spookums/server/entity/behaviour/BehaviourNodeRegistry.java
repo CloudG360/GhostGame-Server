@@ -60,8 +60,7 @@ public class BehaviourNodeRegistry {
                 T profile = (T) nodeBlueprints.get(k);
                 return Optional.of(profile);
             } catch (ClassCastException err) {
-                //TODO: Logging!
-                Server.get().getLogger().warning("Tried accessing a NodeBlueprint with the key '%s' however it was the wrong type.");
+                Server.getMainLogger().warn("Tried accessing a NodeBlueprint with the key '%s' however it was the wrong type.");
                 return Optional.empty();
             }
         }
