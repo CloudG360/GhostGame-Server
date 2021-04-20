@@ -1,5 +1,7 @@
 package net.cg360.spookums.server.scheduler;
 
+import net.cg360.spookums.server.Server;
+
 import java.util.ArrayList;
 import java.util.UUID;
 
@@ -15,6 +17,8 @@ public class Scheduler {
 
     protected int tickDelay; // The amount of server ticks between each scheduler tick.
 
+    protected final ArrayList<Thread> activeThreads;
+
     protected ArrayList<SchedulerTaskEntry> schedulerTasks;
     protected boolean isRunning;
 
@@ -27,6 +31,7 @@ public class Scheduler {
         this.tickDelay = Math.max(1, tickDelay);
 
         this.schedulerTasks = new ArrayList<>();
+        this.activeThreads = new ArrayList<>();
         this.isRunning = false;
     }
 
@@ -45,7 +50,7 @@ public class Scheduler {
     // -- Control --
 
     /** Enables ticking on the scheduler*/
-    public boolean startScheduler() {
+    public synchronized boolean startScheduler() {
         if(!isRunning) {
             this.isRunning = true;
             return true;
@@ -57,22 +62,22 @@ public class Scheduler {
      * Removes scheduler's hook to the server tick whilst clearing the queue.
      * @return true if the scheduler was initially running and then stopped.
      */
-    public boolean stopScheduler() {
+    public synchronized boolean stopScheduler() {
         if(isRunning) {
             pauseScheduler();
-            clearSchedulerTasks();
+            clearQueuedSchedulerTasks();
             return true;
         }
         return false;
     }
 
     /** Removes scheduler's hook to the server tick whilst clearing the queue */
-    public void pauseScheduler() {
+    public synchronized void pauseScheduler() {
         this.isRunning = false;
     }
 
     /** Cleares all the tasks queued in the scheduler. */
-    public void clearSchedulerTasks() {
+    public synchronized void clearQueuedSchedulerTasks() {
        for(SchedulerTaskEntry entry: new ArrayList<>(schedulerTasks)) {
            entry.getTask().cancel(); // For the runnable to use? idk
            this.schedulerTasks.remove(entry);
@@ -81,12 +86,14 @@ public class Scheduler {
 
 
     // -- Ticking --
+    // Methods used to tick a scheduler should only be triggered by the main
+    // thread, thus are not synchronized.
 
     /**
      * Ran to indicate a server tick has occurred, potentially triggering a server tick.
      * @return true is a scheduler tick is triggered as a result.
      */
-    public boolean serverTick() {
+    public boolean serverTick() { // Should only be done on the main thread
         syncedTick++;
 
         // Check if synced is a multiple of the delay
@@ -109,13 +116,46 @@ public class Scheduler {
 
                     // Cancelled tasks shouldn't be in the scheduler queue anyway.
                     if(!task.getTask().isCancelled()) {
-                        task.getTask().run();
+
+                        if(task.isAsynchronous()) {
+                            new Thread() {
+
+                                @Override
+                                public void run() {
+                                    synchronized (activeThreads) { activeThreads.add(this); }
+
+                                    try {
+                                        task.getTask().run();
+                                    } catch (Exception err) {
+                                        Server.getMainLogger().error("Error thrown in asynchronous task! :(");
+                                        err.printStackTrace();
+                                    }
+
+                                    synchronized (activeThreads) { activeThreads.remove(this); }
+                                }
+
+                                @Override
+                                public void interrupt() {
+                                    synchronized (activeThreads) {
+                                        activeThreads.remove(this);
+                                    }
+                                    super.interrupt();
+                                }
+
+                            }.start(); // Start async thread and move on.
+
+                        } else {
+                            // Run as sync. This task must complete before the next one
+                            // is ran.
+                            task.getTask().run();
+                        }
+
 
                         // Not cancelled by the call of #run() + it's a repeat task.
                         if(task.isRepeating() && (!task.getTask().isCancelled())) {
                             long targetTick = taskTick + task.getRepeatInterval();
 
-                            SchedulerTaskEntry newTask = new SchedulerTaskEntry(task.getTask(), task.getRepeatInterval(), targetTick);
+                            SchedulerTaskEntry newTask = new SchedulerTaskEntry(task.getTask(), task.getRepeatInterval(), targetTick, task.isAsynchronous());
                             queueNSTaskEntry(newTask);
                         }
                     }
@@ -153,6 +193,8 @@ public class Scheduler {
         this.schedulerTasks.add(entry);
     }
 
+    // -- Task Registering --
+
 
 
     // -- Getters --
@@ -166,6 +208,8 @@ public class Scheduler {
     public long getSchedulerTick() { return schedulerTick; }
     /** @return the amount of server ticks between each scheduler tick. */
     public int getTickDelay() { return tickDelay; }
+    /** @return a list of active async task threads */
+    public ArrayList<Thread> getActiveThreads() { return new ArrayList<>(activeThreads); }
 
     /** @return the primary instance of the scheduler. */
     public static Scheduler get() { return primaryInstance; }
