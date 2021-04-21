@@ -1,5 +1,6 @@
 package net.cg360.spookums.server;
 
+import net.cg360.spookums.server.core.event.EventManager;
 import net.cg360.spookums.server.core.log.ServerLogger;
 import net.cg360.spookums.server.core.scheduler.Scheduler;
 import net.cg360.spookums.server.core.data.Settings;
@@ -24,7 +25,7 @@ public class Server {
     protected Thread schedulerThread;
 
     protected Scheduler serverScheduler;
-    //protected EventManager serverEventManager;
+    protected EventManager serverEventManager;
 
     protected File dataPath;
     protected Settings settings;
@@ -37,8 +38,13 @@ public class Server {
         this.logger = new SimpleLoggerFactory().getLogger("Server");
         getLogger().info("Starting server...");
 
+
         this.serverScheduler = new Scheduler(0);
         this.serverScheduler.setAsPrimaryInstance();
+
+        this.serverEventManager = new EventManager();
+        this.serverEventManager.setAsPrimaryManager();
+
 
         getLogger().info("Starting server scheduler!");
         this.schedulerThread = new Thread() {
@@ -76,6 +82,10 @@ public class Server {
 
 
     public Logger getLogger() { return logger; }
+
+    public Scheduler getServerScheduler() { return serverScheduler; }
+    public EventManager getServerEventManager() { return serverEventManager; }
+
     public Settings getSettings() { return settings; }
     public File getDataPath() { return dataPath; }
 
