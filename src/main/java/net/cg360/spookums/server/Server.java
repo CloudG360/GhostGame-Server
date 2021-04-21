@@ -1,10 +1,10 @@
 package net.cg360.spookums.server;
 
-import net.cg360.spookums.server.log.ServerLogger;
-import net.cg360.spookums.server.util.data.Settings;
+import net.cg360.spookums.server.core.log.ServerLogger;
+import net.cg360.spookums.server.core.scheduler.Scheduler;
+import net.cg360.spookums.server.core.data.Settings;
 import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.slf4j.impl.SimpleLogger;
+import org.slf4j.impl.SimpleLoggerFactory;
 
 import java.awt.*;
 import java.io.File;
@@ -14,31 +14,65 @@ import java.util.List;
 
 public class Server {
 
+    public static final int MSPT = 1000 / 20; // Millis per tick.
+
     protected static Server instance;
 
     protected Logger logger;
 
-    protected Settings settings;
+    protected Thread networkThread;
+    protected Thread schedulerThread;
+
+    protected Scheduler serverScheduler;
+    //protected EventManager serverEventManager;
+
     protected File dataPath;
+    protected Settings settings;
 
 
-    public Server(String[] args){
+    public Server(String[] args) {
         this.dataPath = new File("./"); // Configurable maybe?
+        this.settings = new Settings();
 
-        this.logger = new ServerLogger();
-        SimpleLogger
+        this.logger = new SimpleLoggerFactory().getLogger("Server");
         getLogger().info("Starting server...");
 
-        while (true) {
-            getLogger().info("test");
-        }
+        this.serverScheduler = new Scheduler(0);
+        this.serverScheduler.setAsPrimaryInstance();
+
+        getLogger().info("Starting server scheduler!");
+        this.schedulerThread = new Thread() {
+
+            private boolean loop = true;
+
+            @Override
+            public void run() {
+
+                try {
+
+                    while (loop) {
+                        serverScheduler.serverTick();
+                        this.wait(MSPT);
+                    }
+
+                } catch (InterruptedException err) {
+                    getLogger().info("Shutting down main scheduler- this better be during shutdown :^)");
+                }
+            }
+
+            @Override
+            public void interrupt() {
+                this.loop = false;
+                super.interrupt();
+            }
+        };
+
+        this.serverScheduler.startScheduler();
+        this.schedulerThread.start();
+        getLogger().info("Started the scheduler!! :)");
     }
 
 
-
-    public void prepareDatabases() {
-
-    }
 
 
     public Logger getLogger() { return logger; }
@@ -47,6 +81,8 @@ public class Server {
 
     public static Server get() { return instance; }
     public static Logger getMainLogger() { return get().getLogger(); }
+
+
 
     /**
      * Launches the server from the jar.
