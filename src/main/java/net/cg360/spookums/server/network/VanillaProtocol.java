@@ -5,7 +5,6 @@ public class VanillaProtocol {
     public static final Short[] SUPPORTED_PROTOCOLS = new Short[]{ 1 };
     public static final Short CURRENT_PROTOCOL = 1;
 
-    public static final byte PACKET_EXTENSION = 0x7f; //ew, why does java use *signed* bytes. Like who's realistically using negative numbers with bytes.
 
     // -- Packet Identifiers --
 

@@ -10,6 +10,9 @@ public class PacketServerNotice extends NetworkPacket {
     public byte type;
     public String text;
 
+
+    public PacketServerNotice() { }
+
     public PacketServerNotice(byte type, String text) {
         Check.nullParam(text, "text");
 
@@ -30,6 +33,8 @@ public class PacketServerNotice extends NetworkPacket {
 
     @Override
     protected short encodeBody() {
+        Check.missingProperty(text, "PacketServerNotice", "text");
+
         this.getBodyData().clear();
         this.getBodyData().put(type);
 
@@ -45,6 +50,15 @@ public class PacketServerNotice extends NetworkPacket {
     protected void decodeBody() {
         // Not a server-bound packet so do nothing.
     }
+
+
+
+    public byte getType() { return type; }
+    public String getText() { return text; }
+
+    public void setType(byte type) { this.type = type; }
+    public void setType(Type type) { this.type = type.getTypeID(); }
+    public void setText(String text) { this.text = text; }
 
 
 
