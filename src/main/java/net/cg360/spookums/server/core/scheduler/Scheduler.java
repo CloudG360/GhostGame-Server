@@ -1,4 +1,4 @@
-package net.cg360.spookums.server.scheduler;
+package net.cg360.spookums.server.core.scheduler;
 
 import net.cg360.spookums.server.Server;
 
@@ -8,7 +8,6 @@ import java.util.UUID;
 public class Scheduler {
 
     private static Scheduler primaryInstance;
-
 
     private UUID schedulerID;
 
@@ -86,14 +85,14 @@ public class Scheduler {
 
 
     // -- Ticking --
-    // Methods used to tick a scheduler should only be triggered by the main
-    // thread, thus are not synchronized.
+    // Methods used to tick a scheduler should only be triggered by the
+    // Scheduler thread.
 
     /**
      * Ran to indicate a server tick has occurred, potentially triggering a server tick.
      * @return true is a scheduler tick is triggered as a result.
      */
-    public boolean serverTick() { // Should only be done on the main thread
+    public synchronized boolean serverTick() { // Should only be done on the main thread
         syncedTick++;
 
         // Check if synced is a multiple of the delay
@@ -105,7 +104,7 @@ public class Scheduler {
     }
 
     /** Executes a scheduler tick, running any tasks due to run on this tick. */
-    public void schedulerTick() {
+    public synchronized void schedulerTick() {
         if(isRunning) {
 
             // To avoid stopping the scheduler from inside a task making it scream, use ArrayList wrapping

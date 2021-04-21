@@ -1,4 +1,4 @@
-package net.cg360.spookums.server.scheduler.task;
+package net.cg360.spookums.server.core.scheduler.task;
 
 import java.util.UUID;
 

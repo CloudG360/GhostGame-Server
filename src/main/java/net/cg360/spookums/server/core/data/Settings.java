@@ -1,8 +1,7 @@
-package net.cg360.spookums.server.util.data;
+package net.cg360.spookums.server.core.data;
 
-import net.cg360.spookums.server.util.Immutable;
-import net.cg360.spookums.server.util.data.keyvalue.Key;
-import net.cg360.spookums.server.util.data.keyvalue.Value;
+import net.cg360.spookums.server.core.data.keyvalue.Key;
+import net.cg360.spookums.server.core.data.keyvalue.Value;
 
 import java.util.HashMap;
 import java.util.Map;

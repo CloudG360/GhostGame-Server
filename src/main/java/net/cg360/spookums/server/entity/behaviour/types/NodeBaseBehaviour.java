@@ -2,7 +2,7 @@ package net.cg360.spookums.server.entity.behaviour.types;
 
 import net.cg360.spookums.server.entity.Entity;
 import net.cg360.spookums.server.entity.behaviour.EntityBehaviourTree;
-import net.cg360.spookums.server.util.data.Settings;
+import net.cg360.spookums.server.core.data.Settings;
 
 public abstract class NodeBaseBehaviour {
 

@@ -1,4 +1,4 @@
-package net.cg360.spookums.server.util.id;
+package net.cg360.spookums.server.core.data.id;
 
 import java.util.Objects;
 import java.util.regex.Pattern;

@@ -1,10 +1,10 @@
 package net.cg360.spookums.server.entity.behaviour.types;
 
 import net.cg360.spookums.server.util.Check;
-import net.cg360.spookums.server.util.data.LockableSettings;
-import net.cg360.spookums.server.util.data.Settings;
-import net.cg360.spookums.server.util.data.keyvalue.Key;
-import net.cg360.spookums.server.util.id.Identifier;
+import net.cg360.spookums.server.core.data.LockableSettings;
+import net.cg360.spookums.server.core.data.Settings;
+import net.cg360.spookums.server.core.data.keyvalue.Key;
+import net.cg360.spookums.server.core.data.id.Identifier;
 
 public class NodeBlueprint<T extends NodeBaseBehaviour> {
 

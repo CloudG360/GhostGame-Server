@@ -1,4 +1,4 @@
-package net.cg360.spookums.server.util.data.keyvalue;
+package net.cg360.spookums.server.core.data.keyvalue;
 
 import java.util.Objects;
 

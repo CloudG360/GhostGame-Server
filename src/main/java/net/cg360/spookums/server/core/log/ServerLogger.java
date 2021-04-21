@@ -1,4 +1,4 @@
-package net.cg360.spookums.server.log;
+package net.cg360.spookums.server.core.log;
 
 import org.slf4j.helpers.MarkerIgnoringBase;
 
