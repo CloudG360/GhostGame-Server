@@ -19,24 +19,27 @@ public class Server {
 
     protected static Server instance;
 
-    protected Logger logger;
+    protected File dataPath;
+    protected Settings settings;
+
+    protected boolean isRunning;
 
     protected Thread networkThread;
     protected Thread schedulerThread;
 
+    protected Logger logger;
     protected Scheduler serverScheduler;
     protected EventManager serverEventManager;
-
-    protected File dataPath;
-    protected Settings settings;
 
 
     public Server(String[] args) {
         this.dataPath = new File("./"); // Configurable maybe?
         this.settings = new Settings();
 
+        this.isRunning = false;
+
         this.logger = new SimpleLoggerFactory().getLogger("Server");
-        getLogger().info("Starting server...");
+        getLogger().info("Preparing server...");
 
 
         this.serverScheduler = new Scheduler(0);
@@ -44,50 +47,70 @@ public class Server {
 
         this.serverEventManager = new EventManager();
         this.serverEventManager.setAsPrimaryManager();
-
-
-        getLogger().info("Starting server scheduler!");
-        this.schedulerThread = new Thread() {
-
-            private boolean loop = true;
-
-            @Override
-            public void run() {
-
-                try {
-
-                    while (loop) {
-                        serverScheduler.serverTick();
-                        this.wait(MSPT);
-                    }
-
-                } catch (InterruptedException err) {
-                    getLogger().info("Shutting down main scheduler- this better be during shutdown :^)");
-                }
-            }
-
-            @Override
-            public void interrupt() {
-                this.loop = false;
-                super.interrupt();
-            }
-        };
-
-        this.serverScheduler.startScheduler();
-        this.schedulerThread.start();
-        getLogger().info("Started the scheduler!! :)");
     }
 
 
 
+    public void start() {
+        if(!this.isRunning) {
 
-    public Logger getLogger() { return logger; }
+            try {
+                this.isRunning = true;
+                getLogger().info("Starting server...");
+                getLogger().info("Starting server scheduler!");
 
-    public Scheduler getServerScheduler() { return serverScheduler; }
-    public EventManager getServerEventManager() { return serverEventManager; }
+                this.schedulerThread = new Thread() {
+
+                    private boolean loop = true;
+
+                    @Override
+                    public void run() {
+
+                        try {
+
+                            while (loop) {
+                                serverScheduler.serverTick();
+                                this.wait(MSPT);
+                            }
+
+                        } catch (InterruptedException err) {
+                            getLogger().info("Shutting down main scheduler- this better be during shutdown :^)");
+                        }
+                    }
+
+                    @Override
+                    public void interrupt() {
+                        this.loop = false;
+                        super.interrupt();
+                    }
+                };
+
+                this.serverScheduler.startScheduler();
+                this.schedulerThread.start();
+                getLogger().info("Started the scheduler!! :)");
+
+            } catch (Exception err) {
+                err.printStackTrace();
+                this.isRunning = false;
+            }
+
+        } else {
+            throw new IllegalStateException("This server is already running!");
+        }
+    }
+
+
 
     public Settings getSettings() { return settings; }
     public File getDataPath() { return dataPath; }
+
+    public boolean isRunning() { return isRunning; }
+
+    public Logger getLogger() { return logger; }
+    public Scheduler getServerScheduler() { return serverScheduler; }
+    public EventManager getServerEventManager() { return serverEventManager; }
+
+
 
     public static Server get() { return instance; }
     public static Logger getMainLogger() { return get().getLogger(); }
@@ -111,6 +134,7 @@ public class Server {
 
         } else {
             instance = new Server(args);
+            instance.start();
             System.out.println("!!!  Stopped Server :^)  !!!"); // No logger prepared, use java's own methods (ew)
         }
     }
