@@ -40,8 +40,12 @@ public class Scheduler {
      *
      * Cannot be changed once initially called.
      */
-    public void setAsPrimaryInstance() {
-        primaryInstance = this;
+    public boolean setAsPrimaryInstance() {
+        if(primaryInstance == null) {
+            primaryInstance = this;
+            return true;
+        }
+        return false;
     }
 
 

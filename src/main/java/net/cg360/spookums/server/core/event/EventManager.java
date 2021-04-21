@@ -42,8 +42,12 @@ public class EventManager {
      *
      * Cannot be changed once initially called.
      */
-    public void setAsPrimaryManager(){
-        if(primaryManager == null) primaryManager = this;
+    public boolean setAsPrimaryManager(){
+        if(primaryManager == null) {
+            primaryManager = this;
+            return true;
+        }
+        return false;
     }
 
     public synchronized void call(BaseEvent event) {

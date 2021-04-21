@@ -4,6 +4,7 @@ import net.cg360.spookums.server.core.event.EventManager;
 import net.cg360.spookums.server.core.log.ServerLogger;
 import net.cg360.spookums.server.core.scheduler.Scheduler;
 import net.cg360.spookums.server.core.data.Settings;
+import net.cg360.spookums.server.network.PacketRegistry;
 import org.slf4j.Logger;
 import org.slf4j.impl.SimpleLoggerFactory;
 
@@ -31,6 +32,8 @@ public class Server {
     protected Scheduler serverScheduler;
     protected EventManager serverEventManager;
 
+    protected PacketRegistry packetRegistry;
+
 
     public Server(String[] args) {
         this.dataPath = new File("./"); // Configurable maybe?
@@ -41,12 +44,15 @@ public class Server {
         this.logger = new SimpleLoggerFactory().getLogger("Server");
         getLogger().info("Preparing server...");
 
+        // -- Core Components --
 
         this.serverScheduler = new Scheduler(0);
-        this.serverScheduler.setAsPrimaryInstance();
-
         this.serverEventManager = new EventManager();
-        this.serverEventManager.setAsPrimaryManager();
+
+        // -- Core Registries --
+
+        this.packetRegistry = new PacketRegistry();
+
     }
 
 
@@ -57,8 +63,17 @@ public class Server {
             try {
                 this.isRunning = true;
                 getLogger().info("Starting server...");
-                getLogger().info("Starting server scheduler!");
 
+                // Attempt to claim the primary instances.
+                boolean resultScheduler = this.serverScheduler.setAsPrimaryInstance();
+                boolean resultEventManager = this.serverEventManager.setAsPrimaryManager();
+                boolean resultPacketRegistry = this.packetRegistry.setAsPrimaryInstance();
+
+                if(resultScheduler && resultEventManager && resultPacketRegistry){
+                    getLogger().info("Claimed primary instances! This is the main server! :)");
+                }
+
+                getLogger().info("Starting server scheduler!");
                 this.schedulerThread = new Thread() {
 
                     private boolean loop = true;
@@ -68,7 +83,7 @@ public class Server {
 
                         try {
 
-                            while (loop) {
+                            while (loop && isRunning) {
                                 serverScheduler.serverTick();
                                 this.wait(MSPT);
                             }
@@ -87,9 +102,10 @@ public class Server {
 
                 this.serverScheduler.startScheduler();
                 this.schedulerThread.start();
-                getLogger().info("Started the scheduler!! :)");
+                getLogger().info("Started the scheduler! :)");
 
             } catch (Exception err) {
+                getLogger().info("Error whilst starting server... :<");
                 err.printStackTrace();
                 this.isRunning = false;
             }
