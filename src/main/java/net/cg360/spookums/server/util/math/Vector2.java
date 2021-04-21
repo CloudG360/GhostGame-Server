@@ -1,4 +1,4 @@
-package net.cg360.spookums.server.math;
+package net.cg360.spookums.server.util.math;
 
 public class Vector2 {
 

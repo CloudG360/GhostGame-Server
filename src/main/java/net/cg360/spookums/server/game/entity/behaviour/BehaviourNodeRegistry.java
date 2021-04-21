@@ -1,8 +1,8 @@
-package net.cg360.spookums.server.entity.behaviour;
+package net.cg360.spookums.server.game.entity.behaviour;
 
 import net.cg360.spookums.server.Server;
-import net.cg360.spookums.server.entity.behaviour.types.NodeBaseBehaviour;
-import net.cg360.spookums.server.entity.behaviour.types.NodeBlueprint;
+import net.cg360.spookums.server.game.entity.behaviour.types.NodeBaseBehaviour;
+import net.cg360.spookums.server.game.entity.behaviour.types.NodeBlueprint;
 import net.cg360.spookums.server.core.data.keyvalue.Key;
 import net.cg360.spookums.server.core.data.id.Identifier;
 

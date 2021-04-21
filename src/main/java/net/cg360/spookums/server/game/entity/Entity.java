@@ -1,7 +1,7 @@
-package net.cg360.spookums.server.entity;
+package net.cg360.spookums.server.game.entity;
 
-import net.cg360.spookums.server.entity.behaviour.EntityBehaviourTree;
-import net.cg360.spookums.server.math.Vector2;
+import net.cg360.spookums.server.game.entity.behaviour.EntityBehaviourTree;
+import net.cg360.spookums.server.util.math.Vector2;
 
 import java.util.concurrent.atomic.AtomicInteger;
 
