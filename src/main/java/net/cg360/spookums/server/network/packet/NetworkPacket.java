@@ -13,11 +13,11 @@ public abstract class NetworkPacket {
 
     public NetworkPacket(){
         this.body = ByteBuffer.wrap(new byte[MAX_BUFFER_SIZE - 3]); // 3 bytes are reserved for meta.
-        this.packetID = genPacketID();
+        this.packetID = getPacketTypeID();
         this.bodySize = 0;
     }
 
-    protected abstract byte genPacketID();
+    protected abstract byte getPacketTypeID();
     protected abstract short encodeBody(); // Takes data and puts it into the body buffer. returns: body size
     protected abstract void decodeBody(); // Takes data from the body buffer and converts it to fields.
 
