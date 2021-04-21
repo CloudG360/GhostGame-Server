@@ -46,7 +46,7 @@ public class EventManager {
         if(primaryManager == null) primaryManager = this;
     }
 
-    public void call(BaseEvent event) {
+    public synchronized void call(BaseEvent event) {
         ArrayList<HandlerMethodPair> callList = new ArrayList<>();
 
         // And this is the part where it's probably the least efficient.
@@ -121,7 +121,7 @@ public class EventManager {
      * @param listener the listener to be registered.
      * @return listener for storing an instance.
      */
-    public Listener addListener(Listener listener) {
+    public synchronized Listener addListener(Listener listener) {
         removeListener(listener, true);
         // Check that it isn't duped by clearing it.
         // If someone has used the same object instance to create two objects and overrided
@@ -134,7 +134,7 @@ public class EventManager {
      * Removes listener from this EventManager and any child EventManager's
      * @param listener the listener to be removed.
      */
-    public void removeListener(Listener listener) {
+    public synchronized void removeListener(Listener listener) {
         removeListener(listener, true);
     }
 
@@ -143,7 +143,7 @@ public class EventManager {
      * @param listener the listener to be removed.
      * @param removeFromChildren should instances of this listener be removed in child EventManager's ?
      */
-    public void removeListener(Listener listener, boolean removeFromChildren) {
+    public synchronized void removeListener(Listener listener, boolean removeFromChildren) {
         listeners.remove(listener);
 
         if(removeFromChildren) {
