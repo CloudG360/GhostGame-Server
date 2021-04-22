@@ -32,6 +32,12 @@ public class PacketRegistry {
         return Optional.ofNullable(this.packetTypes.get(id));
     }
 
+    // Chaining
+    public PacketRegistry r(byte id, Class<? extends NetworkPacket> type) {
+        registerPacketType(id, type);
+        return this;
+    }
+
     public boolean registerPacketType(byte id, Class<? extends NetworkPacket> type) {
         Check.nullParam(type, "type");
 

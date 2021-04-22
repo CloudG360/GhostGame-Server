@@ -1,5 +1,8 @@
 package net.cg360.spookums.server.network;
 
+import net.cg360.spookums.server.network.packet.generic.PacketDisconnect;
+import net.cg360.spookums.server.network.packet.generic.PacketServerNotice;
+
 public class VanillaProtocol {
 
     /* -- General Notes: --
@@ -36,6 +39,7 @@ public class VanillaProtocol {
     public static final byte PACKET_SERVER_NOTICE = 0x13; // out - Used to display generic information to a user
     public static final byte PACKET_DISCONNECT_REASON = 0x14; // in/out - Sent by the server/client that's closing the connection.
 
+
     // Response/Generic Packets
     public static final byte PACKET_RESPONSE_WARNING = 0x15; // out - Used to respond to client packets with a warn status
     public static final byte PACKET_RESPONSE_SUCCESS = 0x16; // out - Used to respond to client packets with a info status
@@ -56,5 +60,37 @@ public class VanillaProtocol {
     public static final byte PACKET_FETCH_GAME_LIST = 0x33; // in - Requests a list of games (Responded to with a few PACKET_GAME_DETAIL's)
     public static final byte PACKET_REQUEST_GAME_DETAIL = 0x34; // in - Requests the details of a specific game
     public static final byte PACKET_GAME_DETAIL = 0x35; // out - Sends details of the game to the client
+
+
+    public static void applyToRegistry(PacketRegistry incomeRegistry) {
+        incomeRegistry
+                .r(PACKET_PROTOCOL_INVALID_PACKET, null)
+                .r(PACKET_PROTOCOL_CHECK, null)
+                .r(PACKET_PROTOCOL_SUCCESS, null)
+                .r(PACKET_PROTOCOL_ERROR, null)
+                .r(PACKET_PROTOCOL_BATCH, null)
+                .r(PACKET_PROTOCOL_PING_PONG, null)
+
+                .r(PACKET_SERVER_PING_REQUEST, null)
+                .r(PACKET_SERVER_DETAIL, null)
+                .r(PACKET_CLIENT_DETAIL, null)
+                .r(PACKET_SERVER_NOTICE, PacketServerNotice.class)
+                .r(PACKET_DISCONNECT_REASON, PacketDisconnect.class)
+
+                .r(PACKET_RESPONSE_WARNING, null)
+                .r(PACKET_RESPONSE_SUCCESS, null)
+                .r(PACKET_RESPONSE_ERROR, null)
+
+                .r(PACKET_LOGIN, null)
+                .r(PACKET_CREATE_ACCOUNT, null)
+                .r(PACKET_LOGIN_RESPONSE, null)
+
+                .r(PACKET_GAME_JOIN_REQUEST, null)
+                .r(PACKET_GAME_CREATE_REQUEST, null)
+                .r(PACKET_GAME_RESPONSE, null)
+                .r(PACKET_FETCH_GAME_LIST, null)
+                .r(PACKET_REQUEST_GAME_DETAIL, null)
+                .r(PACKET_GAME_DETAIL, null);
+    }
 
 }
