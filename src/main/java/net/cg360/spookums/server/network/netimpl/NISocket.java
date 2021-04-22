@@ -1,5 +1,6 @@
 package net.cg360.spookums.server.network.netimpl;
 
+import net.cg360.spookums.server.Server;
 import net.cg360.spookums.server.network.VanillaProtocol;
 import net.cg360.spookums.server.network.packet.NetworkPacket;
 import net.cg360.spookums.server.network.packet.generic.PacketDisconnect;
@@ -56,7 +57,7 @@ public class NISocket implements NetworkInterface {
             PacketDisconnect pkDisconnect = new PacketDisconnect("The server you were connected to has closed.");
 
             for(UUID uuid: getClientNetIDs()) {
-                disconnectClient(uuid);
+                disconnectClient(uuid, pkDisconnect);
             }
 
             // How do I even counter that? Idk
@@ -88,6 +89,21 @@ public class NISocket implements NetworkInterface {
     @Override
     public synchronized void disconnectClient(UUID uuid, PacketDisconnect disconnectPacket) {
 
+        if(clientSockets.containsKey(uuid)) {
+            Socket conn = clientSockets.get(uuid);
+
+            if(conn.isConnected() && (!conn.isClosed())) {
+                sendDataPacket(uuid, disconnectPacket, true);
+
+                try { conn.close(); }
+                catch (Exception err) { err.printStackTrace(); }
+            }
+
+            //Server.get().getServerEventManager().call(); Call an event to indicate a client has been disconnected.
+
+            clientSockets.remove(uuid);
+
+        }
     }
 
     @Override
