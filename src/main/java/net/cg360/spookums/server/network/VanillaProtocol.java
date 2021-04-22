@@ -19,13 +19,14 @@ public class VanillaProtocol {
     public static final byte PACKET_SERVER_PING_REQUEST = 0x11; // in - responded to with PACKET_SERVER_DETAIL
     public static final byte PACKET_SERVER_DETAIL = 0x11; // out - JSON format - Like a ping, should only be extended. Includes stuff like name + logo if present.
     public static final byte PACKET_CLIENT_DETAIL = 0x12; // in - JSON format - Stores client OS, version, and other non-essential details. Could be use to split platforms
+    public static final byte PACKET_SERVER_NOTICE = 0x13; // out - Used to display generic information to a user
+    public static final byte PACKET_DISCONNECT_REASON = 0x14; // in/out - Sent by the server/client that's closing the connection.
 
-    // Generic Packets
-    public static final byte PACKET_SERVER_NOTICE = 0x12; // out - Used to display generic information to a user
-    public static final byte PACKET_RESPONSE_WARNING = 0x13; // out - Used to respond to client packets with a warn status
-    public static final byte PACKET_RESPONSE_SUCCESS = 0x14; // out - Used to respond to client packets with a info status
-    public static final byte PACKET_RESPONSE_ERROR = 0x15; // out - Used to respond to client packets with a error status
-    public static final byte PACKET_DISCONNECT_REASON = 0x16; // in/out - Sent by the server/client that's closing the connection.
+    // Response/Generic Packets
+    public static final byte PACKET_RESPONSE_WARNING = 0x15; // out - Used to respond to client packets with a warn status
+    public static final byte PACKET_RESPONSE_SUCCESS = 0x16; // out - Used to respond to client packets with a info status
+    public static final byte PACKET_RESPONSE_ERROR = 0x17; // out - Used to respond to client packets with a error status
+
 
     // Account Management Packets
     public static final byte PACKET_LOGIN = 0x20; // in - User attempts to login to their account
