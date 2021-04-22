@@ -34,7 +34,7 @@ public class PacketServerNotice extends NetworkPacket {
 
 
     @Override
-    protected byte getPacketTypeID() {
+    protected char getPacketTypeID() {
         return VanillaProtocol.PACKET_SERVER_NOTICE;
     }
 

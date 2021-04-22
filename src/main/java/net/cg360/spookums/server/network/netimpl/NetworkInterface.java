@@ -15,14 +15,14 @@ public interface NetworkInterface {
     void openServerBlocking(String hostname, int port);
     void closeServer();
 
-    ArrayList<NetworkPacket> checkForInboundPackets(UUID user);
+    ArrayList<NetworkPacket> checkForInboundPackets(UUID clientNetID);
     HashMap<UUID, ArrayList<NetworkPacket>> checkForInboundPackets(); // Bulk method
 
     void sendDataPacket(UUID clientNetID, NetworkPacket packet, boolean isUrgent);
     void broadcastDataPacket(NetworkPacket packet, boolean isUrgent); // Bulk method
 
-    default void disconnectClient(UUID uuid) { disconnectClient(uuid, new PacketDisconnect(null)); }
-    void disconnectClient(UUID uuid, PacketDisconnect disconnectPacket); // Closes the socked
+    default void disconnectClient(UUID clientNetID) { disconnectClient(clientNetID, new PacketDisconnect(null)); }
+    void disconnectClient(UUID clientNetID, PacketDisconnect disconnectPacket); // Closes the socked
 
     boolean isClientConnected(UUID clientNetId);
     boolean isRunning();

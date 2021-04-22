@@ -32,7 +32,7 @@ public class PacketDisconnect extends NetworkPacket {
 
 
     @Override
-    protected byte getPacketTypeID() {
+    protected char getPacketTypeID() {
         return VanillaProtocol.PACKET_DISCONNECT_REASON;
     }
 
