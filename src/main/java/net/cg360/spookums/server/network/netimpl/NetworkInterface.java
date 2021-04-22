@@ -1,20 +1,31 @@
 package net.cg360.spookums.server.network.netimpl;
 
 import net.cg360.spookums.server.network.packet.NetworkPacket;
+import net.cg360.spookums.server.network.packet.generic.PacketDisconnect;
 
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.UUID;
+
+/**
+ *  The bare minimum interface to send data
+ */
 public interface NetworkInterface {
 
-    void start(String hostname, int port);
+    void openServerBlocking(String hostname, int port);
+    void closeServer();
 
-    void sendDataPacket(NetworkPacket packet, boolean isUrgent); //TODO: Add destination parameter
-    void broadcastDataPacket(NetworkPacket packet, boolean isUrgent);
+    ArrayList<NetworkPacket> checkForInboundPackets(UUID user);
+    HashMap<UUID, ArrayList<NetworkPacket>> checkForInboundPackets(); // Bulk method
 
-    //default void disconnectClient(){ disconnectClient(); } //TODO: Add disconnect packet default
-    void disconnectClient(NetworkPacket packet); //Disconnects on serverside. Recommended to use this rather than sending a disconnect packet alone.
+    void sendDataPacket(UUID clientNetID, NetworkPacket packet, boolean isUrgent);
+    void broadcastDataPacket(NetworkPacket packet, boolean isUrgent); // Bulk method
 
-    boolean isClientConnected(String clientNetworkIdentifier);
+    default void disconnectClient(UUID uuid) { disconnectClient(uuid, new PacketDisconnect(null)); }
+    void disconnectClient(UUID uuid, PacketDisconnect disconnectPacket); // Closes the socked
 
-    String[] getNetworkIdentifiers(); //TODO: Change to array. Should list all client ids.
-    void getNetworkIdentities(); //TODO: Change to array. Should list all clients.
+    boolean isClientConnected(UUID clientNetId);
+    boolean isRunning();
+    UUID[] getClientNetIDs();
 
 }

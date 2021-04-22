@@ -30,7 +30,6 @@ public class VanillaProtocol {
     public static final byte PACKET_PROTOCOL_SUCCESS = 0x02; // out - confirms the client is compatible.
     public static final byte PACKET_PROTOCOL_ERROR = 0x03; // out - rejects the client for using an incompatible protocol. Returns the protocol version and the supported client version
     public static final byte PACKET_PROTOCOL_BATCH = 0x04; // Unused currently. Probably a good idea though.
-    public static final byte PACKET_PROTOCOL_PING_PONG = 0x05; // in/out - Sent every second. If one isn't received by [TIMEOUT] millis, the client/server is disconnected.
 
 
     // Information Packets
@@ -70,7 +69,6 @@ public class VanillaProtocol {
                 .r(PACKET_PROTOCOL_SUCCESS, null)
                 .r(PACKET_PROTOCOL_ERROR, null)
                 .r(PACKET_PROTOCOL_BATCH, null)
-                .r(PACKET_PROTOCOL_PING_PONG, null)
 
                 .r(PACKET_SERVER_PING_REQUEST, null)
                 .r(PACKET_SERVER_DETAIL, null)
