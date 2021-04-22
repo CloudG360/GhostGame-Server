@@ -3,14 +3,13 @@ package net.cg360.spookums.server.network.packet.generic;
 import net.cg360.spookums.server.Server;
 import net.cg360.spookums.server.network.VanillaProtocol;
 import net.cg360.spookums.server.network.packet.NetworkPacket;
-import net.cg360.spookums.server.util.Check;
 
 import java.nio.charset.StandardCharsets;
 
 /**
  * <h3>Format:</h3>
  * 1 byte - Notice Display Type
- * x byte(s) - UTF-8 String data (length = packet size - 1)
+ * x byte(s) - UTF-8 String data (length = body size - 1)
  */
 public class PacketServerNotice extends NetworkPacket {
 
@@ -48,8 +47,7 @@ public class PacketServerNotice extends NetworkPacket {
         this.getBodyData().clear();
         this.getBodyData().put(type);
 
-        // Usually strings would have a length short in-front, however it can
-        // be assumed from the packet length so it isn't used here!
+        // Using a "simple" string rather than a "tracked" string.
         byte[] bytes = this.text.getBytes(StandardCharsets.UTF_8);
         this.getBodyData().put(bytes);
 
@@ -57,7 +55,7 @@ public class PacketServerNotice extends NetworkPacket {
     }
 
     @Override
-    protected void decodeBody() {
+    protected void decodeBody(short inboundSize) {
         Server.getMainLogger().warn("Attempted to decode the outbound packet: PacketServerNotice");
         // Not a server-bound packet so do nothing.
     }

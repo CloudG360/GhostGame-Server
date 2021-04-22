@@ -19,7 +19,7 @@ public abstract class NetworkPacket {
 
     protected abstract byte getPacketTypeID();
     protected abstract short encodeBody(); // Takes data and puts it into the body buffer. returns: body size
-    protected abstract void decodeBody(); // Takes data from the body buffer and converts it to fields.
+    protected abstract void decodeBody(short inboundSize); // Takes data from the body buffer and converts it to fields.
 
     public final ByteBuffer encode() {
         ByteBuffer data = ByteBuffer.wrap(new byte[MAX_BUFFER_SIZE]);
@@ -49,7 +49,7 @@ public abstract class NetworkPacket {
         }
 
         this.body.clear();
-        decodeBody();
+        decodeBody(this.bodySize);
         return this;
     }
 

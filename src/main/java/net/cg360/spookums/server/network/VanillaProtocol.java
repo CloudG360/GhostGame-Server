@@ -2,17 +2,31 @@ package net.cg360.spookums.server.network;
 
 public class VanillaProtocol {
 
-    public static final Short[] SUPPORTED_PROTOCOLS = new Short[]{ 1 };
-    public static final Short CURRENT_PROTOCOL = 1;
+    /* -- General Notes: --
+     *
+     * Types:
+     *  - String:
+     *      Stores a string type encoded in UTF-8
+     *      - (Tracked) Includes a short type "length" prior to the text, indicating the amount of bytes taken to store it.
+     *      - (Simple) Doesn't include a length prior to the string. Only used when the size can be inferred from the packet body length.
+     *
+     */
+
+    public static final Short PROTOCOL_ID = 1;
+
+    public static final int MAX_BUFFER_SIZE = 1024;
+    public static final int TIMEOUT = 15000;
 
 
     // -- Packet Identifiers --
 
     // Protocol packets - These should not change in format, even after a large update for consistency.
+    public static final byte PACKET_PROTOCOL_INVALID_PACKET = 0x00; // in/out - This should not be used at all! Packets with this ID are ignored silently.
     public static final byte PACKET_PROTOCOL_CHECK = 0x01; // in - Can be appened with new data. Includes vital protocol info. Nothing should be removed/reordered to accommodate for older clients.
     public static final byte PACKET_PROTOCOL_SUCCESS = 0x02; // out - confirms the client is compatible.
-    public static final byte PACKET_PROTOCOL_ERROR = 0x03;
+    public static final byte PACKET_PROTOCOL_ERROR = 0x03; // out - rejects the client for using an incompatible protocol. Returns the protocol version and the supported client version
     public static final byte PACKET_PROTOCOL_BATCH = 0x04; // Unused currently. Probably a good idea though.
+    public static final byte PACKET_PROTOCOL_PING_PONG = 0x05; // in/out - Sent every second. If one isn't received by [TIMEOUT] millis, the client/server is disconnected.
 
 
     // Information Packets
