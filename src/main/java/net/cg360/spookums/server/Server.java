@@ -5,6 +5,7 @@ import net.cg360.spookums.server.core.log.ServerLogger;
 import net.cg360.spookums.server.core.scheduler.Scheduler;
 import net.cg360.spookums.server.core.data.Settings;
 import net.cg360.spookums.server.network.PacketRegistry;
+import net.cg360.spookums.server.network.VanillaProtocol;
 import org.slf4j.Logger;
 import org.slf4j.impl.SimpleLoggerFactory;
 
@@ -44,10 +45,12 @@ public class Server {
         this.logger = new SimpleLoggerFactory().getLogger("Server");
         getLogger().info("Preparing server...");
 
+
         // -- Core Components --
 
         this.serverScheduler = new Scheduler(0);
         this.serverEventManager = new EventManager();
+
 
         // -- Core Registries --
 
@@ -103,6 +106,10 @@ public class Server {
                 this.serverScheduler.startScheduler();
                 this.schedulerThread.start();
                 getLogger().info("Started the scheduler! :)");
+
+                VanillaProtocol.applyToRegistry(this.packetRegistry);
+
+
 
             } catch (Exception err) {
                 getLogger().info("Error whilst starting server... :<");

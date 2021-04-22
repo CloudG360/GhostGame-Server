@@ -1,5 +1,6 @@
 package net.cg360.spookums.server.network;
 
+import net.cg360.spookums.server.Server;
 import net.cg360.spookums.server.network.packet.generic.PacketDisconnect;
 import net.cg360.spookums.server.network.packet.generic.PacketServerNotice;
 
@@ -62,8 +63,8 @@ public class VanillaProtocol {
     public static final byte PACKET_GAME_DETAIL = 0x35; // out - Sends details of the game to the client
 
 
-    public static void applyToRegistry(PacketRegistry incomeRegistry) {
-        incomeRegistry
+    public static void applyToRegistry(PacketRegistry packetRegistry) {
+        packetRegistry
                 .r(PACKET_PROTOCOL_INVALID_PACKET, null)
                 .r(PACKET_PROTOCOL_CHECK, null)
                 .r(PACKET_PROTOCOL_SUCCESS, null)
@@ -91,6 +92,11 @@ public class VanillaProtocol {
                 .r(PACKET_FETCH_GAME_LIST, null)
                 .r(PACKET_REQUEST_GAME_DETAIL, null)
                 .r(PACKET_GAME_DETAIL, null);
+        Server.getMainLogger().info(
+                String.format("Applied protocol version %s to %s packet registry.",
+                        PROTOCOL_ID,
+                        packetRegistry == PacketRegistry.get() ? "the primary" : "a"
+                ));
     }
 
 }
