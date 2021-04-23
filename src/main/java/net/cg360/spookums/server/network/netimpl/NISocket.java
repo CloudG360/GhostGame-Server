@@ -1,6 +1,7 @@
 package net.cg360.spookums.server.network.netimpl;
 
 import net.cg360.spookums.server.Server;
+import net.cg360.spookums.server.core.event.type.network.PacketEvent;
 import net.cg360.spookums.server.network.PacketRegistry;
 import net.cg360.spookums.server.network.VanillaProtocol;
 import net.cg360.spookums.server.network.packet.NetworkPacket;
@@ -93,7 +94,9 @@ public class NISocket implements NetworkInterface {
                         if(pk.isPresent()) {
                             Class<? extends NetworkPacket> clz = pk.get();
                             NetworkPacket packet = clz.newInstance().decode(byteBuffer);
-                            //TODO: Packet received event.
+
+                            PacketEvent.In<?> packetEvent = new PacketEvent.In<>(clientNetID, packet);
+                            Server.get().getServerEventManager().call(packetEvent);
 
                             collectedPackets.add(packet);
 
