@@ -1,16 +1,17 @@
 package net.cg360.spookums.server.network.netimpl;
 
 import net.cg360.spookums.server.Server;
+import net.cg360.spookums.server.network.PacketRegistry;
 import net.cg360.spookums.server.network.VanillaProtocol;
 import net.cg360.spookums.server.network.packet.NetworkPacket;
 import net.cg360.spookums.server.network.packet.generic.PacketDisconnect;
 
-import java.io.IOException;
-import java.io.OutputStream;
+import java.io.*;
 import java.net.*;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Optional;
 import java.util.UUID;
 
 public class NISocket implements NetworkInterface {
@@ -37,8 +38,8 @@ public class NISocket implements NetworkInterface {
                         Socket clientSocket = this.netSocket.accept();
                         clientSocket.setKeepAlive(true);
                         clientSocket.setSoTimeout(VanillaProtocol.TIMEOUT);
-                        clientSocket.setReceiveBufferSize(NetworkPacket.MAX_BUFFER_SIZE);
-                        clientSocket.setSendBufferSize(NetworkPacket.MAX_BUFFER_SIZE);
+                        clientSocket.setReceiveBufferSize(VanillaProtocol.MAX_BUFFER_SIZE);
+                        clientSocket.setSendBufferSize(VanillaProtocol.MAX_BUFFER_SIZE);
                         this.clientSockets.put(UUID.randomUUID(), clientSocket);
                     }
 
@@ -70,13 +71,63 @@ public class NISocket implements NetworkInterface {
     }
 
     @Override
-    public synchronized ArrayList<NetworkPacket> checkForInboundPackets(UUID user) {
-        return null;
+    public synchronized ArrayList<NetworkPacket> checkForInboundPackets(UUID clientNetID) {
+        ArrayList<NetworkPacket> collectedPackets = new ArrayList<>();
+
+        if(isClientConnected(clientNetID)) {
+            Socket client = clientSockets.get(clientNetID);
+
+            try {
+                DataInputStream in = new DataInputStream(client.getInputStream());
+                byte[] inputFeed = new byte[VanillaProtocol.MAX_BUFFER_SIZE];
+                int inputBufferSize = in.read(inputFeed);
+                ByteBuffer byteBuffer = ByteBuffer.wrap(inputFeed);
+
+                if(byteBuffer.capacity() >= 3) {
+                    char typeID = byteBuffer.getChar();
+                    short size = byteBuffer.getShort();
+
+                    if((typeID != VanillaProtocol.PACKET_PROTOCOL_INVALID_PACKET) && (size >= 0)) {
+                        Optional<Class<? extends NetworkPacket>> pk = PacketRegistry.get().getPacketTypeForID(typeID);
+
+                        if(pk.isPresent()) {
+                            Class<? extends NetworkPacket> clz = pk.get();
+                            NetworkPacket packet = clz.newInstance().decode(byteBuffer);
+                            //TODO: Packet received event.
+
+                        } else {
+                            Server.getMainLogger().warn("Invalid packet received (Unrecognized type id: %s)"+Integer.toHexString(typeID));
+                        }
+                    }
+                }
+
+            } catch (SocketException socketErr) {
+                socketErr.printStackTrace();
+
+            } catch (IOException ioErr) {
+                throw new RuntimeException("An IOException was raised whilst receiving a packet: "+ioErr.getMessage());
+
+            } catch (InstantiationException | IllegalAccessException err) {
+                err.printStackTrace();
+                Server.getMainLogger().error("A packet type is broken in this case! Submit a bug report. :)");
+            }
+
+        }
+
+        return collectedPackets;
     }
 
     @Override
     public synchronized HashMap<UUID, ArrayList<NetworkPacket>> checkForInboundPackets() {
-        return null;
+        HashMap<UUID, ArrayList<NetworkPacket>> collected = new HashMap<>();
+
+        for(UUID uuid: getClientNetIDs()) {
+
+            if(isClientConnected(uuid)) {
+                collected.put(uuid, checkForInboundPackets(uuid));
+            }
+        }
+        return collected;
     }
 
     @Override
@@ -91,7 +142,7 @@ public class NISocket implements NetworkInterface {
             content.get(contents);
 
             try {
-                OutputStream outputStream = client.getOutputStream();
+                DataOutputStream outputStream = new DataOutputStream(client.getOutputStream());
                 outputStream.write(contents);
 
             } catch (SocketException err) {
@@ -109,14 +160,14 @@ public class NISocket implements NetworkInterface {
     }
 
     @Override
-    public synchronized void disconnectClient(UUID uuid, PacketDisconnect disconnectPacket) {
+    public synchronized void disconnectClient(UUID clientNetID, PacketDisconnect disconnectPacket) {
 
-        if(clientSockets.containsKey(uuid)) {
-            Socket conn = clientSockets.get(uuid);
+        if(clientSockets.containsKey(clientNetID)) {
+            Socket conn = clientSockets.get(clientNetID);
 
             if(conn.isConnected() && (!conn.isClosed())) {
 
-                try { sendDataPacket(uuid, disconnectPacket, true); }
+                try { sendDataPacket(clientNetID, disconnectPacket, true); }
                 catch (RuntimeException err) { Server.getMainLogger().warn("Client disconnected with a IOException"); }
 
                 try { conn.close(); }
@@ -125,7 +176,7 @@ public class NISocket implements NetworkInterface {
 
             //Server.get().getServerEventManager().call(); Call an event to indicate a client has been disconnected.
 
-            clientSockets.remove(uuid);
+            clientSockets.remove(clientNetID);
         }
     }
 
