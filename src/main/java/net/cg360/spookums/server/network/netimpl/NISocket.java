@@ -95,6 +95,8 @@ public class NISocket implements NetworkInterface {
                             NetworkPacket packet = clz.newInstance().decode(byteBuffer);
                             //TODO: Packet received event.
 
+                            collectedPackets.add(packet);
+
                         } else {
                             Server.getMainLogger().warn("Invalid packet received (Unrecognized type id: %s)"+Integer.toHexString(typeID));
                         }
