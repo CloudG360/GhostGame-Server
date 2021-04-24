@@ -114,7 +114,7 @@ public class Server {
                         try {
                             while (tmpImpl.isRunning() && isRunning) {
                                 HashMap<UUID, ArrayList<NetworkPacket>> packets = tmpImpl.checkForInboundPackets();
-                                this.wait(MSPNT);
+                                synchronized (this) { this.wait(MSPNT); }
                             }
                         } catch (InterruptedException ignored) { }
                         getLogger().info("Stopped down the network client handler thread.");
