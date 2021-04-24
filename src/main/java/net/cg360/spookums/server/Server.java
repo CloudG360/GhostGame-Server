@@ -32,7 +32,6 @@ public class Server {
 
     protected boolean isRunning;
 
-    protected Thread schedulerThread;
     protected Thread netServerThread;
     protected Thread netClientsThread;
 
@@ -85,32 +84,7 @@ public class Server {
 
 
                 getLogger().info("Starting server scheduler...");
-                this.schedulerThread = new Thread() {
-
-                    private boolean loop = true;
-
-                    @Override
-                    public void run() {
-
-                        try {
-                            while (loop && isRunning) {
-                                serverScheduler.serverTick();
-                                this.wait(MSPT);
-                            }
-
-                        } catch (InterruptedException err) {
-                            getLogger().info("Shutting down main scheduler- this better be during shutdown :^)");
-                        }
-                    }
-
-                    @Override
-                    public void interrupt() {
-                        this.loop = false;
-                        super.interrupt();
-                    }
-                };
                 this.serverScheduler.startScheduler();
-                this.schedulerThread.start();
                 getLogger().info("Started the scheduler! :)");
 
 
@@ -161,9 +135,14 @@ public class Server {
                 VanillaProtocol.applyToRegistry(this.packetRegistry);
 
 
+                // Scheduler ticking is done here now.
+                while (this.isRunning) {
+                    serverScheduler.serverTick();
+                    this.wait(MSPT);
+                }
 
             } catch (Exception err) {
-                getLogger().info("Error whilst starting server... :<");
+                getLogger().info("Error whilst running server... :<");
                 err.printStackTrace();
                 this.isRunning = false;
             }
@@ -230,6 +209,7 @@ public class Server {
             instance = new Server(args);
             instance.start();
             System.out.println("!!!  Stopped Server :^)  !!!"); // No logger prepared, use java's own methods (ew)
+            System.exit(0);
         }
     }
 
