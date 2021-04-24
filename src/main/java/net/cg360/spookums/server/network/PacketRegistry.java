@@ -12,7 +12,7 @@ public class PacketRegistry {
 
     private static PacketRegistry primaryInstance = null;
 
-    protected HashMap<Character, Class<? extends NetworkPacket>> packetTypes;
+    protected HashMap<Byte, Class<? extends NetworkPacket>> packetTypes;
 
     public PacketRegistry() {
         this.packetTypes = new HashMap<>();
@@ -28,17 +28,17 @@ public class PacketRegistry {
 
 
 
-    public Optional<Class<? extends NetworkPacket>> getPacketTypeForID(char id) {
+    public Optional<Class<? extends NetworkPacket>> getPacketTypeForID(byte id) {
         return Optional.ofNullable(this.packetTypes.get(id));
     }
 
     // Chaining
-    public PacketRegistry r(char id, Class<? extends NetworkPacket> type) {
+    public PacketRegistry r(byte id, Class<? extends NetworkPacket> type) {
         registerPacketType(id, type);
         return this;
     }
 
-    public boolean registerPacketType(char id, Class<? extends NetworkPacket> type) {
+    public boolean registerPacketType(byte id, Class<? extends NetworkPacket> type) {
         if(type == null) return false;
 
         if(!this.packetTypes.containsKey(id)) {

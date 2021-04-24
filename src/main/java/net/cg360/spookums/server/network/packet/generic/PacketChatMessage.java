@@ -16,7 +16,7 @@ public class PacketChatMessage extends NetworkPacket {
 
 
     @Override
-    protected char getPacketTypeID() {
+    protected byte getPacketTypeID() {
         return VanillaProtocol.PACKET_CHAT_MESSAGE;
     }
 

@@ -7,7 +7,7 @@ import java.nio.ByteBuffer;
 public abstract class NetworkPacket {
 
     private ByteBuffer body;
-    private char packetID;
+    private byte packetID;
 
     protected short bodySize;
 
@@ -17,7 +17,7 @@ public abstract class NetworkPacket {
         this.bodySize = 0;
     }
 
-    protected abstract char getPacketTypeID();
+    protected abstract byte getPacketTypeID();
     protected abstract short encodeBody(); // Takes data and puts it into the body buffer. returns: body size
     protected abstract void decodeBody(short inboundSize); // Takes data from the body buffer and converts it to fields.
 
@@ -25,7 +25,7 @@ public abstract class NetworkPacket {
         ByteBuffer data = ByteBuffer.wrap(new byte[VanillaProtocol.MAX_BUFFER_SIZE]);
 
         short size = encodeBody();
-        data.putChar(packetID);
+        data.put(packetID);
         data.putShort(size);
 
         this.body.clear(); // Go to the start of the body.
@@ -41,7 +41,7 @@ public abstract class NetworkPacket {
         fullPacket.clear(); // Ensure buffers are ready for reading.
         this.body.clear();
 
-        this.packetID = fullPacket.getChar();
+        this.packetID = fullPacket.get();
         this.bodySize = fullPacket.getShort(); // Really should be converted to an int if it's unsigned
 
         for(int i = 0; i < bodySize; i++) {
@@ -54,7 +54,7 @@ public abstract class NetworkPacket {
     }
 
     public ByteBuffer getBodyData() { return body; }
-    public char getPacketID() { return packetID; }
+    public byte getPacketID() { return packetID; }
     public short getBodySize() { return bodySize; }
 
 
