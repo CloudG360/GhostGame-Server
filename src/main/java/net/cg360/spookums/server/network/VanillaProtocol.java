@@ -1,6 +1,7 @@
 package net.cg360.spookums.server.network;
 
 import net.cg360.spookums.server.Server;
+import net.cg360.spookums.server.network.packet.generic.PacketChatMessage;
 import net.cg360.spookums.server.network.packet.generic.PacketDisconnect;
 import net.cg360.spookums.server.network.packet.generic.PacketServerNotice;
 
@@ -45,6 +46,8 @@ public class VanillaProtocol {
     public static final char PACKET_RESPONSE_SUCCESS = 0x16; // out - Used to respond to client packets with a info status
     public static final char PACKET_RESPONSE_ERROR = 0x17; // out - Used to respond to client packets with a error status
 
+    public static final char PACKET_CHAT_MESSAGE = 0x18; // in/out - messages in may get some further formatting.
+
 
     // Account Management Packets
     public static final char PACKET_LOGIN = 0x20; // in - User attempts to login to their account
@@ -79,6 +82,7 @@ public class VanillaProtocol {
                 .r(PACKET_RESPONSE_WARNING, null)
                 .r(PACKET_RESPONSE_SUCCESS, null)
                 .r(PACKET_RESPONSE_ERROR, null)
+                .r(PACKET_CHAT_MESSAGE, PacketChatMessage.class)
 
                 .r(PACKET_LOGIN, null)
                 .r(PACKET_CREATE_ACCOUNT, null)

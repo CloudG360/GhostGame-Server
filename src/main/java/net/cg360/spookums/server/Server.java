@@ -1,6 +1,9 @@
 package net.cg360.spookums.server;
 
 import net.cg360.spookums.server.core.event.EventManager;
+import net.cg360.spookums.server.core.event.Listener;
+import net.cg360.spookums.server.core.event.handler.EventHandler;
+import net.cg360.spookums.server.core.event.type.network.PacketEvent;
 import net.cg360.spookums.server.core.log.ServerLogger;
 import net.cg360.spookums.server.core.scheduler.Scheduler;
 import net.cg360.spookums.server.core.data.Settings;
@@ -153,8 +156,11 @@ public class Server {
                 this.netClientsThread.start();
                 getLogger().info("Starting network client handler thread!");
 
+                this.getServerEventManager().addListener(new Listener(this));
 
                 VanillaProtocol.applyToRegistry(this.packetRegistry);
+
+
 
             } catch (Exception err) {
                 getLogger().info("Error whilst starting server... :<");
@@ -165,6 +171,26 @@ public class Server {
         } else {
             throw new IllegalStateException("This server is already running!");
         }
+    }
+
+
+
+    @EventHandler
+    public void onPacketIn(PacketEvent.In<?> event) {
+        getLogger().info(String.format("IN | %s << %s %s",
+                event.getClientNetID().toString(),
+                event.getPacket().toCoreString(),
+                event.getPacket().toString())
+        );
+    }
+
+    @EventHandler
+    public void onPacketOut(PacketEvent.Out<?> event) {
+        getLogger().info(String.format("OUT | %s >> %s %s",
+                event.getClientNetID().toString(),
+                event.getPacket().toCoreString(),
+                event.getPacket().toString())
+        );
     }
 
 
