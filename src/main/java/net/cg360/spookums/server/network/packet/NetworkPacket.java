@@ -56,4 +56,13 @@ public abstract class NetworkPacket {
     public ByteBuffer getBodyData() { return body; }
     public char getPacketID() { return packetID; }
     public short getBodySize() { return bodySize; }
+
+
+
+    public String toCoreString() {
+        return "(" +
+                "ID=" + packetID +
+                "| size=" + bodySize +
+                ")";
+    }
 }

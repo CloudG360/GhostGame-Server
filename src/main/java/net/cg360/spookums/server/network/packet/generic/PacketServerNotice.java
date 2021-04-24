@@ -73,6 +73,15 @@ public class PacketServerNotice extends NetworkPacket {
     public void setText(String text) { this.text = text; }
 
 
+    @Override
+    public String toString() {
+        return "Content: {" +
+                "type=" + type +
+                ", text='" + text + "'" +
+                "}";
+    }
+
+
 
     public enum Type {
         INFO_BOX( 0),     // A simple info prompt is displayed to the client.

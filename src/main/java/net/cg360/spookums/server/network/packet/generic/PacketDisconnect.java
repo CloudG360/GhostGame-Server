@@ -65,4 +65,16 @@ public class PacketDisconnect extends NetworkPacket {
 
         this.getBodyData().clear();
     }
+
+
+    public String getText() { return text; }
+
+
+
+    @Override
+    public String toString() {
+        return "Content: {" +
+                "text='" + text + "'" +
+                "}";
+    }
 }
