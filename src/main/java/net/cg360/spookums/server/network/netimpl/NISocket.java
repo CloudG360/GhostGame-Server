@@ -111,16 +111,13 @@ public class NISocket implements NetworkInterface {
                             collectedPackets.add(packet);
 
                         } else {
-                            Server.getMainLogger().warn("Invalid packet received (Unrecognized type id: %s)"+Integer.toHexString(typeID));
+                            Server.getMainLogger().warn(String.format("Invalid packet received (Unrecognized type id: %s)", Integer.toHexString(typeID)));
                         }
                     }
                 }
 
-            } catch (SocketException socketErr) {
+            } catch (IOException socketErr) {
                 socketErr.printStackTrace();
-
-            } catch (IOException ioErr) {
-                throw new RuntimeException("An IOException was raised whilst receiving a packet: "+ioErr.getMessage());
 
             } catch (InstantiationException | IllegalAccessException err) {
                 err.printStackTrace();

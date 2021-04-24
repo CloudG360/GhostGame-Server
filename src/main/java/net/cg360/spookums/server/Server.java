@@ -94,7 +94,7 @@ public class Server {
 
                     @Override
                     public void run() {
-                        tmpImpl.openServerBlocking("0.0.0.0", 22057);
+                        tmpImpl.openServerBlocking("127.0.0.1", 22057);
                         netClientsThread.interrupt();
                         getLogger().info("Stopped down the network server thread.");
                     }
