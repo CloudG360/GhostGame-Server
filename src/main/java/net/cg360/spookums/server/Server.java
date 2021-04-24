@@ -66,7 +66,7 @@ public class Server {
 
 
 
-    public void start() {
+    public synchronized void start() {
         if(!this.isRunning) {
 
             try {
