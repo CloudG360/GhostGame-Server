@@ -30,9 +30,9 @@ public class NISocket implements NetworkInterface {
             try {
                 InetAddress address = Inet4Address.getByName(hostname);
 
-                try (ServerSocket socket = new ServerSocket(port, 50, address)) {
+                try {
                     this.isRunning = true;
-                    this.netSocket = socket;
+                    this.netSocket = new ServerSocket(port, 50, address);
                     this.clientSockets = new HashMap<>();
 
                     while (isRunning) {
@@ -44,7 +44,10 @@ public class NISocket implements NetworkInterface {
                         this.clientSockets.put(UUID.randomUUID(), clientSocket);
                     }
 
+                    this.closeServer();
+
                 } catch (Exception socketError) {
+                    if(this.netSocket != null) this.closeServer();
                     socketError.printStackTrace();
                 }
 
@@ -68,6 +71,7 @@ public class NISocket implements NetworkInterface {
             // How do I even counter that? Idk
             try { netSocket.close(); }
             catch (Exception err) { err.printStackTrace(); }
+            this.isRunning = false;
         }
     }
 

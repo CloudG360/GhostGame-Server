@@ -6,18 +6,21 @@ import net.cg360.spookums.server.core.scheduler.Scheduler;
 import net.cg360.spookums.server.core.data.Settings;
 import net.cg360.spookums.server.network.PacketRegistry;
 import net.cg360.spookums.server.network.VanillaProtocol;
+import net.cg360.spookums.server.network.netimpl.NISocket;
+import net.cg360.spookums.server.network.packet.NetworkPacket;
 import org.slf4j.Logger;
 import org.slf4j.impl.SimpleLoggerFactory;
 
 import java.awt.*;
 import java.io.File;
 import java.io.IOException;
-import java.util.Arrays;
+import java.util.*;
 import java.util.List;
 
 public class Server {
 
     public static final int MSPT = 1000 / 20; // Millis per tick.
+    public static final int MSPNT = 1000 / 50; // Millis between network scan tick
 
     protected static Server instance;
 
@@ -26,8 +29,9 @@ public class Server {
 
     protected boolean isRunning;
 
-    protected Thread networkThread;
     protected Thread schedulerThread;
+    protected Thread netServerThread;
+    protected Thread netClientsThread;
 
     protected Logger logger;
     protected Scheduler serverScheduler;
@@ -76,7 +80,8 @@ public class Server {
                     getLogger().info("Claimed primary instances! This is the main server! :)");
                 }
 
-                getLogger().info("Starting server scheduler!");
+
+                getLogger().info("Starting server scheduler...");
                 this.schedulerThread = new Thread() {
 
                     private boolean loop = true;
@@ -85,7 +90,6 @@ public class Server {
                     public void run() {
 
                         try {
-
                             while (loop && isRunning) {
                                 serverScheduler.serverTick();
                                 this.wait(MSPT);
@@ -102,14 +106,55 @@ public class Server {
                         super.interrupt();
                     }
                 };
-
                 this.serverScheduler.startScheduler();
                 this.schedulerThread.start();
                 getLogger().info("Started the scheduler! :)");
 
+
+                getLogger().info("Starting network threads...");
+                final NISocket tmpImpl = new NISocket(); //TODO: Replace this with a NetworkManager
+                this.netServerThread = new Thread() {
+
+                    @Override
+                    public void run() {
+                        tmpImpl.openServerBlocking("0.0.0.0", 22057);
+                        netClientsThread.interrupt();
+                        getLogger().info("Stopped down the network server thread.");
+                    }
+
+                    @Override
+                    public void interrupt() {
+                        netClientsThread.interrupt();
+                        super.interrupt();
+                    }
+                };
+
+                this.netClientsThread = new Thread() {
+
+                    @Override
+                    public void run() {
+
+                        try {
+                            while (tmpImpl.isRunning() && isRunning) {
+                                HashMap<UUID, ArrayList<NetworkPacket>> packets = tmpImpl.checkForInboundPackets();
+                                this.wait(MSPNT);
+                            }
+                        } catch (InterruptedException ignored) { }
+                        getLogger().info("Stopped down the network client handler thread.");
+                    }
+
+                    @Override
+                    public void interrupt() {
+                        super.interrupt();
+                    }
+                };
+                this.netServerThread.start();
+                getLogger().info("Starting network server thread!");
+                this.netClientsThread.start();
+                getLogger().info("Starting network client handler thread!");
+
+
                 VanillaProtocol.applyToRegistry(this.packetRegistry);
-
-
 
             } catch (Exception err) {
                 getLogger().info("Error whilst starting server... :<");
