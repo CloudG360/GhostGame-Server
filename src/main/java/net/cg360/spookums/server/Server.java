@@ -112,7 +112,7 @@ public class Server {
                     public void run() {
 
                         try {
-                            while (tmpImpl.isRunning() && isRunning) {
+                            while (isRunning) {
                                 HashMap<UUID, ArrayList<NetworkPacket>> packets = tmpImpl.checkForInboundPackets();
                                 synchronized (this) { this.wait(MSPNT); }
                             }

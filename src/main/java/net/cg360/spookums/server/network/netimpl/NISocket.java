@@ -95,11 +95,11 @@ public class NISocket implements NetworkInterface {
                 ByteBuffer byteBuffer = ByteBuffer.wrap(inputFeed);
 
                 if(byteBuffer.capacity() >= 3) {
-                    char typeID = byteBuffer.getChar();
+                    byte typeID = byteBuffer.get();
                     short size = byteBuffer.getShort();
 
                     if((typeID != VanillaProtocol.PACKET_PROTOCOL_INVALID_PACKET) && (size >= 0)) {
-                        Optional<Class<? extends NetworkPacket>> pk = PacketRegistry.get().getPacketTypeForID(typeID);
+                        Optional<Class<? extends NetworkPacket>> pk = PacketRegistry.get().getPacketTypeForID((char) typeID);
 
                         if(pk.isPresent()) {
                             Class<? extends NetworkPacket> clz = pk.get();
@@ -111,13 +111,13 @@ public class NISocket implements NetworkInterface {
                             collectedPackets.add(packet);
 
                         } else {
-                            Server.getMainLogger().warn(String.format("Invalid packet received (Unrecognized type id: %s)", Integer.toHexString(typeID)));
+                            Server.getMainLogger().warn(String.format("Invalid packet received (Unrecognized type id: %s)", typeID));
                         }
                     }
                 }
 
             } catch (IOException socketErr) {
-                socketErr.printStackTrace();
+                disconnectClient(clientNetID, new PacketDisconnect("An error occurred | "+socketErr.getMessage()));
 
             } catch (InstantiationException | IllegalAccessException err) {
                 err.printStackTrace();
