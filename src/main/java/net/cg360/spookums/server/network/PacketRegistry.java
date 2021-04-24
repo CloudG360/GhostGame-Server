@@ -39,7 +39,7 @@ public class PacketRegistry {
     }
 
     public boolean registerPacketType(char id, Class<? extends NetworkPacket> type) {
-        Check.nullParam(type, "type");
+        if(type == null) return false;
 
         if(!this.packetTypes.containsKey(id)) {
             this.packetTypes.put(id, type);
