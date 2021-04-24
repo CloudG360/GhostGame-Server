@@ -94,25 +94,23 @@ public class NISocket implements NetworkInterface {
                 int inputBufferSize = in.read(inputFeed);
                 ByteBuffer byteBuffer = ByteBuffer.wrap(inputFeed);
 
-                if(byteBuffer.capacity() >= 3) {
-                    byte typeID = byteBuffer.get();
-                    short size = byteBuffer.getShort();
+                byte typeID = byteBuffer.get();
+                short size = byteBuffer.getShort();
 
-                    if((typeID != VanillaProtocol.PACKET_PROTOCOL_INVALID_PACKET) && (size >= 0)) {
-                        Optional<Class<? extends NetworkPacket>> pk = PacketRegistry.get().getPacketTypeForID((char) typeID);
+                if(typeID != VanillaProtocol.PACKET_PROTOCOL_INVALID_PACKET) {
+                    Optional<Class<? extends NetworkPacket>> pk = PacketRegistry.get().getPacketTypeForID((char) typeID);
 
-                        if(pk.isPresent()) {
-                            Class<? extends NetworkPacket> clz = pk.get();
-                            NetworkPacket packet = clz.newInstance().decode(byteBuffer);
+                    if(pk.isPresent()) {
+                        Class<? extends NetworkPacket> clz = pk.get();
+                        NetworkPacket packet = clz.newInstance().decode(byteBuffer);
 
-                            PacketEvent.In<?> packetEvent = new PacketEvent.In<>(clientNetID, packet);
-                            Server.get().getServerEventManager().call(packetEvent);
+                        PacketEvent.In<?> packetEvent = new PacketEvent.In<>(clientNetID, packet);
+                        Server.get().getServerEventManager().call(packetEvent);
 
-                            collectedPackets.add(packet);
+                        collectedPackets.add(packet);
 
-                        } else {
-                            Server.getMainLogger().warn(String.format("Invalid packet received (Unrecognized type id: %s)", typeID));
-                        }
+                    } else {
+                        Server.getMainLogger().warn(String.format("Invalid packet received (Unrecognized type id: %s)", typeID));
                     }
                 }
 
