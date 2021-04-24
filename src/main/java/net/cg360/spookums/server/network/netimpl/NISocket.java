@@ -22,9 +22,13 @@ public class NISocket implements NetworkInterface {
 
     protected boolean isRunning = false;
 
+    public NISocket() {
+        this.netSocket = null;
+        this.clientSockets = new HashMap<>();
+    }
+
     @Override
     public void openServerBlocking(String hostname, int port) {
-
         if(!isRunning) {
 
             try {
@@ -61,6 +65,7 @@ public class NISocket implements NetworkInterface {
 
     @Override
     public synchronized void closeServer() {
+        if(!isRunning) return;
         if((!netSocket.isClosed()) && netSocket.isBound())  {
             PacketDisconnect pkDisconnect = new PacketDisconnect("The server you were connected to has closed.");
 
@@ -77,6 +82,7 @@ public class NISocket implements NetworkInterface {
 
     @Override
     public synchronized ArrayList<NetworkPacket> checkForInboundPackets(UUID clientNetID) {
+        if(!isRunning) return new ArrayList<>();
         ArrayList<NetworkPacket> collectedPackets = new ArrayList<>();
 
         if(isClientConnected(clientNetID)) {
@@ -128,6 +134,7 @@ public class NISocket implements NetworkInterface {
 
     @Override
     public synchronized HashMap<UUID, ArrayList<NetworkPacket>> checkForInboundPackets() {
+        if(!isRunning) return new HashMap<>();
         HashMap<UUID, ArrayList<NetworkPacket>> collected = new HashMap<>();
 
         for(UUID uuid: getClientNetIDs()) {
@@ -141,7 +148,7 @@ public class NISocket implements NetworkInterface {
 
     @Override
     public synchronized void sendDataPacket(UUID clientNetID, NetworkPacket packet, boolean isUrgent) {
-
+        if(!isRunning) return;
         if(isClientConnected(clientNetID)) {
             Socket client = clientSockets.get(clientNetID);
             ByteBuffer content = packet.encode();
@@ -165,12 +172,13 @@ public class NISocket implements NetworkInterface {
 
     @Override
     public synchronized void broadcastDataPacket(NetworkPacket packet, boolean isUrgent) {
+        if(!isRunning) return;
         for(UUID uuid: getClientNetIDs()) sendDataPacket(uuid, packet, isUrgent);
     }
 
     @Override
     public synchronized void disconnectClient(UUID clientNetID, PacketDisconnect disconnectPacket) {
-
+        if(!isRunning) return;
         if(clientSockets.containsKey(clientNetID)) {
             Socket conn = clientSockets.get(clientNetID);
 
@@ -191,6 +199,7 @@ public class NISocket implements NetworkInterface {
 
     @Override
     public synchronized boolean isClientConnected(UUID clientNetId) {
+        if(!isRunning) return false;
         if(clientSockets.containsKey(clientNetId)) {
             Socket socket = clientSockets.get(clientNetId);
 
@@ -212,6 +221,7 @@ public class NISocket implements NetworkInterface {
 
     @Override
     public synchronized UUID[] getClientNetIDs() {
+        if(!isRunning) return new UUID[0];
         return clientSockets.keySet().toArray(new UUID[0]);
     }
 }
