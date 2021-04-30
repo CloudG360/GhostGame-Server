@@ -24,7 +24,8 @@ public class VanillaProtocol {
 
     public static final Short PROTOCOL_ID = 1;
 
-    public static final int MAX_BUFFER_SIZE = 1024;
+    public static final int MAX_BUFFER_SIZE = 4096;
+    public static final int MAX_PACKET_SIZE = 1024;
     public static final int TIMEOUT = 15000;
 
 

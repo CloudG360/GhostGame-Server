@@ -12,7 +12,7 @@ public abstract class NetworkPacket {
     protected short bodySize;
 
     public NetworkPacket(){
-        this.body = ByteBuffer.wrap(new byte[VanillaProtocol.MAX_BUFFER_SIZE - 3]); // 3 bytes are reserved for meta.
+        this.body = ByteBuffer.wrap(new byte[VanillaProtocol.MAX_PACKET_SIZE - 3]); // 3 bytes are reserved for meta.
         this.packetID = getPacketTypeID();
         this.bodySize = 0;
     }
@@ -22,7 +22,7 @@ public abstract class NetworkPacket {
     protected abstract void decodeBody(short inboundSize); // Takes data from the body buffer and converts it to fields.
 
     public final ByteBuffer encode() {
-        ByteBuffer data = ByteBuffer.wrap(new byte[VanillaProtocol.MAX_BUFFER_SIZE]);
+        ByteBuffer data = ByteBuffer.wrap(new byte[VanillaProtocol.MAX_PACKET_SIZE]);
 
         short size = encodeBody();
         data.put(packetID);
