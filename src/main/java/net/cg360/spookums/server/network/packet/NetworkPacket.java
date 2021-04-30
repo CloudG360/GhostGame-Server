@@ -1,10 +1,10 @@
 package net.cg360.spookums.server.network.packet;
 
+import net.cg360.spookums.server.network.VanillaProtocol;
+
 import java.nio.ByteBuffer;
 
 public abstract class NetworkPacket {
-
-    public static final short MAX_BUFFER_SIZE = 1024;
 
     private ByteBuffer body;
     private byte packetID;
@@ -12,17 +12,17 @@ public abstract class NetworkPacket {
     protected short bodySize;
 
     public NetworkPacket(){
-        this.body = ByteBuffer.wrap(new byte[MAX_BUFFER_SIZE - 3]); // 3 bytes are reserved for meta.
-        this.packetID = genPacketID();
+        this.body = ByteBuffer.wrap(new byte[VanillaProtocol.MAX_BUFFER_SIZE - 3]); // 3 bytes are reserved for meta.
+        this.packetID = getPacketTypeID();
         this.bodySize = 0;
     }
 
-    protected abstract byte genPacketID();
+    protected abstract byte getPacketTypeID();
     protected abstract short encodeBody(); // Takes data and puts it into the body buffer. returns: body size
-    protected abstract void decodeBody(); // Takes data from the body buffer and converts it to fields.
+    protected abstract void decodeBody(short inboundSize); // Takes data from the body buffer and converts it to fields.
 
     public final ByteBuffer encode() {
-        ByteBuffer data = ByteBuffer.wrap(new byte[MAX_BUFFER_SIZE]);
+        ByteBuffer data = ByteBuffer.wrap(new byte[VanillaProtocol.MAX_BUFFER_SIZE]);
 
         short size = encodeBody();
         data.put(packetID);
@@ -49,11 +49,20 @@ public abstract class NetworkPacket {
         }
 
         this.body.clear();
-        decodeBody();
+        decodeBody(this.bodySize);
         return this;
     }
 
     public ByteBuffer getBodyData() { return body; }
     public byte getPacketID() { return packetID; }
     public short getBodySize() { return bodySize; }
+
+
+
+    public String toCoreString() {
+        return "(" +
+                "ID=" + packetID +
+                "| size=" + bodySize +
+                ")";
+    }
 }

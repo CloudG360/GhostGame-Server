@@ -15,10 +15,12 @@ dependencies {
     //compile group: 'org.slf4j', name: 'slf4j-simple', version: '1.6.1'
 
     //implementation group: 'org.slf4j', name: 'slf4j-api', version: '1.7.25'
+    //compile 'io.netty:netty-all:4.1.44.Final'
 
     // Get local jar files
     compile fileTree(dir: rootDir.getPath() + '/libs/compile', include: '*.jar')
     implementation fileTree(dir: rootDir.getPath() + '/libs/runtime', include: '*.jar')
+
 }
 
 jar {
