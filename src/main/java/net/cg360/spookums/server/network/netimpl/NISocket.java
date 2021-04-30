@@ -5,7 +5,7 @@ import net.cg360.spookums.server.core.event.type.network.PacketEvent;
 import net.cg360.spookums.server.network.PacketRegistry;
 import net.cg360.spookums.server.network.VanillaProtocol;
 import net.cg360.spookums.server.network.packet.NetworkPacket;
-import net.cg360.spookums.server.network.packet.generic.PacketDisconnect;
+import net.cg360.spookums.server.network.packet.generic.PacketInOutDisconnect;
 
 import java.io.*;
 import java.net.*;
@@ -67,7 +67,7 @@ public class NISocket implements NetworkInterface {
     public synchronized void closeServer() {
         if(!isRunning) return;
         if((!netSocket.isClosed()) && netSocket.isBound())  {
-            PacketDisconnect pkDisconnect = new PacketDisconnect("The server you were connected to has closed.");
+            PacketInOutDisconnect pkDisconnect = new PacketInOutDisconnect("The server you were connected to has closed.");
 
             for(UUID uuid: getClientNetIDs()) {
                 disconnectClient(uuid, pkDisconnect);
@@ -115,7 +115,7 @@ public class NISocket implements NetworkInterface {
                 }
 
             } catch (IOException socketErr) {
-                disconnectClient(clientNetID, new PacketDisconnect("An error occurred | "+socketErr.getMessage()));
+                disconnectClient(clientNetID, new PacketInOutDisconnect("An error occurred | "+socketErr.getMessage()));
 
             } catch (InstantiationException | IllegalAccessException err) {
                 err.printStackTrace();
@@ -172,7 +172,7 @@ public class NISocket implements NetworkInterface {
     }
 
     @Override
-    public synchronized void disconnectClient(UUID clientNetID, PacketDisconnect disconnectPacket) {
+    public synchronized void disconnectClient(UUID clientNetID, PacketInOutDisconnect disconnectPacket) {
         if(!isRunning) return;
         if(clientSockets.containsKey(clientNetID)) {
             Socket conn = clientSockets.get(clientNetID);

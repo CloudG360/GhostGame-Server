@@ -1,7 +1,7 @@
 package net.cg360.spookums.server.network.netimpl;
 
 import net.cg360.spookums.server.network.packet.NetworkPacket;
-import net.cg360.spookums.server.network.packet.generic.PacketDisconnect;
+import net.cg360.spookums.server.network.packet.generic.PacketInOutDisconnect;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -21,8 +21,8 @@ public interface NetworkInterface {
     void sendDataPacket(UUID clientNetID, NetworkPacket packet, boolean isUrgent);
     void broadcastDataPacket(NetworkPacket packet, boolean isUrgent); // Bulk method
 
-    default void disconnectClient(UUID clientNetID) { disconnectClient(clientNetID, new PacketDisconnect(null)); }
-    void disconnectClient(UUID clientNetID, PacketDisconnect disconnectPacket); // Closes the socked
+    default void disconnectClient(UUID clientNetID) { disconnectClient(clientNetID, new PacketInOutDisconnect(null)); }
+    void disconnectClient(UUID clientNetID, PacketInOutDisconnect disconnectPacket); // Closes the socked
 
     boolean isClientConnected(UUID clientNetId);
     boolean isRunning();
