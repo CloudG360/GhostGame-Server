@@ -10,9 +10,9 @@ public abstract class PacketInTokenHolder extends NetworkPacket {
 
     protected String token;
 
-    public PacketInTokenHolder() { }
+    public PacketInTokenHolder() { this(null); }
     public PacketInTokenHolder(String token) {
-        this.token = null;
+        this.token = token;
     }
 
     @Override
