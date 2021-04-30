@@ -1,9 +1,9 @@
 package net.cg360.spookums.server.network;
 
 import net.cg360.spookums.server.Server;
-import net.cg360.spookums.server.network.packet.generic.PacketChatMessage;
-import net.cg360.spookums.server.network.packet.generic.PacketDisconnect;
-import net.cg360.spookums.server.network.packet.generic.PacketServerNotice;
+import net.cg360.spookums.server.network.packet.generic.PacketInOutChatMessage;
+import net.cg360.spookums.server.network.packet.generic.PacketInOutDisconnect;
+import net.cg360.spookums.server.network.packet.info.PacketOutServerNotice;
 
 public class VanillaProtocol {
 
@@ -81,13 +81,13 @@ public class VanillaProtocol {
                 .r(PACKET_SERVER_PING_REQUEST, null)
                 .r(PACKET_SERVER_DETAIL, null)
                 .r(PACKET_CLIENT_DETAIL, null)
-                .r(PACKET_SERVER_NOTICE, PacketServerNotice.class)
-                .r(PACKET_DISCONNECT_REASON, PacketDisconnect.class)
+                .r(PACKET_SERVER_NOTICE, PacketOutServerNotice.class)
+                .r(PACKET_DISCONNECT_REASON, PacketInOutDisconnect.class)
 
                 .r(PACKET_RESPONSE_WARNING, null)
                 .r(PACKET_RESPONSE_SUCCESS, null)
                 .r(PACKET_RESPONSE_ERROR, null)
-                .r(PACKET_CHAT_MESSAGE, PacketChatMessage.class)
+                .r(PACKET_CHAT_MESSAGE, PacketInOutChatMessage.class)
 
                 .r(PACKET_LOGIN, null)
                 .r(PACKET_CREATE_ACCOUNT, null)

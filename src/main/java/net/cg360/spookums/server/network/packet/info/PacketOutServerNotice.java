@@ -1,4 +1,4 @@
-package net.cg360.spookums.server.network.packet.generic;
+package net.cg360.spookums.server.network.packet.info;
 
 import net.cg360.spookums.server.Server;
 import net.cg360.spookums.server.network.VanillaProtocol;
@@ -11,23 +11,23 @@ import java.nio.charset.StandardCharsets;
  * 1 byte - Notice Display Type
  * x byte(s) - UTF-8 String data (length = body size - 1)
  */
-public class PacketServerNotice extends NetworkPacket {
+public class PacketOutServerNotice extends NetworkPacket {
 
     public byte type;
     public String text;
 
 
-    public PacketServerNotice() {
+    public PacketOutServerNotice() {
         this.type = 0;
         this.text = null;
     }
 
-    public PacketServerNotice(byte type, String text) {
+    public PacketOutServerNotice(byte type, String text) {
         this.setType(type);
         this.setText(text);
     }
 
-    public PacketServerNotice(Type type, String text) {
+    public PacketOutServerNotice(Type type, String text) {
         this(type.getTypeID(), text);
     }
 
