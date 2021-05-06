@@ -86,7 +86,7 @@ public class Listener {
     private static void checkAndAdd(Class<?> classIn, ArrayList<Class<? extends BaseEvent>> list) {
         if(classIn == null) return;
 
-        if(classIn.isAssignableFrom(BaseEvent.class)){
+        if(BaseEvent.class.isAssignableFrom(classIn)){
             list.add((Class<? extends BaseEvent>) classIn);
             checkAndAdd(classIn.getSuperclass(), list);
 
