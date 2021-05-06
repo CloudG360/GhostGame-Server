@@ -52,6 +52,7 @@ public class EventManager {
 
     public synchronized void call(BaseEvent event) {
         ArrayList<HandlerMethodPair> callList = new ArrayList<>();
+        ArrayList<Listener> callListeners = new ArrayList<>(); // Ordered to match call list
 
         // And this is the part where it's probably the least efficient.
         // Would be great to bake this but then I can't really use the FilteredListener.
@@ -91,6 +92,7 @@ public class EventManager {
 
                     if(pairPriority > p.getAnnotation().getPriority().getValue()) {
                         callList.add(i, pair);
+                        callListeners.add(i, listener);
                         added = true;
                         break;
                     }
@@ -98,6 +100,7 @@ public class EventManager {
 
                 if(!added){
                     callList.add(pair);
+                    callListeners.add(listener);
                 }
             }
         }
@@ -106,15 +109,23 @@ public class EventManager {
         if(event instanceof Cancellable) {
             Cancellable cancellable = (Cancellable) event;
 
-            for (HandlerMethodPair methodPair : callList) {
+            for (int i = 0; i < callList.size(); i++) {
+                HandlerMethodPair methodPair = callList.get(i);
+                Listener sourceListener = callListeners.get(i);
+
                 // Skip if cancelled and ignoring cancelled.
                 if(cancellable.isCancelled() && methodPair.getAnnotation().ignoreIfCancelled()) continue;
-                invokeEvent(event, methodPair);
+                invokeEvent(sourceListener, event, methodPair);
             }
 
         } else {
 
-            for (HandlerMethodPair methodPair : callList) invokeEvent(event, methodPair);
+            for (int i = 0; i < callList.size(); i++) {
+                HandlerMethodPair methodPair = callList.get(i);
+                Listener sourceListener = callListeners.get(i);
+
+                invokeEvent(sourceListener, event, methodPair);
+            }
         }
 
     }
@@ -159,9 +170,9 @@ public class EventManager {
     }
 
 
-    private static void invokeEvent(BaseEvent event, HandlerMethodPair methodPair) {
+    private static void invokeEvent(Listener owningListener, BaseEvent event, HandlerMethodPair methodPair) {
         try {
-            methodPair.getMethod().invoke(event);
+            methodPair.getMethod().invoke(owningListener.getSourceObject(), event);
 
         } catch (Exception err) {
             Server.getMainLogger().error("An error was thrown during the invocation of an event.");
