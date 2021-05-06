@@ -90,29 +90,44 @@ public class NISocket implements NetworkInterface {
 
             try {
                 DataInputStream in = new DataInputStream(client.getInputStream());
-                byte[] inputFeed = new byte[VanillaProtocol.MAX_BUFFER_SIZE];
-                int inputBufferSize = in.read(inputFeed);
-                ByteBuffer byteBuffer = ByteBuffer.wrap(inputFeed);
+                byte[] headerBytes = new byte[3];
+                int headerSize = in.read(headerBytes);
+                ByteBuffer headerBuffer = ByteBuffer.wrap(headerBytes);
 
-                byte typeID = byteBuffer.get();
-                short size = byteBuffer.getShort();
+                if(headerSize == 3) { // There's not a complete header present
+                    byte typeID = headerBuffer.get();
+                    short size = headerBuffer.getShort();
 
-                if(typeID != VanillaProtocol.PACKET_PROTOCOL_INVALID_PACKET) {
-                    Optional<Class<? extends NetworkPacket>> pk = PacketRegistry.get().getPacketTypeForID((char) typeID);
+                    byte[] bodyBytes = new byte[size];
+                    int actualBodySize = in.read(bodyBytes);
+                    ByteBuffer bodyBuffer = ByteBuffer.wrap(bodyBytes);
 
-                    if(pk.isPresent()) {
-                        Class<? extends NetworkPacket> clz = pk.get();
-                        NetworkPacket packet = clz.newInstance().decode(byteBuffer);
+                    if (actualBodySize == size) {
+                        in.mark(VanillaProtocol.MAX_BUFFER_SIZE);
 
-                        PacketEvent.In<?> packetEvent = new PacketEvent.In<>(clientNetID, packet);
-                        Server.get().getServerEventManager().call(packetEvent);
+                        Optional<Class<? extends NetworkPacket>> pk = PacketRegistry.get().getPacketTypeForID(typeID);
 
-                        collectedPackets.add(packet);
+                        if (pk.isPresent()) {
+                            ByteBuffer buffer = ByteBuffer.allocate(headerBuffer.capacity() + bodyBuffer.capacity());
 
-                    } else {
-                        Server.getMainLogger().warn(String.format("Invalid packet received (Unrecognized type id: %s)", typeID));
+                            buffer.put(headerBytes);
+                            buffer.put(bodyBytes);
+
+                            Class<? extends NetworkPacket> clz = pk.get();
+                            NetworkPacket packet = clz.newInstance().decode(buffer);
+
+                            PacketEvent.In<?> packetEvent = new PacketEvent.In<>(clientNetID, packet);
+                            Server.get().getServerEventManager().call(packetEvent);
+
+                            collectedPackets.add(packet);
+
+                        } else {
+                            Server.getMainLogger().warn(String.format("Invalid packet received (Unrecognized type id: %s)", typeID));
+                        }
                     }
                 }
+
+                in.reset();
 
             } catch (IOException socketErr) {
                 disconnectClient(clientNetID, new PacketInOutDisconnect("An error occurred | "+socketErr.getMessage()));

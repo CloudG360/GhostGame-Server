@@ -3,6 +3,8 @@ apply plugin: 'java'
 group 'net.cg360.spookums'
 version 'InDev-1.0'
 
+sourceCompatibility = targetCompatibility = 1.8
+
 repositories {
     mavenCentral()
 }

@@ -1,5 +1,6 @@
 package net.cg360.spookums.server.network.packet;
 
+import net.cg360.spookums.server.Server;
 import net.cg360.spookums.server.network.VanillaProtocol;
 
 import java.nio.ByteBuffer;
