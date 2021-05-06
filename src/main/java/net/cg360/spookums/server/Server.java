@@ -23,7 +23,6 @@ import java.util.List;
 public class Server {
 
     public static final int MSPT = 1000 / 20; // Millis per tick.
-    public static final int MSPNT = 1000 / 50; // Millis between network scan tick
 
     protected static Server instance;
 
@@ -106,29 +105,8 @@ public class Server {
                     }
                 };
 
-                this.netClientsThread = new Thread() {
-
-                    @Override
-                    public void run() {
-
-                        try {
-                            while (isRunning) {
-                                HashMap<UUID, ArrayList<NetworkPacket>> packets = tmpImpl.checkForInboundPackets();
-                                synchronized (this) { this.wait(MSPNT); }
-                            }
-                        } catch (InterruptedException ignored) { }
-                        getLogger().info("Stopped down the network client handler thread.");
-                    }
-
-                    @Override
-                    public void interrupt() {
-                        super.interrupt();
-                    }
-                };
                 this.netServerThread.start();
                 getLogger().info("Starting network server thread!");
-                this.netClientsThread.start();
-                getLogger().info("Starting network client handler thread!");
 
                 this.getServerEventManager().addListener(new Listener(this));
 

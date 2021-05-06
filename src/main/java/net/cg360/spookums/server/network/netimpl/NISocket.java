@@ -89,48 +89,41 @@ public class NISocket implements NetworkInterface {
             Socket client = clientSockets.get(clientNetID);
 
             try {
-                boolean reachedEnd = false;
+                DataInputStream in = new DataInputStream(client.getInputStream());
+                byte[] headerBytes = new byte[3];
+                int headerSize = in.read(headerBytes);
+                ByteBuffer headerBuffer = ByteBuffer.wrap(headerBytes);
 
-                while(!reachedEnd) {
-                    DataInputStream in = new DataInputStream(client.getInputStream());
-                    byte[] headerBytes = new byte[3];
-                    int headerSize = in.read(headerBytes);
-                    ByteBuffer headerBuffer = ByteBuffer.wrap(headerBytes);
+                if (headerSize == 3) { // There's not a complete header present
+                    byte typeID = headerBuffer.get();
+                    short size = headerBuffer.getShort();
 
-                    if (headerSize == 3) { // There's not a complete header present
-                        byte typeID = headerBuffer.get();
-                        short size = headerBuffer.getShort();
+                    byte[] bodyBytes = new byte[size];
+                    int actualBodySize = in.read(bodyBytes);
+                    ByteBuffer bodyBuffer = ByteBuffer.wrap(bodyBytes);
 
-                        byte[] bodyBytes = new byte[size];
-                        int actualBodySize = in.read(bodyBytes);
-                        ByteBuffer bodyBuffer = ByteBuffer.wrap(bodyBytes);
+                    if (actualBodySize == size) {
 
-                        if (actualBodySize == size) {
+                        Optional<Class<? extends NetworkPacket>> pk = PacketRegistry.get().getPacketTypeForID(typeID);
 
-                            Optional<Class<? extends NetworkPacket>> pk = PacketRegistry.get().getPacketTypeForID(typeID);
+                        if (pk.isPresent()) {
+                            ByteBuffer buffer = ByteBuffer.allocate(headerBuffer.capacity() + bodyBuffer.capacity());
 
-                            if (pk.isPresent()) {
-                                ByteBuffer buffer = ByteBuffer.allocate(headerBuffer.capacity() + bodyBuffer.capacity());
+                            buffer.put(headerBytes);
+                            buffer.put(bodyBytes);
 
-                                buffer.put(headerBytes);
-                                buffer.put(bodyBytes);
+                            Class<? extends NetworkPacket> clz = pk.get();
+                            NetworkPacket packet = clz.newInstance().decode(buffer);
 
-                                Class<? extends NetworkPacket> clz = pk.get();
-                                NetworkPacket packet = clz.newInstance().decode(buffer);
+                            PacketEvent.In<?> packetEvent = new PacketEvent.In<>(clientNetID, packet);
+                            Server.get().getServerEventManager().call(packetEvent);
 
-                                PacketEvent.In<?> packetEvent = new PacketEvent.In<>(clientNetID, packet);
-                                Server.get().getServerEventManager().call(packetEvent);
+                            collectedPackets.add(packet);
 
-                                collectedPackets.add(packet);
-
-                            } else {
-                                Server.getMainLogger().warn(String.format("Invalid packet received (Unrecognized type id: %s)", typeID));
-                            }
+                        } else {
+                            Server.getMainLogger().warn(String.format("Invalid packet received (Unrecognized type id: %s)", typeID));
                         }
-                        continue;
                     }
-
-                    if(headerSize == -1) reachedEnd = true;
                 }
 
             } catch (IOException socketErr) {
@@ -144,20 +137,6 @@ public class NISocket implements NetworkInterface {
         }
 
         return collectedPackets;
-    }
-
-    @Override
-    public synchronized HashMap<UUID, ArrayList<NetworkPacket>> checkForInboundPackets() {
-        if(!isRunning) return new HashMap<>();
-        HashMap<UUID, ArrayList<NetworkPacket>> collected = new HashMap<>();
-
-        for(UUID uuid: getClientNetIDs()) {
-
-            if(isClientConnected(uuid)) {
-                collected.put(uuid, checkForInboundPackets(uuid));
-            }
-        }
-        return collected;
     }
 
     @Override

@@ -16,7 +16,6 @@ public interface NetworkInterface {
     void closeServer();
 
     ArrayList<NetworkPacket> checkForInboundPackets(UUID clientNetID);
-    HashMap<UUID, ArrayList<NetworkPacket>> checkForInboundPackets(); // Bulk method
 
     void sendDataPacket(UUID clientNetID, NetworkPacket packet, boolean isUrgent);
     void broadcastDataPacket(NetworkPacket packet, boolean isUrgent); // Bulk method
