@@ -89,10 +89,9 @@ public class NISocket implements NetworkInterface {
             Socket client = clientSockets.get(clientNetID);
 
             try {
+                boolean reachedEnd = false;
 
-                //boolean reachedEnd = false;
-
-                //while(!reachedEnd) {
+                while(!reachedEnd) {
                     DataInputStream in = new DataInputStream(client.getInputStream());
                     byte[] headerBytes = new byte[3];
                     int headerSize = in.read(headerBytes);
@@ -128,11 +127,11 @@ public class NISocket implements NetworkInterface {
                                 Server.getMainLogger().warn(String.format("Invalid packet received (Unrecognized type id: %s)", typeID));
                             }
                         }
-                        //continue;
+                        continue;
                     }
 
-                    //reachedEnd = true;
-                //}
+                    if(headerSize == -1) reachedEnd = true;
+                }
 
             } catch (IOException socketErr) {
                 disconnectClient(clientNetID, new PacketInOutDisconnect("An error occurred | "+socketErr.getMessage()));
