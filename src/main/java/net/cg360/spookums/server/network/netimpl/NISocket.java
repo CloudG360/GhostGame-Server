@@ -89,45 +89,50 @@ public class NISocket implements NetworkInterface {
             Socket client = clientSockets.get(clientNetID);
 
             try {
-                DataInputStream in = new DataInputStream(client.getInputStream());
-                byte[] headerBytes = new byte[3];
-                int headerSize = in.read(headerBytes);
-                ByteBuffer headerBuffer = ByteBuffer.wrap(headerBytes);
 
-                if(headerSize == 3) { // There's not a complete header present
-                    byte typeID = headerBuffer.get();
-                    short size = headerBuffer.getShort();
+                //boolean reachedEnd = false;
 
-                    byte[] bodyBytes = new byte[size];
-                    int actualBodySize = in.read(bodyBytes);
-                    ByteBuffer bodyBuffer = ByteBuffer.wrap(bodyBytes);
+                //while(!reachedEnd) {
+                    DataInputStream in = new DataInputStream(client.getInputStream());
+                    byte[] headerBytes = new byte[3];
+                    int headerSize = in.read(headerBytes);
+                    ByteBuffer headerBuffer = ByteBuffer.wrap(headerBytes);
 
-                    if (actualBodySize == size) {
-                        in.mark(VanillaProtocol.MAX_BUFFER_SIZE);
+                    if (headerSize == 3) { // There's not a complete header present
+                        byte typeID = headerBuffer.get();
+                        short size = headerBuffer.getShort();
 
-                        Optional<Class<? extends NetworkPacket>> pk = PacketRegistry.get().getPacketTypeForID(typeID);
+                        byte[] bodyBytes = new byte[size];
+                        int actualBodySize = in.read(bodyBytes);
+                        ByteBuffer bodyBuffer = ByteBuffer.wrap(bodyBytes);
 
-                        if (pk.isPresent()) {
-                            ByteBuffer buffer = ByteBuffer.allocate(headerBuffer.capacity() + bodyBuffer.capacity());
+                        if (actualBodySize == size) {
 
-                            buffer.put(headerBytes);
-                            buffer.put(bodyBytes);
+                            Optional<Class<? extends NetworkPacket>> pk = PacketRegistry.get().getPacketTypeForID(typeID);
 
-                            Class<? extends NetworkPacket> clz = pk.get();
-                            NetworkPacket packet = clz.newInstance().decode(buffer);
+                            if (pk.isPresent()) {
+                                ByteBuffer buffer = ByteBuffer.allocate(headerBuffer.capacity() + bodyBuffer.capacity());
 
-                            PacketEvent.In<?> packetEvent = new PacketEvent.In<>(clientNetID, packet);
-                            Server.get().getServerEventManager().call(packetEvent);
+                                buffer.put(headerBytes);
+                                buffer.put(bodyBytes);
 
-                            collectedPackets.add(packet);
+                                Class<? extends NetworkPacket> clz = pk.get();
+                                NetworkPacket packet = clz.newInstance().decode(buffer);
 
-                        } else {
-                            Server.getMainLogger().warn(String.format("Invalid packet received (Unrecognized type id: %s)", typeID));
+                                PacketEvent.In<?> packetEvent = new PacketEvent.In<>(clientNetID, packet);
+                                Server.get().getServerEventManager().call(packetEvent);
+
+                                collectedPackets.add(packet);
+
+                            } else {
+                                Server.getMainLogger().warn(String.format("Invalid packet received (Unrecognized type id: %s)", typeID));
+                            }
                         }
+                        //continue;
                     }
-                }
 
-                in.reset();
+                    //reachedEnd = true;
+                //}
 
             } catch (IOException socketErr) {
                 disconnectClient(clientNetID, new PacketInOutDisconnect("An error occurred | "+socketErr.getMessage()));
