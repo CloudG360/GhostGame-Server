@@ -18,6 +18,7 @@ public class PacketInProtocolCheck extends NetworkPacket {
         return VanillaProtocol.PACKET_PROTOCOL_CHECK;
     }
 
+    // Really this isn't needed as it's an In Packet but eh.
     @Override
     protected short encodeBody() {
         if(!this.isValid) throw new IllegalStateException("Attempting to encode a known malformed packet");
