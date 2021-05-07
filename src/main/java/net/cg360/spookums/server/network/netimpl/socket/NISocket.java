@@ -1,9 +1,10 @@
-package net.cg360.spookums.server.network.netimpl;
+package net.cg360.spookums.server.network.netimpl.socket;
 
 import net.cg360.spookums.server.Server;
 import net.cg360.spookums.server.core.event.type.network.PacketEvent;
 import net.cg360.spookums.server.network.PacketRegistry;
 import net.cg360.spookums.server.network.VanillaProtocol;
+import net.cg360.spookums.server.network.netimpl.NetworkInterface;
 import net.cg360.spookums.server.network.packet.NetworkPacket;
 import net.cg360.spookums.server.network.packet.generic.PacketInOutDisconnect;
 
@@ -19,12 +20,14 @@ public class NISocket implements NetworkInterface {
 
     protected ServerSocket netSocket;
     protected HashMap<UUID, Socket> clientSockets;
+    protected HashMap<UUID, SocketClientThread> clientThreads;
 
     protected boolean isRunning = false;
 
     public NISocket() {
         this.netSocket = null;
         this.clientSockets = new HashMap<>();
+        this.clientThreads = new HashMap<>();
     }
 
     @Override
@@ -45,7 +48,14 @@ public class NISocket implements NetworkInterface {
                         clientSocket.setSoTimeout(VanillaProtocol.TIMEOUT);
                         clientSocket.setReceiveBufferSize(VanillaProtocol.MAX_BUFFER_SIZE);
                         clientSocket.setSendBufferSize(VanillaProtocol.MAX_BUFFER_SIZE);
-                        this.clientSockets.put(UUID.randomUUID(), clientSocket);
+
+                        UUID clientUUID = UUID.randomUUID();
+                        SocketClientThread socketClientThread = new SocketClientThread(clientUUID, this);
+
+                        this.clientSockets.put(clientUUID, clientSocket);
+                        this.clientThreads.put(clientUUID, socketClientThread);
+
+                        socketClientThread.start();
                     }
 
                     this.closeServer();

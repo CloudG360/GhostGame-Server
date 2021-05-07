@@ -4,13 +4,11 @@ import net.cg360.spookums.server.core.event.EventManager;
 import net.cg360.spookums.server.core.event.Listener;
 import net.cg360.spookums.server.core.event.handler.EventHandler;
 import net.cg360.spookums.server.core.event.type.network.PacketEvent;
-import net.cg360.spookums.server.core.log.ServerLogger;
 import net.cg360.spookums.server.core.scheduler.Scheduler;
 import net.cg360.spookums.server.core.data.Settings;
 import net.cg360.spookums.server.network.PacketRegistry;
 import net.cg360.spookums.server.network.VanillaProtocol;
-import net.cg360.spookums.server.network.netimpl.NISocket;
-import net.cg360.spookums.server.network.packet.NetworkPacket;
+import net.cg360.spookums.server.network.netimpl.socket.NISocket;
 import org.slf4j.Logger;
 import org.slf4j.impl.SimpleLoggerFactory;
 
