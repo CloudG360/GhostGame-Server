@@ -54,9 +54,9 @@ public abstract class NetworkPacket {
         return this;
     }
 
-    public ByteBuffer getBodyData() { return body; }
-    public byte getPacketID() { return packetID; }
-    public short getBodySize() { return bodySize; }
+    public final ByteBuffer getBodyData() { return body; }
+    public final byte getPacketID() { return packetID; }
+    public final short getBodySize() { return bodySize; }
 
 
 
