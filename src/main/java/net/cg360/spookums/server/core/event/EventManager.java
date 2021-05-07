@@ -11,16 +11,6 @@ import java.util.Arrays;
 
 public class EventManager {
 
-    //TODO
-    // All events should be handled like this note:
-    // In EventManager, the events should be added to a list where they are insertion sorted
-    // into order of LOWEST priority to HIGHEST.
-    // Any ignoreIfCancelled's should just be skipped.
-    // Vanilla events should all stem from vanilla listener methods with the HIGH priotity to give them
-    // control without overriding calls made by HIGHEST listeners.
-    // This behaviour may be changed in the future to properly map NSAPI event priorities to
-    // vanilla priorities.
-
     private static EventManager primaryManager;
 
     protected ArrayList<EventFilter> filters; // Filter for EVERY listener.
@@ -187,7 +177,7 @@ public class EventManager {
         return primaryManager;
     }
 
-    public EventFilter[] getFilters() { return filters.toArray(new EventFilter[0]); }
-    public Listener[] getListeners() { return listeners.toArray(new Listener[0]); }
-    public EventManager[] getChildren() { return children.toArray(new EventManager[0]); }
+    public synchronized EventFilter[] getFilters() { return filters.toArray(new EventFilter[0]); }
+    public synchronized Listener[] getListeners() { return listeners.toArray(new Listener[0]); }
+    public synchronized EventManager[] getChildren() { return children.toArray(new EventManager[0]); }
 }

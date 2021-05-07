@@ -91,12 +91,14 @@ public class NISocket implements NetworkInterface {
     }
 
     @Override
-    public synchronized ArrayList<NetworkPacket> checkForInboundPackets(UUID clientNetID) {
-        if(!isRunning) return new ArrayList<>();
+    public ArrayList<NetworkPacket> checkForInboundPackets(UUID clientNetID) {
+        if(!isRunning()) return new ArrayList<>();
         ArrayList<NetworkPacket> collectedPackets = new ArrayList<>();
 
         if(isClientConnected(clientNetID)) {
-            Socket client = clientSockets.get(clientNetID);
+
+            Socket client;
+            synchronized (clientSockets) { client = clientSockets.get(clientNetID); }
 
             try {
                 DataInputStream in = new DataInputStream(client.getInputStream());
