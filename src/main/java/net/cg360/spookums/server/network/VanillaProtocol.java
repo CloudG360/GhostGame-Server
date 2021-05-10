@@ -3,10 +3,7 @@ package net.cg360.spookums.server.network;
 import net.cg360.spookums.server.Server;
 import net.cg360.spookums.server.network.packet.generic.PacketInOutChatMessage;
 import net.cg360.spookums.server.network.packet.generic.PacketInOutDisconnect;
-import net.cg360.spookums.server.network.packet.info.PacketInProtocolCheck;
-import net.cg360.spookums.server.network.packet.info.PacketOutProtocolError;
-import net.cg360.spookums.server.network.packet.info.PacketOutProtocolSuccess;
-import net.cg360.spookums.server.network.packet.info.PacketOutServerNotice;
+import net.cg360.spookums.server.network.packet.info.*;
 
 public class VanillaProtocol {
 
@@ -27,8 +24,8 @@ public class VanillaProtocol {
 
     public static final Short PROTOCOL_ID = 1;
 
-    public static final int MAX_BUFFER_SIZE = 4096;
-    public static final int MAX_PACKET_SIZE = 1024;
+    public static final int MAX_BUFFER_SIZE = 8192;
+    public static final int MAX_PACKET_SIZE = 4096;
     public static final int TIMEOUT = 15000;
 
 
@@ -82,8 +79,8 @@ public class VanillaProtocol {
                 .r(PACKET_PROTOCOL_ERROR, PacketOutProtocolError.class)
                 .r(PACKET_PROTOCOL_BATCH, null)
 
-                .r(PACKET_SERVER_PING_REQUEST, null)
-                .r(PACKET_SERVER_DETAIL, null)
+                .r(PACKET_SERVER_PING_REQUEST, PacketInServerPingRequest.class)
+                .r(PACKET_SERVER_DETAIL, PacketOutServerDetail.class)
                 .r(PACKET_CLIENT_DETAIL, null)
                 .r(PACKET_SERVER_NOTICE, PacketOutServerNotice.class)
                 .r(PACKET_DISCONNECT_REASON, PacketInOutDisconnect.class)
@@ -103,6 +100,7 @@ public class VanillaProtocol {
                 .r(PACKET_FETCH_GAME_LIST, null)
                 .r(PACKET_REQUEST_GAME_DETAIL, null)
                 .r(PACKET_GAME_DETAIL, null);
+
         Server.getMainLogger().info(
                 String.format("Applied protocol version %s to %s packet registry.",
                         PROTOCOL_ID,
