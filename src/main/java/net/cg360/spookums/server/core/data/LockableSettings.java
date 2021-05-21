@@ -11,6 +11,8 @@ import net.cg360.spookums.server.core.data.keyvalue.Key;
  */
 public final class LockableSettings extends Settings {
 
+    //TODO: Figure out what needs cleaning up here.
+
     private boolean isLocked;
 
     public LockableSettings() {

@@ -58,4 +58,8 @@ public class Settings {
         return new Settings(this);
     }
 
+    public Key<?>[] getKeys(){
+        return dataMap.keySet().toArray(new Key<?>[0]);
+    }
+
 }

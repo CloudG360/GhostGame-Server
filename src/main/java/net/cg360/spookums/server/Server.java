@@ -1,5 +1,6 @@
 package net.cg360.spookums.server;
 
+import net.cg360.spookums.server.core.data.json.JsonTypeRegistry;
 import net.cg360.spookums.server.core.event.EventManager;
 import net.cg360.spookums.server.core.event.Listener;
 import net.cg360.spookums.server.core.event.handler.EventHandler;
@@ -37,6 +38,7 @@ public class Server {
     protected EventManager serverEventManager;
 
     protected PacketRegistry packetRegistry;
+    protected JsonTypeRegistry jsonTypeRegistry;
 
 
     public Server(String[] args) {
@@ -58,6 +60,7 @@ public class Server {
         // -- Core Registries --
 
         this.packetRegistry = new PacketRegistry();
+        this.jsonTypeRegistry = new JsonTypeRegistry();
 
     }
 
@@ -74,8 +77,9 @@ public class Server {
                 boolean resultScheduler = this.serverScheduler.setAsPrimaryInstance();
                 boolean resultEventManager = this.serverEventManager.setAsPrimaryManager();
                 boolean resultPacketRegistry = this.packetRegistry.setAsPrimaryInstance();
+                boolean resultJsonTypeRegistry = this.jsonTypeRegistry.setAsPrimaryInstance();
 
-                if(resultScheduler && resultEventManager && resultPacketRegistry){
+                if(resultScheduler && resultEventManager && resultPacketRegistry && resultJsonTypeRegistry){
                     getLogger().info("Claimed primary instances! This is the main server! :)");
                 }
 
