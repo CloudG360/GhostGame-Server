@@ -1,11 +1,14 @@
 package net.cg360.spookums.server.network.netimpl.socket;
 
 import net.cg360.spookums.server.Server;
+import net.cg360.spookums.server.core.event.EventManager;
+import net.cg360.spookums.server.core.event.type.network.ClientConnectionEvent;
 import net.cg360.spookums.server.core.event.type.network.PacketEvent;
 import net.cg360.spookums.server.network.PacketRegistry;
 import net.cg360.spookums.server.network.VanillaProtocol;
 import net.cg360.spookums.server.network.netimpl.NetworkInterface;
 import net.cg360.spookums.server.network.packet.NetworkPacket;
+import net.cg360.spookums.server.network.packet.generic.PacketInOutChatMessage;
 import net.cg360.spookums.server.network.packet.generic.PacketInOutDisconnect;
 
 import java.io.*;
@@ -20,7 +23,7 @@ public class NISocket implements NetworkInterface {
 
     protected ServerSocket netSocket;
     protected HashMap<UUID, Socket> clientSockets;
-    protected HashMap<UUID, SocketClientThread> clientThreads;
+    protected HashMap<UUID, SocketListenerThread> clientThreads;
 
     protected boolean isRunning = false;
 
@@ -50,12 +53,15 @@ public class NISocket implements NetworkInterface {
                         clientSocket.setSendBufferSize(VanillaProtocol.MAX_BUFFER_SIZE);
 
                         UUID clientUUID = UUID.randomUUID();
-                        SocketClientThread socketClientThread = new SocketClientThread(clientUUID, this);
+                        SocketListenerThread socketListenerThread = new SocketListenerThread(clientUUID, this);
 
                         this.clientSockets.put(clientUUID, clientSocket);
-                        this.clientThreads.put(clientUUID, socketClientThread);
+                        this.clientThreads.put(clientUUID, socketListenerThread);
 
-                        socketClientThread.start();
+                        socketListenerThread.start();
+
+                        EventManager.get().call(new ClientConnectionEvent(clientUUID));
+                        sendDataPacket(clientUUID, new PacketInOutChatMessage("This is a test message!"), true);
                     }
 
                     this.closeServer();

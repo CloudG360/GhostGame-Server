@@ -4,6 +4,7 @@ import net.cg360.spookums.server.core.data.json.JsonTypeRegistry;
 import net.cg360.spookums.server.core.event.EventManager;
 import net.cg360.spookums.server.core.event.Listener;
 import net.cg360.spookums.server.core.event.handler.EventHandler;
+import net.cg360.spookums.server.core.event.type.network.ClientConnectionEvent;
 import net.cg360.spookums.server.core.event.type.network.PacketEvent;
 import net.cg360.spookums.server.core.scheduler.Scheduler;
 import net.cg360.spookums.server.core.data.Settings;
@@ -133,6 +134,10 @@ public class Server {
     }
 
 
+    @EventHandler
+    public void onPacketIn(ClientConnectionEvent event) {
+        getLogger().info("Connection | " + event.getClientNetID().toString());
+    }
 
     @EventHandler
     public void onPacketIn(PacketEvent.In<?> event) {

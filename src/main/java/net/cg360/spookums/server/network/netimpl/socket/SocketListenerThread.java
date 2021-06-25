@@ -4,12 +4,12 @@ import net.cg360.spookums.server.network.netimpl.NetworkInterface;
 
 import java.util.UUID;
 
-public class SocketClientThread extends Thread {
+public class SocketListenerThread extends Thread {
 
     protected UUID clientUUID;
     protected NetworkInterface networkInterface;
 
-    public SocketClientThread(UUID clientUUID, NetworkInterface netInf) {
+    public SocketListenerThread(UUID clientUUID, NetworkInterface netInf) {
         this.clientUUID = clientUUID;
         this.networkInterface = netInf;
     }

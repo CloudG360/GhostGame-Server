@@ -40,7 +40,7 @@ public class VanillaProtocol {
 
 
     // Information Packets
-    public static final byte PACKET_SERVER_PING_REQUEST = 0x11; // in - responded to with PACKET_SERVER_DETAIL | Accepted by the server even if a protocol check hasn't occurred.
+    public static final byte PACKET_SERVER_PING_REQUEST = 0x10; // in - responded to with PACKET_SERVER_DETAIL | Accepted by the server even if a protocol check hasn't occurred.
     public static final byte PACKET_SERVER_DETAIL = 0x11; // out - JSON format - Like a ping, should only be extended. Includes stuff like name + logo if present.
     public static final byte PACKET_CLIENT_DETAIL = 0x12; // in - JSON format - Stores client OS, version, and other non-essential details. Could be use to split platforms
     public static final byte PACKET_SERVER_NOTICE = 0x13; // out - Used to display generic information to a user
