@@ -60,7 +60,7 @@ public class NetworkBuffer {
     }
 
     /** Unsafe way to write a byte. Make sure to check first :)*/
-    protected void WriteByte(byte b) {
+    protected void writeByte(byte b) {
         buffer[pointerIndex] = b;
         pointerIndex++;
     }
@@ -71,19 +71,50 @@ public class NetworkBuffer {
         if(value > 255) throw new IllegalArgumentException("Provided an 'unsigned byte' with a value greater than 255");
         if(value < 0) throw new IllegalArgumentException("Provided an 'unsigned byte' with a value less than 0");
 
-        byte rawByte = 0x00;
-        int degradedValue = value;
+        if(canReadBytesAhead(1)) {
+            byte rawByte = 0x00;
+            int degradedValue = value;
 
-        for(byte i = 7; i >= 0; i--) {
-            double valCheck = Math.pow(2, i);
+            for (byte i = 7; i >= 0; i--) {
+                double valCheck = Math.pow(2, i);
 
-            if((degradedValue - valCheck) >= 0) {
-                degradedValue -= valCheck;
-                rawByte |= 1 << i;
+                if ((degradedValue - valCheck) >= 0) {
+                    degradedValue -= valCheck;
+                    rawByte |= 1 << i;
+                }
             }
+
+            writeByte(rawByte);
+            return true;
         }
 
-        Server.getMainLogger().info("final byte: "+Integer.toBinaryString(rawByte & 0xFF));
+        return false;
+    }
+
+    public boolean putUnsignedShort(int value) {
+        if(value >= Math.pow(2, 16)) throw new IllegalArgumentException("Provided an 'unsigned short' with a value greater than 2^16");
+        if(value < 0) throw new IllegalArgumentException("Provided an 'unsigned short' with a value less than 0");
+
+        if(canReadBytesAhead(2)) {
+            short rawShort = 0x0000;
+            int degradedValue = value;
+
+            for (byte i = 15; i >= 0; i--) {
+                double valCheck = Math.pow(2, i);
+
+                if ((degradedValue - valCheck) >= 0) {
+                    degradedValue -= valCheck;
+                    rawShort |= 1 << i;
+                }
+            }
+
+            byte bUpper = (byte) ((rawShort & 0xFF00) >> 8);
+            byte bLower = (byte) (rawShort & 0x00FF);
+
+            writeByte(bUpper);
+            writeByte(bLower);
+            return true;
+        }
 
         return false;
     }
