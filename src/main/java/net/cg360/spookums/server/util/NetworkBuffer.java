@@ -58,6 +58,10 @@ public class NetworkBuffer {
         pointerIndex = Math.max(0, pointerIndex - delta);
     }
 
+    public int capacity() {
+        return this.buffer.length;
+    }
+
 
     /** Unsafe way to fetch a byte. Make sure to check first :)*/
     protected byte fetchRawByte() {
@@ -92,6 +96,15 @@ public class NetworkBuffer {
     public byte get() {
         if(canReadBytesAhead(1)) {
             return fetchRawByte();
+        }
+        throw new BufferUnderflowException();
+    }
+
+    /** Fetches a quantity of bytes from the buffer without converting them.*/
+    public void get(byte[] target) {
+        if(canReadBytesAhead(target.length)) {
+            for(int i = 0; i < target.length; i++) target[i] = fetchRawByte();
+            return;
         }
         throw new BufferUnderflowException();
     }

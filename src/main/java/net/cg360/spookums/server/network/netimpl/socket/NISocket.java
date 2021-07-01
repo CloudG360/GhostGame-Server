@@ -10,6 +10,7 @@ import net.cg360.spookums.server.network.netimpl.NetworkInterface;
 import net.cg360.spookums.server.network.packet.NetworkPacket;
 import net.cg360.spookums.server.network.packet.generic.PacketInOutChatMessage;
 import net.cg360.spookums.server.network.packet.generic.PacketInOutDisconnect;
+import net.cg360.spookums.server.util.NetworkBuffer;
 
 import java.io.*;
 import java.net.*;
@@ -106,40 +107,43 @@ public class NISocket implements NetworkInterface {
             Socket client;
             synchronized (clientSockets) { client = clientSockets.get(clientNetID); }
 
+
             try {
-                DataInputStream in = new DataInputStream(client.getInputStream());
-                byte[] headerBytes = new byte[3];
-                int headerSize = in.read(headerBytes);
-                ByteBuffer headerBuffer = ByteBuffer.wrap(headerBytes);
+                synchronized (client.getInputStream()) {
+                    DataInputStream in = new DataInputStream(client.getInputStream());
+                    byte[] sizeBytes = new byte[2];
+                    int sizeByteCount = in.read(sizeBytes);
+                    NetworkBuffer sizeBuf = NetworkBuffer.wrap(sizeBytes);
+                    int packetSize = sizeByteCount == 2 ? sizeBuf.getUnsignedShort() : -1;
 
-                if (headerSize == 3) { // There's not a complete header present
-                    byte typeID = headerBuffer.get();
-                    short size = headerBuffer.getShort();
+                    if (packetSize > 0) {
+                        byte[] bodyBytes = new byte[packetSize];
+                        int bodyBytesCount = in.read(bodyBytes);
+                        NetworkBuffer bodyBuffer = NetworkBuffer.wrap(bodyBytes);
 
-                    byte[] bodyBytes = new byte[size];
-                    int actualBodySize = in.read(bodyBytes);
-                    ByteBuffer bodyBuffer = ByteBuffer.wrap(bodyBytes);
+                        if (bodyBytesCount == packetSize) {
 
-                    if (actualBodySize == size) {
+                            byte packetID = bodyBuffer.get();
 
-                        Optional<Class<? extends NetworkPacket>> pk = PacketRegistry.get().getPacketTypeForID(typeID);
+                            Optional<Class<? extends NetworkPacket>> pk = PacketRegistry.get().getPacketTypeForID(packetID);
 
-                        if (pk.isPresent()) {
-                            ByteBuffer buffer = ByteBuffer.allocate(headerBuffer.capacity() + bodyBuffer.capacity());
+                            if (pk.isPresent()) {
+                                NetworkBuffer buffer = NetworkBuffer.allocate(2 + bodyBuffer.capacity());
 
-                            buffer.put(headerBytes);
-                            buffer.put(bodyBytes);
+                                buffer.putUnsignedShort(packetSize);
+                                buffer.put(bodyBytes);
 
-                            Class<? extends NetworkPacket> clz = pk.get();
-                            NetworkPacket packet = clz.newInstance().decode(buffer);
+                                Class<? extends NetworkPacket> clz = pk.get();
+                                NetworkPacket packet = clz.newInstance().decode(buffer);
 
-                            PacketEvent.In<?> packetEvent = new PacketEvent.In<>(clientNetID, packet);
-                            Server.get().getServerEventManager().call(packetEvent);
+                                PacketEvent.In<?> packetEvent = new PacketEvent.In<>(clientNetID, packet);
+                                Server.get().getServerEventManager().call(packetEvent);
 
-                            collectedPackets.add(packet);
+                                collectedPackets.add(packet);
 
-                        } else {
-                            Server.getMainLogger().warn(String.format("Invalid packet received (Unrecognized type id: %s)", typeID));
+                            } else {
+                                Server.getMainLogger().warn(String.format("Invalid packet received (Unrecognized type id: %s)", packetID));
+                            }
                         }
                     }
                 }
@@ -162,8 +166,8 @@ public class NISocket implements NetworkInterface {
         if(!isRunning) return;
         if(isClientConnected(clientNetID)) {
             Socket client = clientSockets.get(clientNetID);
-            ByteBuffer content = packet.encode();
-            content.clear();
+            NetworkBuffer content = packet.encode();
+            content.reset();
 
             byte[] contents = new byte[content.capacity()];
             content.get(contents);
