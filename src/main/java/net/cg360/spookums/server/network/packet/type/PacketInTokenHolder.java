@@ -16,13 +16,13 @@ public abstract class PacketInTokenHolder extends NetworkPacket {
     }
 
     @Override
-    protected short encodeBody() {
+    protected int encodeBody() {
         String finalToken = token == null ? NO_TOKEN : token;
         byte[] encodedToken = finalToken.getBytes(StandardCharsets.UTF_8);
 
-        this.getBodyData().clear();
+        this.getBodyData().reset();
         this.getBodyData().put((byte) encodedToken.length); // tokens should be small. Use byte.
-        this.getBodyData().put(encodedToken);
+        //this.getBodyData().put(encodedToken);
 
         return (short) (encodedToken.length + 1); // array length + token bytes
     }

@@ -12,7 +12,7 @@ public class PacketOutServerDetail extends NetworkPacket {
 
     // Note that these are for the general server a client would login to, not a
     // specific game session.
-    protected byte pingVersion; // The revision of the ServerDetail packet format | not available in constructor because why?
+    protected int pingVersion; // The revision of the ServerDetail packet format | not available in constructor because why?
     protected String serverName;
     protected String serverRegion; // 5 characters max
     protected String serverDescription;
@@ -38,31 +38,25 @@ public class PacketOutServerDetail extends NetworkPacket {
     }
 
     @Override
-    protected short encodeBody() {
+    protected int encodeBody() {
         String name = (serverName == null) || (serverName.length() > 60) || (serverName.length() < 1) ? "Unidentified Server" : serverName;
         String region = (serverRegion == null) || (serverRegion.length() > 5) || (serverRegion.length() < 1) ? "?" : serverRegion;
         String description = serverDescription == null ? "Welcome to this server!" : serverDescription;
 
-        byte[] encodeName = name.getBytes(StandardCharsets.UTF_8); // 1 byte for byte count.
-        byte[] encodeRegion = region.getBytes(StandardCharsets.UTF_8); // 1 byte for byte count
-        byte[] encodeDescription = description.getBytes(StandardCharsets.UTF_8); // 2 bytes (short) for byte count.
+        this.getBodyData().putUnsignedByte(pingVersion);
 
-        this.getBodyData().put(pingVersion);
+        int size = 0;
 
-        this.getBodyData().put((byte) encodeName.length);
-        this.getBodyData().put(encodeName);
+        size += this.getBodyData().putSmallUTF8String(name);
+        size += this.getBodyData().putSmallUTF8String(region);
 
-        this.getBodyData().put((byte) encodeRegion.length);
-        this.getBodyData().put(encodeRegion);
+        size += this.getBodyData().putUTF8String(description);
 
-        this.getBodyData().putShort((short) encodeDescription.length);
-        this.getBodyData().put(encodeDescription);
-
-        return 0;
+        return size + 1;
     }
 
     @Override
-    protected void decodeBody(short inboundSize) {
+    protected void decodeBody(int inboundSize) {
         // nothing here silly.
     }
 }

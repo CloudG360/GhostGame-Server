@@ -6,7 +6,7 @@ import net.cg360.spookums.server.network.packet.NetworkPacket;
 public class PacketInProtocolCheck extends NetworkPacket {
 
     protected boolean isValid;
-    protected short protocolVersion;
+    protected int protocolVersion;
 
     public PacketInProtocolCheck(short protocolVersion) {
         this.isValid = true;
@@ -20,17 +20,17 @@ public class PacketInProtocolCheck extends NetworkPacket {
 
     // Really this isn't needed as it's an In Packet but eh.
     @Override
-    protected short encodeBody() {
+    protected int encodeBody() {
         if(!this.isValid) throw new IllegalStateException("Attempting to encode a known malformed packet");
 
-        this.getBodyData().clear();
-        this.getBodyData().putShort(protocolVersion);
+        this.getBodyData().reset();
+        this.getBodyData().putUnsignedShort(protocolVersion);
 
         return 2; // Update if more is added
     }
 
     @Override
-    protected void decodeBody(short inboundSize) {
+    protected void decodeBody(int inboundSize) {
         this.isValid = false;
 
         // Ensure it has the protocol version at least.
@@ -39,8 +39,8 @@ public class PacketInProtocolCheck extends NetworkPacket {
         if(inboundSize >= 2) {
             this.isValid = true;
 
-            this.getBodyData().clear();
-            this.protocolVersion = this.getBodyData().getShort();
+            this.getBodyData().reset();
+            this.protocolVersion = this.getBodyData().getUnsignedShort();
         }
     }
 }

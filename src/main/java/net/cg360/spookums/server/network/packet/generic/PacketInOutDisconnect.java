@@ -37,31 +37,24 @@ public class PacketInOutDisconnect extends NetworkPacket {
     }
 
     @Override
-    protected short encodeBody() {
+    protected int encodeBody() {
         String selectedText = this.text == null ? DEFAULT_OUTBOUND_TEXT : this.text;
-        byte[] encodedText = selectedText.getBytes(StandardCharsets.UTF_8);
-        short size = (short) encodedText.length;
 
-        this.getBodyData().clear();
-        this.getBodyData().put(encodedText);
-
-        return size;
+        this.getBodyData().reset();
+        return this.getBodyData().putUnboundUTF8String(selectedText);
     }
 
     @Override
-    protected void decodeBody(short inboundSize) {
+    protected void decodeBody(int inboundSize) {
 
         if(inboundSize == 0) {
             this.text = DEFAULT_INBOUND_TEXT;
 
         } else {
-            byte[] target = new byte[inboundSize];
-            this.getBodyData().get(target);
-
-            this.text = new String(target, StandardCharsets.UTF_8);
+            this.text = this.getBodyData().getUnboundUTF8String(inboundSize);
         }
 
-        this.getBodyData().clear();
+        this.getBodyData().reset();
     }
 
 

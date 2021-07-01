@@ -39,23 +39,22 @@ public class PacketOutServerNotice extends NetworkPacket {
     }
 
     @Override
-    protected short encodeBody() {
+    protected int encodeBody() {
         if(this.text == null) {
             this.text = "...";
         }
 
-        this.getBodyData().clear();
+        this.getBodyData().reset();
         this.getBodyData().put(type);
 
         // Using a "simple" string rather than a "tracked" string.
-        byte[] bytes = this.text.getBytes(StandardCharsets.UTF_8);
-        this.getBodyData().put(bytes);
+        int size = this.getBodyData().putUnboundUTF8String(this.text);
 
-        return (short) (bytes.length + 1); // Return the size of the body
+        return (short) (size + 1); // Return the size of the body
     }
 
     @Override
-    protected void decodeBody(short inboundSize) {
+    protected void decodeBody(int inboundSize) {
         Server.getMainLogger().warn("Attempted to decode the outbound packet: PacketServerNotice");
         // Not a server-bound packet so do nothing.
     }

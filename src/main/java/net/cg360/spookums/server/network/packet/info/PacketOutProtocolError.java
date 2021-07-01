@@ -7,10 +7,10 @@ import java.nio.charset.StandardCharsets;
 
 public class PacketOutProtocolError extends NetworkPacket {
 
-    protected short requiredProtocolVersion; // Send 0 if the check packet was malformed.
+    protected int requiredProtocolVersion; // Send 0 if the check packet was malformed.
     protected String requiredClientVersionString; // Simple String
 
-    public PacketOutProtocolError(short protocolVersion, String requiredClientVersionString) {
+    public PacketOutProtocolError(int protocolVersion, String requiredClientVersionString) {
         this.requiredProtocolVersion = protocolVersion;
         this.requiredClientVersionString = requiredClientVersionString;
     }
@@ -22,26 +22,22 @@ public class PacketOutProtocolError extends NetworkPacket {
 
     // Really this isn't needed as it's an In Packet but eh.
     @Override
-    protected short encodeBody() {
+    protected int encodeBody() {
 
         String targetString = requiredClientVersionString == null ? "Unknown Version" : requiredClientVersionString;
-        byte[] clientStringData = targetString.getBytes(StandardCharsets.UTF_8);
 
-        this.getBodyData().clear();
-        this.getBodyData().putShort(requiredProtocolVersion);
-        this.getBodyData().put(clientStringData);
+        this.getBodyData().reset();
+        this.getBodyData().putUnsignedShort(requiredProtocolVersion);
+        int strSize = this.getBodyData().putUnboundUTF8String(targetString);
 
-        return (short) (clientStringData.length + 1); // Update if more is added
+        return strSize + 1; // Update if more is added
     }
 
     @Override
-    protected void decodeBody(short inboundSize) {
+    protected void decodeBody(int inboundSize) {
 
-        this.getBodyData().clear();
-        this.requiredProtocolVersion = this.getBodyData().getShort();
-
-        byte[] targetBuffer = new byte[inboundSize - 1];
-        this.getBodyData().get(targetBuffer);
-        this.requiredClientVersionString = new String(targetBuffer, StandardCharsets.UTF_8);
+        this.getBodyData().reset();
+        this.requiredProtocolVersion = this.getBodyData().getUnsignedShort();
+        this.requiredClientVersionString = this.getBodyData().getUnboundUTF8String(inboundSize - 1);
     }
 }

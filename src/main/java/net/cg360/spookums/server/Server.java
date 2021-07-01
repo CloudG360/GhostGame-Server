@@ -11,6 +11,7 @@ import net.cg360.spookums.server.core.data.Settings;
 import net.cg360.spookums.server.network.PacketRegistry;
 import net.cg360.spookums.server.network.VanillaProtocol;
 import net.cg360.spookums.server.network.netimpl.socket.NISocket;
+import net.cg360.spookums.server.util.NetworkBuffer;
 import org.slf4j.Logger;
 import org.slf4j.impl.SimpleLoggerFactory;
 
@@ -114,7 +115,6 @@ public class Server {
                 this.getServerEventManager().addListener(new Listener(this));
 
                 VanillaProtocol.applyToRegistry(this.packetRegistry);
-
 
                 // Scheduler ticking is done here now.
                 while (this.isRunning) {
