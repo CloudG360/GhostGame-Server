@@ -9,7 +9,7 @@ import java.lang.annotation.Target;
 @Target(value = ElementType.METHOD)
 public @interface EventHandler {
 
-    Priority getPriority() default Priority.NORMAL;
+    Priority priority() default Priority.NORMAL;
     boolean ignoreIfCancelled() default true;
 
 }
