@@ -117,33 +117,36 @@ public class NISocket implements NetworkInterface {
                     int packetSize = sizeByteCount == 2 ? sizeBuf.getUnsignedShort() : -1;
 
                     if (packetSize > 0) {
+                        Server.getMainLogger().info(String.format("size: %s | bUpper: %s | bLower: %s",
+                                packetSize,
+                                Integer.toBinaryString(sizeBytes[0] & 0xFF),
+                                Integer.toBinaryString(sizeBytes[0] & 0xFF)
+                        ));
+
                         byte[] bodyBytes = new byte[packetSize];
-                        int bodyBytesCount = in.read(bodyBytes);
+                        in.readFully(bodyBytes);
                         NetworkBuffer bodyBuffer = NetworkBuffer.wrap(bodyBytes);
 
-                        if (bodyBytesCount == packetSize) {
+                        byte packetID = bodyBuffer.get();
 
-                            byte packetID = bodyBuffer.get();
+                        Optional<Class<? extends NetworkPacket>> pk = PacketRegistry.get().getPacketTypeForID(packetID);
 
-                            Optional<Class<? extends NetworkPacket>> pk = PacketRegistry.get().getPacketTypeForID(packetID);
+                        if (pk.isPresent()) {
+                            NetworkBuffer buffer = NetworkBuffer.allocate(2 + bodyBuffer.capacity());
 
-                            if (pk.isPresent()) {
-                                NetworkBuffer buffer = NetworkBuffer.allocate(2 + bodyBuffer.capacity());
+                            buffer.putUnsignedShort(packetSize);
+                            buffer.put(bodyBytes);
 
-                                buffer.putUnsignedShort(packetSize);
-                                buffer.put(bodyBytes);
+                            Class<? extends NetworkPacket> clz = pk.get();
+                            NetworkPacket packet = clz.newInstance().decode(buffer);
 
-                                Class<? extends NetworkPacket> clz = pk.get();
-                                NetworkPacket packet = clz.newInstance().decode(buffer);
+                            PacketEvent.In<?> packetEvent = new PacketEvent.In<>(clientNetID, packet);
+                            Server.get().getServerEventManager().call(packetEvent);
 
-                                PacketEvent.In<?> packetEvent = new PacketEvent.In<>(clientNetID, packet);
-                                Server.get().getServerEventManager().call(packetEvent);
+                            collectedPackets.add(packet);
 
-                                collectedPackets.add(packet);
-
-                            } else {
-                                Server.getMainLogger().warn(String.format("Invalid packet received (Unrecognized type id: %s)", packetID));
-                            }
+                        } else {
+                            Server.getMainLogger().warn(String.format("Invalid packet received (Unrecognized type id: %s)", packetID));
                         }
                     }
                 }

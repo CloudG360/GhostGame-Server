@@ -36,6 +36,7 @@ public class NetworkBuffer {
     /** Sets pointer index to 0. */
     public void reset() {
         pointerIndex = 0;
+        Server.getMainLogger().info("p*: "+pointerIndex);
     }
 
     /** Moves the pointer forward by 1 position. */
@@ -46,6 +47,7 @@ public class NetworkBuffer {
     /** Moves the pointer forward a set number of positions. */
     public void skip(int delta) {
         pointerIndex = Math.min(buffer.length - 1, pointerIndex + delta);
+        Server.getMainLogger().info("p*: "+pointerIndex);
     }
 
     /** Rewinds the pointer by 1 position. */
@@ -56,17 +58,23 @@ public class NetworkBuffer {
     /** Rewinds the pointer a set number of positions. */
     public void rewind(int delta) {
         pointerIndex = Math.max(0, pointerIndex - delta);
+        Server.getMainLogger().info("p*: "+pointerIndex);
     }
 
     public int capacity() {
         return this.buffer.length;
     }
 
+    protected void incrementPointer() {
+        pointerIndex++; // this was encased literally to debug it.
+        Server.getMainLogger().info("p*: "+pointerIndex);
+    }
+
 
     /** Unsafe way to fetch a byte. Make sure to check first :)*/
     protected byte fetchRawByte() {
         byte b = buffer[pointerIndex];
-        pointerIndex++;
+        incrementPointer();
         return b;
     }
 
@@ -75,7 +83,7 @@ public class NetworkBuffer {
 
         for(int i = 0; i < byteCount; i++) {
             bytes[i] = buffer[pointerIndex];
-            pointerIndex++;
+            incrementPointer();
         }
         return bytes;
     }
@@ -83,7 +91,8 @@ public class NetworkBuffer {
     /** Unsafe way to write a byte. Make sure to check first :)*/
     protected void writeByte(byte b) {
         buffer[pointerIndex] = b;
-        pointerIndex++;
+        incrementPointer();
+
     }
 
     /** Unsafe way to write a series of bytes. Make sure to check first :)*/
@@ -150,7 +159,7 @@ public class NetworkBuffer {
             int degradedValue = value;
 
             for (byte i = 7; i >= 0; i--) {
-                double valCheck = Math.pow(2, i);
+                int valCheck = (int) Math.pow(2, i);
 
                 if ((degradedValue - valCheck) >= 0) {
                     degradedValue -= valCheck;

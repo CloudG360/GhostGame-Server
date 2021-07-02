@@ -33,8 +33,9 @@ public abstract class NetworkPacket {
 
         bodySize = encodeBody();
         int size = bodySize + 1;
-        data.put(packetID);
+
         data.putUnsignedShort(size); // TODO: maybe catch and throw another exception to make a size issue clearer.
+        data.put(packetID);
 
         this.body.reset(); // Go to the start of the body.
 
@@ -49,8 +50,8 @@ public abstract class NetworkPacket {
         fullPacket.reset(); // Ensure buffers are ready for reading.
         this.body.reset();
 
-        this.packetID = fullPacket.get();
         this.bodySize = fullPacket.getUnsignedShort() - 1; // Really should be converted to an int if it's unsigned
+        this.packetID = fullPacket.get();
 
         for(int i = 0; i < bodySize; i++) {
             this.body.put(fullPacket.get()); // Copy bytes
