@@ -61,8 +61,20 @@ public class NISocket implements NetworkInterface {
 
                         socketListenerThread.start();
 
-                        EventManager.get().call(new ClientConnectionEvent(clientUUID));
-                        sendDataPacket(clientUUID, new PacketInOutChatMessage("This is a test message!"), true);
+                        new Thread() {
+                            @Override
+                            public void run() {
+                                synchronized (this) {
+                                    //try {
+                                        //this.wait(1000);
+                                        EventManager.get().call(new ClientConnectionEvent(clientUUID));
+                                    //} catch (InterruptedException e) {
+                                    //    e.printStackTrace();
+                                    //}
+                                }
+                            }
+                        }.start();
+
                     }
 
                     this.closeServer();
@@ -112,41 +124,39 @@ public class NISocket implements NetworkInterface {
                 synchronized (client.getInputStream()) {
                     DataInputStream in = new DataInputStream(client.getInputStream());
                     byte[] sizeBytes = new byte[2];
-                    int sizeByteCount = in.read(sizeBytes);
-                    NetworkBuffer sizeBuf = NetworkBuffer.wrap(sizeBytes);
-                    int packetSize = sizeByteCount == 2 ? sizeBuf.getUnsignedShort() : -1;
 
-                    if (packetSize > 0) {
-                        Server.getMainLogger().info(String.format("size: %s | bUpper: %s | bLower: %s",
-                                packetSize,
-                                Integer.toBinaryString(sizeBytes[0] & 0xFF),
-                                Integer.toBinaryString(sizeBytes[0] & 0xFF)
-                        ));
+                    if(in.available() >= 2) {
+                        int sizeByteCount = in.read(sizeBytes);
+                        NetworkBuffer sizeBuf = NetworkBuffer.wrap(sizeBytes);
+                        int packetSize = sizeByteCount == 2 ? sizeBuf.getUnsignedShort() : -1;
 
-                        byte[] bodyBytes = new byte[packetSize];
-                        in.readFully(bodyBytes);
-                        NetworkBuffer bodyBuffer = NetworkBuffer.wrap(bodyBytes);
+                        if (packetSize > 0) {
 
-                        byte packetID = bodyBuffer.get();
+                            byte[] bodyBytes = new byte[packetSize];
+                            in.readFully(bodyBytes);
+                            NetworkBuffer bodyBuffer = NetworkBuffer.wrap(bodyBytes);
 
-                        Optional<Class<? extends NetworkPacket>> pk = PacketRegistry.get().getPacketTypeForID(packetID);
+                            byte packetID = bodyBuffer.get();
 
-                        if (pk.isPresent()) {
-                            NetworkBuffer buffer = NetworkBuffer.allocate(2 + bodyBuffer.capacity());
+                            Optional<Class<? extends NetworkPacket>> pk = PacketRegistry.get().getPacketTypeForID(packetID);
 
-                            buffer.putUnsignedShort(packetSize);
-                            buffer.put(bodyBytes);
+                            if (pk.isPresent()) {
+                                NetworkBuffer buffer = NetworkBuffer.allocate(2 + bodyBuffer.capacity());
 
-                            Class<? extends NetworkPacket> clz = pk.get();
-                            NetworkPacket packet = clz.newInstance().decode(buffer);
+                                buffer.putUnsignedShort(packetSize);
+                                buffer.put(bodyBytes);
 
-                            PacketEvent.In<?> packetEvent = new PacketEvent.In<>(clientNetID, packet);
-                            Server.get().getServerEventManager().call(packetEvent);
+                                Class<? extends NetworkPacket> clz = pk.get();
+                                NetworkPacket packet = clz.newInstance().decode(buffer);
 
-                            collectedPackets.add(packet);
+                                PacketEvent.In<?> packetEvent = new PacketEvent.In<>(clientNetID, packet);
+                                Server.get().getServerEventManager().call(packetEvent);
 
-                        } else {
-                            Server.getMainLogger().warn(String.format("Invalid packet received (Unrecognized type id: %s)", packetID));
+                                collectedPackets.add(packet);
+
+                            } else {
+                                Server.getMainLogger().warn(String.format("Invalid packet received (Unrecognized type id: %s)", packetID));
+                            }
                         }
                     }
                 }
@@ -168,22 +178,32 @@ public class NISocket implements NetworkInterface {
     public synchronized void sendDataPacket(UUID clientNetID, NetworkPacket packet, boolean isUrgent) {
         if(!isRunning) return;
         if(isClientConnected(clientNetID)) {
+
             Socket client = clientSockets.get(clientNetID);
             NetworkBuffer content = packet.encode();
             content.reset();
 
-            byte[] contents = new byte[content.capacity()];
-            content.get(contents);
+            PacketEvent.Out<?> packetEvent = new PacketEvent.Out<>(clientNetID, packet);
+            Server.get().getServerEventManager().call(packetEvent);
 
-            try {
-                DataOutputStream outputStream = new DataOutputStream(client.getOutputStream());
-                outputStream.write(contents);
+            if(!packetEvent.isCancelled()) {
+                byte[] sizeBytes = new byte[2];
+                byte[] contents = new byte[content.capacity()-2];
+                content.get(sizeBytes); // Split it into two, send the size first.
+                content.get(contents);
 
-            } catch (SocketException err) {
-                err.printStackTrace();
+                try {
+                    DataOutputStream outputStream = new DataOutputStream(client.getOutputStream());
+                    outputStream.write(sizeBytes);
+                    outputStream.write(contents);
 
-            } catch (IOException ioErr) {
-                throw new RuntimeException("An IOException was raised whilst sending a packet: "+ioErr.getMessage());
+
+                } catch (SocketException err) {
+                    err.printStackTrace();
+
+                } catch (IOException ioErr) {
+                    throw new RuntimeException("An IOException was raised whilst sending a packet: " + ioErr.getMessage());
+                }
             }
         }
     }

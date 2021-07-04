@@ -4,13 +4,16 @@ import net.cg360.spookums.server.core.data.json.JsonTypeRegistry;
 import net.cg360.spookums.server.core.event.EventManager;
 import net.cg360.spookums.server.core.event.Listener;
 import net.cg360.spookums.server.core.event.handler.EventHandler;
+import net.cg360.spookums.server.core.event.handler.Priority;
 import net.cg360.spookums.server.core.event.type.network.ClientConnectionEvent;
 import net.cg360.spookums.server.core.event.type.network.PacketEvent;
 import net.cg360.spookums.server.core.scheduler.Scheduler;
 import net.cg360.spookums.server.core.data.Settings;
 import net.cg360.spookums.server.network.PacketRegistry;
 import net.cg360.spookums.server.network.VanillaProtocol;
+import net.cg360.spookums.server.network.netimpl.NetworkInterface;
 import net.cg360.spookums.server.network.netimpl.socket.NISocket;
+import net.cg360.spookums.server.network.packet.generic.PacketInOutChatMessage;
 import net.cg360.spookums.server.util.NetworkBuffer;
 import org.slf4j.Logger;
 import org.slf4j.impl.SimpleLoggerFactory;
@@ -24,6 +27,11 @@ import java.util.List;
 public class Server {
 
     public static final int MSPT = 1000 / 20; // Millis per tick.
+
+    // TEMPORARY TEST
+    private int responseCount = 0;
+    private NetworkInterface tmpImpl;
+    //TEMP ^^
 
     protected static Server instance;
 
@@ -92,7 +100,7 @@ public class Server {
 
 
                 getLogger().info("Starting network threads...");
-                final NISocket tmpImpl = new NISocket(); //TODO: Replace this with a NetworkManager
+                tmpImpl = new NISocket(); //TODO: Replace this with a NetworkManager
                 this.netServerThread = new Thread() {
 
                     @Override
@@ -135,8 +143,10 @@ public class Server {
 
 
     @EventHandler
-    public void onPacketIn(ClientConnectionEvent event) {
+    public void onClientConnect(ClientConnectionEvent event) {
         getLogger().info("Connection | " + event.getClientNetID().toString());
+        responseCount = 0;
+        tmpImpl.sendDataPacket(event.getClientNetID(), new PacketInOutChatMessage(String.format("Connected! Welcome %s!", event.getClientNetID().toString())), false);
     }
 
     @EventHandler
@@ -146,9 +156,11 @@ public class Server {
                 event.getPacket().toCoreString(),
                 event.getPacket().toString())
         );
+        tmpImpl.sendDataPacket(event.getClientNetID(), new PacketInOutChatMessage(String.format("Server Response #%s", responseCount)), false);
+        responseCount++;
     }
 
-    @EventHandler
+    @EventHandler(priority = Priority.HIGH)
     public void onPacketOut(PacketEvent.Out<?> event) {
         getLogger().info(String.format("OUT | %s >> %s %s",
                 event.getClientNetID().toString(),

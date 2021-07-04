@@ -74,13 +74,13 @@ public class EventManager {
 
 
                 boolean added = false;
-                int pairPriority = pair.getAnnotation().getPriority().getValue();
+                int pairPriority = pair.getAnnotation().priority().getValue();
                 int originalSize = callList.size();
 
                 for(int i = 0; i < originalSize; i++) {
                     HandlerMethodPair p = callList.get(i);
 
-                    if(pairPriority > p.getAnnotation().getPriority().getValue()) {
+                    if(pairPriority > p.getAnnotation().priority().getValue()) {
                         callList.add(i, pair);
                         callListeners.add(i, listener);
                         added = true;

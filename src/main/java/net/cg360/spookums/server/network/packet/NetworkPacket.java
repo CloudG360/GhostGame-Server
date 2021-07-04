@@ -29,12 +29,12 @@ public abstract class NetworkPacket {
     protected abstract void decodeBody(int inboundSize); // Takes data from the body buffer and converts it to fields.
 
     public final NetworkBuffer encode() {
-        NetworkBuffer data = NetworkBuffer.wrap(new byte[VanillaProtocol.MAX_PACKET_SIZE]);
-
         bodySize = encodeBody();
         int size = bodySize + 1;
 
-        data.putUnsignedShort(size); // TODO: maybe catch and throw another exception to make a size issue clearer.
+        NetworkBuffer data = NetworkBuffer.wrap(new byte[2+size]);
+
+        data.putUnsignedShort(size);
         data.put(packetID);
 
         this.body.reset(); // Go to the start of the body.
@@ -48,10 +48,11 @@ public abstract class NetworkPacket {
 
     public final NetworkPacket decode(NetworkBuffer fullPacket) {
         fullPacket.reset(); // Ensure buffers are ready for reading.
-        this.body.reset();
 
         this.bodySize = fullPacket.getUnsignedShort() - 1; // Really should be converted to an int if it's unsigned
         this.packetID = fullPacket.get();
+
+        this.body = NetworkBuffer.wrap(new byte[VanillaProtocol.MAX_PACKET_SIZE - 3]);
 
         for(int i = 0; i < bodySize; i++) {
             this.body.put(fullPacket.get()); // Copy bytes
