@@ -4,14 +4,14 @@ import net.cg360.spookums.server.network.packet.NetworkPacket;
 
 import java.nio.charset.StandardCharsets;
 
-public abstract class PacketInTokenHolder extends NetworkPacket {
+public abstract class PacketInOutTokenHolder extends NetworkPacket {
 
     public static final String NO_TOKEN = "N/A";
 
     protected String token;
 
-    public PacketInTokenHolder() { this(null); }
-    public PacketInTokenHolder(String token) {
+    public PacketInOutTokenHolder() { this(null); }
+    public PacketInOutTokenHolder(String token) {
         this.token = token;
     }
 

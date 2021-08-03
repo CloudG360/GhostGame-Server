@@ -5,6 +5,7 @@ import net.cg360.spookums.server.network.packet.NetworkPacket;
 
 import java.nio.charset.StandardCharsets;
 
+// Acts as a disconnect packet in a way for incompatible clients.
 public class PacketOutProtocolError extends NetworkPacket {
 
     protected int requiredProtocolVersion; // Send 0 if the check packet was malformed.
