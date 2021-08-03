@@ -1,12 +1,12 @@
 package net.cg360.spookums.server.core.event.type.network;
 
-import net.cg360.spookums.server.core.event.type.CancellableEvent;
+import net.cg360.spookums.server.core.event.type.Event;
 import net.cg360.spookums.server.network.packet.NetworkPacket;
 import net.cg360.spookums.server.util.Check;
 
 import java.util.UUID;
 
-public class PacketEvent<P extends NetworkPacket> extends CancellableEvent {
+public abstract class PacketEvent<P extends NetworkPacket> extends Event.Cancellable {
 
     protected UUID clientNetID;
     protected P packet;

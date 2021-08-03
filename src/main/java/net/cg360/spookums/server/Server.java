@@ -2,7 +2,6 @@ package net.cg360.spookums.server;
 
 import net.cg360.spookums.server.core.data.json.JsonTypeRegistry;
 import net.cg360.spookums.server.core.event.EventManager;
-import net.cg360.spookums.server.core.event.Listener;
 import net.cg360.spookums.server.core.event.handler.EventHandler;
 import net.cg360.spookums.server.core.event.handler.Priority;
 import net.cg360.spookums.server.core.event.type.network.ClientConnectionEvent;
@@ -14,7 +13,6 @@ import net.cg360.spookums.server.network.VanillaProtocol;
 import net.cg360.spookums.server.network.netimpl.NetworkInterface;
 import net.cg360.spookums.server.network.netimpl.socket.NISocket;
 import net.cg360.spookums.server.network.packet.generic.PacketInOutChatMessage;
-import net.cg360.spookums.server.util.NetworkBuffer;
 import org.slf4j.Logger;
 import org.slf4j.impl.SimpleLoggerFactory;
 
@@ -120,7 +118,7 @@ public class Server {
                 this.netServerThread.start();
                 getLogger().info("Starting network server thread!");
 
-                this.getServerEventManager().addListener(new Listener(this));
+                this.getServerEventManager().addListener(this);
 
                 VanillaProtocol.applyToRegistry(this.packetRegistry);
 

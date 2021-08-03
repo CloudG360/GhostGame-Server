@@ -1,6 +1,6 @@
 package net.cg360.spookums.server.core.event.type;
 
-public interface Cancellable {
+public interface CancellableType {
 
     boolean isCancelled();
 
