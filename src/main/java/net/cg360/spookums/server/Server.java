@@ -6,6 +6,7 @@ import net.cg360.spookums.server.core.event.handler.EventHandler;
 import net.cg360.spookums.server.core.event.handler.Priority;
 import net.cg360.spookums.server.core.event.type.network.ClientConnectionEvent;
 import net.cg360.spookums.server.core.event.type.network.PacketEvent;
+import net.cg360.spookums.server.core.scheduler.CommandingScheduler;
 import net.cg360.spookums.server.core.scheduler.Scheduler;
 import net.cg360.spookums.server.core.data.Settings;
 import net.cg360.spookums.server.network.PacketRegistry;
@@ -42,7 +43,7 @@ public class Server {
     protected Thread netClientsThread;
 
     protected Logger logger;
-    protected Scheduler serverScheduler;
+    protected CommandingScheduler serverScheduler;
     protected EventManager serverEventManager;
 
     protected PacketRegistry packetRegistry;
@@ -61,7 +62,7 @@ public class Server {
 
         // -- Core Components --
 
-        this.serverScheduler = new Scheduler(0);
+        this.serverScheduler = new CommandingScheduler();
         this.serverEventManager = new EventManager();
 
 
@@ -123,6 +124,8 @@ public class Server {
                 VanillaProtocol.applyToRegistry(this.packetRegistry);
 
                 // Scheduler ticking is done here now.
+                // TODO: Account for variation in ticks otherwise clients will become desynchronized with the server.
+                //       While ticking is less important on the client, it could cause unexpected behaviour.
                 while (this.isRunning) {
                     serverScheduler.serverTick();
                     this.wait(MSPT);
@@ -175,7 +178,7 @@ public class Server {
     public boolean isRunning() { return isRunning; }
 
     public Logger getLogger() { return logger; }
-    public Scheduler getServerScheduler() { return serverScheduler; }
+    public CommandingScheduler getServerScheduler() { return serverScheduler; }
     public EventManager getServerEventManager() { return serverEventManager; }
 
 

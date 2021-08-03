@@ -1,61 +1,38 @@
 package net.cg360.spookums.server.core.scheduler;
 
 import net.cg360.spookums.server.Server;
+import net.cg360.spookums.server.core.scheduler.task.RunnableTypeTask;
+import net.cg360.spookums.server.core.scheduler.task.SchedulerTask;
+import net.cg360.spookums.server.util.Check;
 
-import java.util.ArrayList;
-import java.util.UUID;
+import java.util.*;
 
-public class Scheduler {
+public class Scheduler extends SchedulingType {
 
-    private static Scheduler primaryInstance;
+    private final UUID schedulerID;
 
-    private UUID schedulerID;
-
-    protected long syncedTick;    // The server's tick whilst this has been hooked.
-    protected long schedulerTick; // The scheduler's actual tick. This depends on the tickrate
-
-    protected int tickDelay; // The amount of server ticks between each scheduler tick.
-
-    protected final ArrayList<Thread> activeThreads;
-
-    protected ArrayList<SchedulerTaskEntry> schedulerTasks;
-    protected boolean isRunning;
-
+    protected final Set<Thread> activeThreads;
+    protected final ArrayList<SchedulerTaskEntry> schedulerTasks;
 
     public Scheduler(int tickDelay) {
         this.schedulerID = UUID.randomUUID();
 
-        this.syncedTick = 0;
-        this.schedulerTick = 0;
         this.tickDelay = Math.max(1, tickDelay);
 
         this.schedulerTasks = new ArrayList<>();
-        this.activeThreads = new ArrayList<>();
-        this.isRunning = false;
-    }
-
-    /**
-     * Sets the scheduler the result provided from Scheduler#get() and
-     * finalizes the instance to an extent.
-     *
-     * Cannot be changed once initially called.
-     */
-    public boolean setAsPrimaryInstance() {
-        if(primaryInstance == null) {
-            primaryInstance = this;
-            return true;
-        }
-        return false;
+        this.activeThreads = Collections.synchronizedSet(new HashSet<>());
     }
 
 
 
     // -- Control --
 
-    /** Enables ticking on the scheduler*/
-    public synchronized boolean startScheduler() {
+    /** Enables ticking on the scheduler */
+    public synchronized boolean startScheduler() { return this.startScheduler(true); }
+    public synchronized boolean startScheduler(boolean tickWithServer) {
         if(!isRunning) {
             this.isRunning = true;
+            if(tickWithServer) Server.get().getServerScheduler().syncSchedulers(this);
             return true;
         }
         return false;
@@ -77,35 +54,22 @@ public class Scheduler {
     /** Removes scheduler's hook to the server tick whilst clearing the queue */
     public synchronized void pauseScheduler() {
         this.isRunning = false;
+        Server.get().getServerScheduler().desyncSchedulers(this);
     }
 
-    /** Cleares all the tasks queued in the scheduler. */
+    /** Clears all the tasks queued in the scheduler. */
     public synchronized void clearQueuedSchedulerTasks() {
-       for(SchedulerTaskEntry entry: new ArrayList<>(schedulerTasks)) {
-           entry.getTask().cancel(); // For the runnable to use? idk
-           this.schedulerTasks.remove(entry);
-       }
+        for(SchedulerTaskEntry entry: new ArrayList<>(schedulerTasks)) {
+            entry.getTask().cancel(); // For the runnable to use? idk
+            this.schedulerTasks.remove(entry);
+        }
     }
+
 
 
     // -- Ticking --
     // Methods used to tick a scheduler should only be triggered by the
-    // Scheduler thread.
-
-    /**
-     * Ran to indicate a server tick has occurred, potentially triggering a server tick.
-     * @return true is a scheduler tick is triggered as a result.
-     */
-    public synchronized boolean serverTick() { // Should only be done on the main thread
-        syncedTick++;
-
-        // Check if synced is a multiple of the delay
-        if((syncedTick % tickDelay) == 0) {
-            schedulerTick();
-            return true;
-        }
-        return false;
-    }
+    // main scheduler thread.
 
     /** Executes a scheduler tick, running any tasks due to run on this tick. */
     public synchronized void schedulerTick() {
@@ -129,8 +93,9 @@ public class Scheduler {
 
                                     try {
                                         task.getTask().run();
+
                                     } catch (Exception err) {
-                                        Server.getMainLogger().error("Error thrown in asynchronous task! :(");
+                                        Server.getMainLogger().error("Error thrown in a scheduler (asynchronous) task:");
                                         err.printStackTrace();
                                     }
 
@@ -150,7 +115,13 @@ public class Scheduler {
                         } else {
                             // Run as sync. This task must complete before the next one
                             // is ran.
-                            task.getTask().run();
+                            try {
+                                task.getTask().run();
+
+                            } catch (Exception err) {
+                                Server.get().getLogger().error("Error thrown in a scheduler (synchronous) task:");
+                                err.printStackTrace();
+                            }
                         }
 
 
@@ -159,7 +130,7 @@ public class Scheduler {
                             long targetTick = taskTick + task.getRepeatInterval();
 
                             SchedulerTaskEntry newTask = new SchedulerTaskEntry(task.getTask(), task.getRepeatInterval(), targetTick, task.isAsynchronous());
-                            queueNSTaskEntry(newTask);
+                            queueTaskEntry(newTask);
                         }
                     }
 
@@ -178,15 +149,16 @@ public class Scheduler {
     }
 
 
+
     // -- Task Control --
 
-    protected void queueNSTaskEntry(SchedulerTaskEntry entry){
-        if(entry.getNextTick() >= schedulerTick) throw new IllegalStateException("Task cannot be scheduled before the current tick.");
+    protected synchronized void queueTaskEntry(SchedulerTaskEntry entry){
+        if(entry.getNextTick() <= schedulerTick) throw new IllegalStateException("Task cannot be scheduled before the current tick.");
 
         int size = schedulerTasks.size();
         for(int i = 0; i < size; i++) {
             // Entry belongs before task? Insert into it's position
-            if(schedulerTasks.get(i).getNextTick() < entry.getNextTick()) {
+            if(schedulerTasks.get(i).getNextTick() > entry.getNextTick()) {
                 this.schedulerTasks.add(i, entry);
                 return;
             }
@@ -196,7 +168,18 @@ public class Scheduler {
         this.schedulerTasks.add(entry);
     }
 
+
+
     // -- Task Registering --
+
+    public PendingEntryBuilder prepareTask(Runnable task) {
+        SchedulerTask rTask = new RunnableTypeTask(task);
+        return new PendingEntryBuilder(this, rTask);
+    }
+
+    public PendingEntryBuilder prepareTask(SchedulerTask task) {
+        return new PendingEntryBuilder(this, task);
+    }
 
 
 
@@ -204,23 +187,73 @@ public class Scheduler {
 
     /** The unique ID of this scheduler. */
     public UUID getSchedulerID() { return schedulerID; }
-
-    /** @return the amount of server ticks this scheduler has been running for. */
-    public long getSyncedTick() { return syncedTick; }
-    /** @return the amount of ticks this scheduler has executed. */
-    public long getSchedulerTick() { return schedulerTick; }
-    /** @return the amount of server ticks between each scheduler tick. */
-    public int getTickDelay() { return tickDelay; }
     /** @return a list of active async task threads */
-    public ArrayList<Thread> getActiveThreads() { return new ArrayList<>(activeThreads); }
+    public Set<Thread> getActiveThreads() { return new HashSet<>(activeThreads); }
 
-    /** @return the primary instance of the scheduler. */
-    public static Scheduler get() { return primaryInstance; }
+
 
     // -- Setters --
 
     /** Sets the amount of server ticks that should pass between each scheduler tick. */
     public void setTickDelay(int tickDelay) {
         this.tickDelay = tickDelay;
+    }
+
+
+
+    public static class PendingEntryBuilder {
+
+        protected final Scheduler scheduler;
+        protected final SchedulerTask task;
+
+        protected int interval;
+        protected int delay;
+        protected boolean isAsynchronous;
+
+        protected PendingEntryBuilder(Scheduler scheduler, SchedulerTask task) {
+            this.scheduler = Check.nullParam(scheduler, "scheduler");
+            this.task = Check.nullParam(task, "task");
+
+            this.interval = 0;
+            this.delay = 0;
+            this.isAsynchronous = false;
+        }
+
+        public SchedulerTask schedule() {
+            synchronized (scheduler) {
+                long nextTick = scheduler.schedulerTick + delay + 1;
+                SchedulerTaskEntry entry = new SchedulerTaskEntry(task, interval, nextTick, isAsynchronous);
+                scheduler.queueTaskEntry(entry);
+            }
+            return task;
+        }
+
+
+        public int getInterval() {
+            return interval;
+        }
+
+        public int getDelay() {
+            return delay;
+        }
+
+        public boolean isAsynchronous() {
+            return isAsynchronous;
+        }
+
+        public PendingEntryBuilder setInterval(int interval) {
+            this.interval = Check.inclusiveLowerBound(interval, 0, "interval");
+            return this;
+        }
+
+        public PendingEntryBuilder setDelay(int delay) {
+            this.delay = Check.inclusiveLowerBound(delay, 0, "delay");
+            return this;
+        }
+
+        public PendingEntryBuilder setAsynchronous(boolean asynchronous) {
+            this.isAsynchronous = asynchronous;
+            return this;
+        }
     }
 }
