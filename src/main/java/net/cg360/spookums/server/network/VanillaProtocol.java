@@ -7,21 +7,6 @@ import net.cg360.spookums.server.network.packet.info.*;
 
 public class VanillaProtocol {
 
-    /* -- General Notes: --
-     *
-     * Format:
-     * 1 byte - packet type
-     * 2 bytes (short) - packet body size
-     * ... bytes - body
-     *
-     * Types:
-     *  - String:
-     *      Stores a string type encoded in UTF-8
-     *      - (Tracked) Includes a short type "length" prior to the text, indicating the amount of bytes taken to store it.
-     *      - (Simple) Doesn't include a length prior to the string. Only used when the size can be inferred from the packet body length.
-     *
-     */
-
     public static final Short PROTOCOL_ID = 1;
 
     public static final int MAX_BUFFER_SIZE = 8192;
@@ -30,6 +15,9 @@ public class VanillaProtocol {
 
 
     // -- Packet Identifiers --
+
+    // Protocol Connection:
+    // Client sends version -> Server responds with success or failure
 
     // Protocol packets - These should not change in format, even after a large update for consistency.
     public static final byte PACKET_PROTOCOL_INVALID_PACKET = 0x00; // in/out - This should not be used at all! Packets with this ID are ignored silently.
@@ -50,9 +38,9 @@ public class VanillaProtocol {
     // Response/Generic Packets
     public static final byte PACKET_RESPONSE_WARNING = 0x15; // out - Used to respond to client packets with a warn status
     public static final byte PACKET_RESPONSE_SUCCESS = 0x16; // out - Used to respond to client packets with a info status
-    public static final byte PACKET_RESPONSE_ERROR = 0x17; // out - Used to respond to client packets with a error status
+    public static final byte PACKET_RESPONSE_ERROR = 0x17; // in/out - Used to respond to client or server packets with a error status.
 
-    public static final byte PACKET_CHAT_MESSAGE = 0x18; // in/out - messages in may get some further formatting.
+    public static final byte PACKET_CHAT_MESSAGE = 0x18; // in/out - A chat message!
 
 
     // Account Management Packets
@@ -62,11 +50,17 @@ public class VanillaProtocol {
 
 
     // Session Stuff
-    public static final byte PACKET_GAME_JOIN_REQUEST = 0x30; // in - Client's intent to join a game. Will return a PACKET_SESSION_RESPONSE type packet
-    public static final byte PACKET_GAME_CREATE_REQUEST = 0x31; // in - Client's intent to create their own game with it's settings included.
-    public static final byte PACKET_GAME_RESPONSE = 0x32; // out - Returns a specific game token or an error message
+    public static final byte PACKET_GAME_JOIN_REQUEST = 0x30; // in - Client's intent to join a *specific* game. Will return a PACKET_GAME_STATUS type packet
+    public static final byte PACKET_GAME_SEARCH_REQUEST = 0x31; // in - Client's intent to join a *new* game. Can result in placing them in a queue.
+    // BREAKING NEXT -> public static final byte PACKET_GAME_CREATE_REQUEST = 0x31; // in - Client's intent to create their own game with it's settings included.
 
-    public static final byte PACKET_FETCH_GAME_LIST = 0x33; // in - Requests a list of games (Responded to with a few PACKET_GAME_DETAIL's)
+    // out - Update's a client on their status in relation to the game. It can place the client in the queue, mark it as a spectator,
+    // or mark it as an active player. It can also indicate that a player has been kicked or denied from a game, no-matter their current status.
+    public static final byte PACKET_GAME_STATUS = 0x32;
+
+    // These will be utilised differently to the final game.
+    // Currently, their only use is to offer spectating support.
+    //public static final byte PACKET_FETCH_GAME_LIST = 0x33; // in - Requests a list of games (Responded to with a few PACKET_GAME_DETAIL's)
     public static final byte PACKET_REQUEST_GAME_DETAIL = 0x34; // in - Requests the details of a specific game
     public static final byte PACKET_GAME_DETAIL = 0x35; // out - Sends details of the game to the client
 
@@ -81,7 +75,7 @@ public class VanillaProtocol {
 
                 .r(PACKET_SERVER_PING_REQUEST, PacketInServerPingRequest.class)
                 .r(PACKET_SERVER_DETAIL, PacketOutServerDetail.class)
-                .r(PACKET_CLIENT_DETAIL, null)
+                .r(PACKET_CLIENT_DETAIL, PacketInClientDetail.class)
                 .r(PACKET_SERVER_NOTICE, PacketOutServerNotice.class)
                 .r(PACKET_DISCONNECT_REASON, PacketInOutDisconnect.class)
 
@@ -95,9 +89,9 @@ public class VanillaProtocol {
                 .r(PACKET_LOGIN_RESPONSE, null)
 
                 .r(PACKET_GAME_JOIN_REQUEST, null)
-                .r(PACKET_GAME_CREATE_REQUEST, null)
-                .r(PACKET_GAME_RESPONSE, null)
-                .r(PACKET_FETCH_GAME_LIST, null)
+                .r(PACKET_GAME_SEARCH_REQUEST, null)
+                .r(PACKET_GAME_STATUS, null)
+                //.r(PACKET_FETCH_GAME_LIST, null)
                 .r(PACKET_REQUEST_GAME_DETAIL, null)
                 .r(PACKET_GAME_DETAIL, null);
 

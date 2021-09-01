@@ -2,23 +2,19 @@ package net.cg360.spookums.server.network.netimpl.socket;
 
 import net.cg360.spookums.server.Server;
 import net.cg360.spookums.server.core.event.EventManager;
-import net.cg360.spookums.server.core.event.type.network.ClientConnectionEvent;
+import net.cg360.spookums.server.core.event.type.network.ClientSocketStatusEvent;
 import net.cg360.spookums.server.core.event.type.network.PacketEvent;
 import net.cg360.spookums.server.network.PacketRegistry;
 import net.cg360.spookums.server.network.VanillaProtocol;
 import net.cg360.spookums.server.network.netimpl.NetworkInterface;
 import net.cg360.spookums.server.network.packet.NetworkPacket;
-import net.cg360.spookums.server.network.packet.generic.PacketInOutChatMessage;
 import net.cg360.spookums.server.network.packet.generic.PacketInOutDisconnect;
+import net.cg360.spookums.server.network.user.NetworkClient;
 import net.cg360.spookums.server.util.NetworkBuffer;
 
 import java.io.*;
 import java.net.*;
-import java.nio.ByteBuffer;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Optional;
-import java.util.UUID;
+import java.util.*;
 
 public class NISocket implements NetworkInterface {
 
@@ -55,25 +51,13 @@ public class NISocket implements NetworkInterface {
 
                         UUID clientUUID = UUID.randomUUID();
                         SocketListenerThread socketListenerThread = new SocketListenerThread(clientUUID, this);
+                        NetworkClient client = new NetworkClient(clientUUID);
 
                         this.clientSockets.put(clientUUID, clientSocket);
                         this.clientThreads.put(clientUUID, socketListenerThread);
 
                         socketListenerThread.start();
-
-                        new Thread() {
-                            @Override
-                            public void run() {
-                                synchronized (this) {
-                                    //try {
-                                        //this.wait(1000);
-                                        EventManager.get().call(new ClientConnectionEvent(clientUUID));
-                                    //} catch (InterruptedException e) {
-                                    //    e.printStackTrace();
-                                    //}
-                                }
-                            }
-                        }.start();
+                        EventManager.get().call(new ClientSocketStatusEvent.Open(client));
 
                     }
 
