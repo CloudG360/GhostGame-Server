@@ -20,7 +20,7 @@ public interface NetworkInterface {
     void sendDataPacket(UUID clientNetID, NetworkPacket packet, boolean isUrgent);
     void broadcastDataPacket(NetworkPacket packet, boolean isUrgent); // Bulk method
 
-    default void disconnectClient(UUID clientNetID) { disconnectClient(clientNetID, new PacketInOutDisconnect(null)); }
+    default void disconnectClient(UUID clientNetID) { disconnectClient(clientNetID, new PacketInOutDisconnect( null)); }
     void disconnectClient(UUID clientNetID, PacketInOutDisconnect disconnectPacket); // Closes the socked
 
     boolean isClientConnected(UUID clientNetId);

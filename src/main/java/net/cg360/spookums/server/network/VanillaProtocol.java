@@ -8,6 +8,7 @@ import net.cg360.spookums.server.network.packet.info.*;
 public class VanillaProtocol {
 
     public static final Short PROTOCOL_ID = 1;
+    public static final String SUPPORTED_VERSION_STRING = "v1.0.0";
 
     public static final int MAX_BUFFER_SIZE = 8192;
     public static final int MAX_PACKET_SIZE = 4096;

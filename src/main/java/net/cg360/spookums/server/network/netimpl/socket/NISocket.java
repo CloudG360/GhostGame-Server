@@ -206,8 +206,10 @@ public class NISocket implements NetworkInterface {
 
             if(conn.isConnected() && (!conn.isClosed())) {
 
-                try { sendDataPacket(clientNetID, disconnectPacket, true); }
-                catch (RuntimeException err) { Server.getMainLogger().warn("Client disconnected with a IOException"); }
+                if(disconnectPacket != null) {
+                    try { sendDataPacket(clientNetID, disconnectPacket, true); }
+                    catch (RuntimeException err) { Server.getMainLogger().warn("Client disconnected with a IOException"); }
+                }
 
                 try { conn.close(); }
                 catch (Exception err) { err.printStackTrace(); }

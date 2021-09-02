@@ -12,6 +12,11 @@ public class NetworkClient {
         this.state = ConnectionState.OPEN;
     }
 
+    public NetworkClient setState(ConnectionState state) {
+        this.state = state;
+        return this;
+    }
+
     public UUID getID() { return uuid; }
     public ConnectionState getState() {return state;}
 }

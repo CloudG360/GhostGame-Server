@@ -43,4 +43,13 @@ public class PacketInProtocolCheck extends NetworkPacket {
             this.protocolVersion = this.getBodyData().getUnsignedShort();
         }
     }
+
+
+    public int getProtocolVersion() {
+        return protocolVersion;
+    }
+
+    public boolean isValid() {
+        return isValid;
+    }
 }
