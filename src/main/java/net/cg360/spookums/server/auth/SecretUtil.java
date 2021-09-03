@@ -1,7 +1,5 @@
 package net.cg360.spookums.server.auth;
 
-import net.cg360.spookums.server.core.event.type.network.PacketEvent;
-
 import java.nio.charset.StandardCharsets;
 import java.security.SecureRandom;
 
@@ -109,10 +107,10 @@ public class SecretUtil {
     protected static byte[][] get512ChunkBuffer(byte[] data) {
         // length + a byte that stars with 1 for spacing + 64-bit word for length
         int lenDat = data.length + 1 + 8;
-        int fillByteCount = (lenDat % 64);
+        int fillByteCount = 64 - (lenDat % 64);
 
         byte[] buffer = new byte[lenDat + fillByteCount];
-        int offset = data.length + 1;
+        int offset = data.length;
 
         ////// Add original length | Little endian. Copy data + append with 10000000
         for(int d = 0; d < data.length; d++) buffer[d] = data[d];
@@ -158,7 +156,7 @@ public class SecretUtil {
     public static int[] copyArray(int[] sourceArray) {
         int[] target = new int[sourceArray.length];
         for(int i = 0; i < sourceArray.length; i++) target[i] = sourceArray[i];
-        
+
         return target;
     }
 }
