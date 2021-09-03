@@ -1,5 +1,6 @@
 package net.cg360.spookums.server;
 
+import net.cg360.spookums.server.auth.AuthenticationManager;
 import net.cg360.spookums.server.core.data.json.JsonTypeRegistry;
 import net.cg360.spookums.server.core.event.EventManager;
 import net.cg360.spookums.server.core.event.handler.EventHandler;
@@ -8,6 +9,7 @@ import net.cg360.spookums.server.core.event.type.network.ClientSocketStatusEvent
 import net.cg360.spookums.server.core.event.type.network.PacketEvent;
 import net.cg360.spookums.server.core.scheduler.CommandingScheduler;
 import net.cg360.spookums.server.core.data.Settings;
+import net.cg360.spookums.server.db.DatabaseManager;
 import net.cg360.spookums.server.network.PacketRegistry;
 import net.cg360.spookums.server.network.VanillaProtocol;
 import net.cg360.spookums.server.network.netimpl.NetworkInterface;
@@ -52,6 +54,8 @@ public class Server {
     protected Logger logger;
     protected CommandingScheduler serverScheduler;
     protected EventManager serverEventManager;
+    protected DatabaseManager databaseManager;
+    protected AuthenticationManager authenticationManager;
 
     protected PacketRegistry packetRegistry;
     protected JsonTypeRegistry jsonTypeRegistry;
@@ -77,6 +81,8 @@ public class Server {
 
         this.serverScheduler = new CommandingScheduler();
         this.serverEventManager = new EventManager();
+        this.databaseManager = new DatabaseManager();
+        this.authenticationManager = new AuthenticationManager();
 
 
         // -- Core Registries --
@@ -97,11 +103,13 @@ public class Server {
 
                 // Attempt to claim the primary instances.
                 boolean resultScheduler = this.serverScheduler.setAsPrimaryInstance();
-                boolean resultEventManager = this.serverEventManager.setAsPrimaryManager();
+                boolean resultEventManager = this.serverEventManager.setAsPrimaryInstance();
+                boolean resultDatabaseManager = this.databaseManager.setAsPrimaryInstance();
+                boolean resultAuthManager = this.authenticationManager.setAsPrimaryInstance();
                 boolean resultPacketRegistry = this.packetRegistry.setAsPrimaryInstance();
                 boolean resultJsonTypeRegistry = this.jsonTypeRegistry.setAsPrimaryInstance();
 
-                if(resultScheduler && resultEventManager && resultPacketRegistry && resultJsonTypeRegistry){
+                if(resultScheduler && resultEventManager && resultDatabaseManager && resultAuthManager && resultPacketRegistry && resultJsonTypeRegistry){
                     getLogger().info("Claimed primary instances! This is the main server! :)");
                 }
 
@@ -263,8 +271,7 @@ public class Server {
     public Logger getLogger() { return logger; }
     public CommandingScheduler getServerScheduler() { return serverScheduler; }
     public EventManager getServerEventManager() { return serverEventManager; }
-
-
+    public DatabaseManager getDBManager() { return databaseManager; }
 
     public static Server get() { return instance; }
     public static Logger getMainLogger() { return get().getLogger(); }

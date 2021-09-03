@@ -48,7 +48,7 @@ public class EventManager {
      *
      * Cannot be changed once initially called.
      */
-    public boolean setAsPrimaryManager(){
+    public boolean setAsPrimaryInstance(){
         if(primaryManager == null) {
             primaryManager = this;
             return true;

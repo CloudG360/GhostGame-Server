@@ -10,14 +10,26 @@ import java.util.HashMap;
 
 public class DatabaseManager {
 
+    private static DatabaseManager primaryInstance;
+
     public static final String SQLITE_DATABASE_PATH = "db/";
-    public static final String CONNEECTION_PREFIX = "jdbc:sqlite:";
+    public static final String CONNECTION_PREFIX = "jdbc:sqlite:";
 
     public DatabaseManager() { }
 
+    public boolean setAsPrimaryInstance() {
+        if(primaryInstance == null) {
+            primaryInstance = this;
+            return true;
+        }
+        return false;
+    }
+
+
+
     public Connection access(String name) {
         File file = new File(Server.get().getDataPath(), SQLITE_DATABASE_PATH + name + ".db");
-        String path = CONNEECTION_PREFIX +  file.getAbsolutePath();
+        String path = CONNECTION_PREFIX +  file.getAbsolutePath();
 
         try {
             Connection conn = DriverManager.getConnection(path);
@@ -29,4 +41,8 @@ public class DatabaseManager {
         }
     }
 
+
+    public static DatabaseManager get() {
+        return primaryInstance;
+    }
 }
