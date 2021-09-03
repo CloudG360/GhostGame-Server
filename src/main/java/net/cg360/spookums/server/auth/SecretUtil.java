@@ -1,7 +1,10 @@
 package net.cg360.spookums.server.auth;
 
+import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
 import java.nio.charset.StandardCharsets;
 import java.security.SecureRandom;
+import java.util.Optional;
 
 public class SecretUtil {
 
@@ -29,13 +32,27 @@ public class SecretUtil {
     };
 
     // SHA256 breaks the plaintext into 512-bit blocks
-    public static String createSHA256Hash(String plain) {
+    // This is not a perfect copy of SHA256 :)
+    // It's the same algorithm but some of the values differ
+    public static SaltyHash createSHA256Hash(String plain, boolean shouldSalt) {
         int[] hashNums = copyArray(HASH_CONSTANTS);
         int[] roundNums = copyArray(ROUND_CONSTANTS);
 
-        byte[] data = plain.getBytes(StandardCharsets.US_ASCII);
+        byte[] data = plain.getBytes(StandardCharsets.UTF_8);
+        byte[] salt = null;
+        if(shouldSalt) {
+            salt = generateSalt(16);
+            byte[] newData = new byte[data.length + salt.length];
+
+            for(int i = 0; i < data.length; i++) newData[i] = data[i];
+            for(int i = 0; i < salt.length; i++) newData[data.length + i] = salt[i];
+
+            data = newData;
+        }
+
         byte[][] buffer = get512ChunkBuffer(data);
 
+        // Iterate the following process through each chunk.
         // Iterate the following process through each chunk.
         for(int chunkI = 0; chunkI < buffer.length; chunkI++) {
             byte[] chunk = buffer[chunkI];
@@ -63,7 +80,7 @@ public class SecretUtil {
                         ^ Integer.rotateRight(word32arr[i - 2], 19)
                         ^ (word32arr[i - 2] >> 10);
 
-                word32arr[i] = word32arr[i - 16] + s0 + word32arr[i - 7] + s1;
+                word32arr[i] = addUnsigned(word32arr[i - 16], s0, word32arr[i - 7], s1);
             }
 
             ////// "compression"
@@ -72,25 +89,25 @@ public class SecretUtil {
             for(int i = 0; i < 64; i++) {
                 int s1 = Integer.rotateRight(work[4], 6) ^ Integer.rotateRight(work[4], 11) ^ Integer.rotateRight(work[4], 25);
                 int ch = (work[4] & work[5]) ^ ((~work[4]) & work[6]);
-                int tmp1 = work[7] + s1 + ch + roundNums[i] + word32arr[i];
+                int tmp1 = addUnsigned(work[7], s1, ch, roundNums[i], word32arr[i]);
 
                 int s0 = Integer.rotateRight(work[0], 2) ^ Integer.rotateRight(work[0], 13) ^ Integer.rotateRight(work[0], 22);
                 int maj = (work[0] & work[1]) ^ (work[0] & work[2]) ^ (work[1] & work[2]);
-                int tmp2 = s0 + maj;
+                int tmp2 = addUnsigned(s0, maj);
 
                 work[7] = work[6];
                 work[6] = work[5];
                 work[5] = work[4];
-                work[4] = work[3] + tmp1;
+                work[4] = addUnsigned(work[3], tmp1);
                 work[3] = work[2];
                 work[2] = work[1];
                 work[1] = work[0];
-                work[0] = tmp1 + tmp2;
+                work[0] = addUnsigned(tmp1, tmp2);
             }
 
             // Replacing the hashNums!
             for(int i = 0; i < hashNums.length; i++) {
-                hashNums[i] = hashNums[i] + work[i];
+                hashNums[i] = addUnsigned(hashNums[i], work[i]);
             }
         }
 
@@ -101,7 +118,7 @@ public class SecretUtil {
             hash.append(hexRep);
         }
 
-        return hash.toString();
+        return new SaltyHash(hash.toString(), salt);
     }
 
     protected static byte[][] get512ChunkBuffer(byte[] data) {
@@ -114,7 +131,7 @@ public class SecretUtil {
 
         ////// Add original length | Little endian. Copy data + append with 10000000
         for(int d = 0; d < data.length; d++) buffer[d] = data[d];
-        buffer[offset] = (byte) (1 << 7);
+        buffer[offset] = (byte) (0b10000000 & 0xFF);
         offset++;
 
         ////// Fill in with 0's to complete the padding.
@@ -129,11 +146,12 @@ public class SecretUtil {
 
         // Now I'm adding the actual length!
         int originalLength = data.length;
+        ByteBuffer bb = ByteBuffer.allocate(4);
+        bb.order(ByteOrder.BIG_ENDIAN);
+        bb.putInt(originalLength);
+        bb.clear();
         for(int i = 0; i < 4; i++) {
-            // Shift the bits along so they fall within the lower 8 bits.
-            // This chunks up the int into 4 bytes.
-            int shift = 4 - (i + 1); // 3, 2, 1, 0
-            buffer[offset + i] = (byte) ((originalLength >> (8 * shift)) & 0xFF);
+            buffer[offset + i] = bb.get();
         }
         offset += 4;
 
@@ -143,6 +161,7 @@ public class SecretUtil {
             int blockI = Math.floorDiv(i, 64);
             chunks[blockI][i] = buffer[i];
         }
+
         return chunks;
     }
 
@@ -153,10 +172,48 @@ public class SecretUtil {
         return randomBytes;
     }
 
+
+
     public static int[] copyArray(int[] sourceArray) {
         int[] target = new int[sourceArray.length];
         for(int i = 0; i < sourceArray.length; i++) target[i] = sourceArray[i];
 
         return target;
+    }
+
+    public static int addUnsigned(int... numbers) {
+        long value = 0;
+        for (int i = 0; i < numbers.length; i++) {
+            value += Integer.toUnsignedLong(numbers[i]);
+        }
+
+        return (int) value;
+    }
+
+
+
+    public static final class SaltyHash {
+
+        private String hash;
+        private byte[] salt;
+
+        public SaltyHash(String hash, byte[] salt) {
+            this.hash = hash;
+            this.salt = salt;
+        }
+
+        public String getHash() {
+            return hash;
+        }
+
+        public Optional<byte[]> getSalt() {
+            return Optional.ofNullable(salt);
+        }
+
+        public Optional<String> getSaltString() {
+            if(salt == null) return Optional.empty();
+            String s = new String(salt, StandardCharsets.UTF_8);
+            return Optional.of(s);
+        }
     }
 }
