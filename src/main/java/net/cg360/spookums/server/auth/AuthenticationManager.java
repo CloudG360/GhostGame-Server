@@ -60,40 +60,52 @@ public class AuthenticationManager {
 
 
 
-    public void createTables() {
+    public boolean createTables() {
         try {
             Connection connection = Server.get().getDBManager().access("core");
+            if(connection == null) return false;
+
             PreparedStatement s = connection.prepareStatement(SQL_CREATE_IDENTITY_TABLE + " " + SQL_CREATE_AUTH_TABLE);
             s.execute();
 
             ErrorUtil.quietlyClose(connection);
             ErrorUtil.quietlyClose(s);
+            return true;
 
-        } catch (SQLException err) {
+        } catch (Exception err) {
             err.printStackTrace();
         }
+
+        return false;
     }
 
 
     // Ran at the start of the server, cleans up the database.
-    public void deleteOutdatedTokens() {
+    public boolean deleteOutdatedTokens() {
         try {
             Connection connection = Server.get().getDBManager().access("core");
+            if(connection == null) return false;
+
             PreparedStatement s = connection.prepareStatement(SQL_CLEAR_OUTDATED_KEYS);
             s.setObject(1, System.currentTimeMillis());
             s.execute();
 
             ErrorUtil.quietlyClose(connection);
             ErrorUtil.quietlyClose(s);
+            return true;
 
         } catch (SQLException err) {
             err.printStackTrace();
         }
+
+        return false;
     }
 
-    public void publishToken(String username, AuthToken authToken) {
+    public boolean publishToken(String username, AuthToken authToken) {
         try {
             Connection connection = Server.get().getDBManager().access("core");
+            if(connection == null) return false;
+
             PreparedStatement s = connection.prepareStatement(SQL_ASSIGN_TOKEN);
             s.setObject(1, username);
             s.setObject(2, authToken.getAuthToken());
@@ -104,15 +116,18 @@ public class AuthenticationManager {
 
             ErrorUtil.quietlyClose(connection);
             ErrorUtil.quietlyClose(s);
+            return true;
 
         } catch (SQLException err) {
             err.printStackTrace();
         }
+        return false;
     }
 
     public Optional<AuthToken> fetchToken(String username, boolean clearIfExpired) {
         try {
             Connection connection = Server.get().getDBManager().access("core");
+            if(connection == null) return Optional.empty();
             PreparedStatement s;
 
             if(clearIfExpired) {

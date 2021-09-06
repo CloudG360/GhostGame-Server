@@ -117,11 +117,9 @@ public class Server {
                 getLogger().info("Running through pre-scheduler activities...");
                 getLogger().info("These are ran on the main thread to expect a wait!");
 
-                getAuthManager().createTables();
-                getLogger().info("Created/repaired authentication tables.");
 
-                getAuthManager().deleteOutdatedTokens();
-                getLogger().info("Deleted any expired tokens ahead of time.");
+                getLogger().info("Created/repaired authentication tables? " + getAuthManager().createTables());
+                getLogger().info("Deleted any expired tokens ahead of time? " + getAuthManager().deleteOutdatedTokens());
 
 
                 getLogger().info("Completed pre-scheduler activities.");
