@@ -2,6 +2,7 @@ package net.cg360.spookums.server.network;
 
 import net.cg360.spookums.server.Server;
 import net.cg360.spookums.server.network.packet.auth.PacketInLogin;
+import net.cg360.spookums.server.network.packet.auth.PacketOutLoginResponse;
 import net.cg360.spookums.server.network.packet.generic.PacketInOutChatMessage;
 import net.cg360.spookums.server.network.packet.generic.PacketInOutDisconnect;
 import net.cg360.spookums.server.network.packet.info.*;
@@ -88,7 +89,7 @@ public class VanillaProtocol {
 
                 .r(PACKET_LOGIN, PacketInLogin.class)
                 .r(PACKET_CREATE_ACCOUNT, null)
-                .r(PACKET_LOGIN_RESPONSE, null)
+                .r(PACKET_LOGIN_RESPONSE, PacketOutLoginResponse.class)
 
                 .r(PACKET_GAME_JOIN_REQUEST, null)
                 .r(PACKET_GAME_SEARCH_REQUEST, null)

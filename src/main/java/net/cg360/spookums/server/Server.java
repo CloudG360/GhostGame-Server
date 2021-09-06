@@ -1,6 +1,6 @@
 package net.cg360.spookums.server;
 
-import net.cg360.spookums.server.auth.AuthToken;
+import net.cg360.spookums.server.auth.record.AuthToken;
 import net.cg360.spookums.server.auth.AuthenticationManager;
 import net.cg360.spookums.server.core.data.json.JsonTypeRegistry;
 import net.cg360.spookums.server.core.event.EventManager;
@@ -16,6 +16,7 @@ import net.cg360.spookums.server.network.VanillaProtocol;
 import net.cg360.spookums.server.network.netimpl.NetworkInterface;
 import net.cg360.spookums.server.network.netimpl.socket.NISocket;
 import net.cg360.spookums.server.network.packet.auth.PacketInLogin;
+import net.cg360.spookums.server.network.packet.auth.PacketOutLoginResponse;
 import net.cg360.spookums.server.network.packet.generic.PacketInOutDisconnect;
 import net.cg360.spookums.server.network.packet.info.PacketInProtocolCheck;
 import net.cg360.spookums.server.network.packet.info.PacketOutProtocolError;
@@ -36,8 +37,6 @@ public class Server {
 
     public static final int MSPT = 1000 / 20; // Millis per tick.
 
-    //TODO: Move to config:
-    protected static boolean logUnregisteredPacketsSent = true;
     protected static String serverName = "Test Server";
     protected static String serverDesc = "It's not yet finished! - me, sometime in 2021";
     protected static String serverRegion = "gb-en";
@@ -221,13 +220,13 @@ public class Server {
                     if(protocolCheck.isValid()) {
 
                         if(VanillaProtocol.PROTOCOL_ID == protocolCheck.getProtocolVersion()) {
-                            networkInterface.sendDataPacket(id, new PacketOutProtocolSuccess(), true);
+                            client.send(new PacketOutProtocolSuccess(), true);
                             client.setState(ConnectionState.CONNECTED);
                             this.serverEventManager.call(new ClientSocketStatusEvent.Connected(client));
 
                         } else {
                             String append = (VanillaProtocol.PROTOCOL_ID < protocolCheck.getProtocolVersion()) ? "Client is newer than the server." : "Client is older than the server.";
-                            networkInterface.sendDataPacket(id, new PacketOutProtocolError(VanillaProtocol.PROTOCOL_ID, VanillaProtocol.SUPPORTED_VERSION_STRING), true);
+                            client.send(new PacketOutProtocolError(VanillaProtocol.PROTOCOL_ID, VanillaProtocol.SUPPORTED_VERSION_STRING), true);
                             networkInterface.disconnectClient(id, null);
                             getLogger().info(String.format("Client %s attempted to connect with an unsupported protocol. %s", id.toString(), append));
                         }
@@ -244,8 +243,9 @@ public class Server {
                 break;
 
 
-            case VanillaProtocol.PACKET_REQUEST_GAME_DETAIL:
-                networkInterface.sendDataPacket(id, new PacketOutServerDetail(serverName, serverRegion, serverDesc), true);
+
+            case VanillaProtocol.PACKET_SERVER_PING_REQUEST:
+                client.send(new PacketOutServerDetail(serverName, serverRegion, serverDesc), true);
                 break;
 
 
@@ -256,9 +256,12 @@ public class Server {
                     PacketInLogin login = (PacketInLogin) event.getPacket();
 
                     if(login.isValid()) {
+                        // Start login checks within a thread.
+                        // It's a database action so we don't want to slow down incoming packets.
+                        authenticationManager.processLoginPacket(login, client);
 
                     } else {
-
+                        client.send(new PacketOutLoginResponse().setSuccessful(false), true);
                     }
                 }
                 break;
@@ -266,9 +269,11 @@ public class Server {
             // When adding new packets, remember to include an isClientCompatible()
             // This ensures the protocol is compatible.
 
+
+
             case VanillaProtocol.PACKET_PROTOCOL_INVALID_PACKET:
             default:
-                if(logUnregisteredPacketsSent) {
+                if(settings.getOrElse(ServerCfgKeys.LOG_UNSUPPORTED_PACKETS, false)) {
                     getLogger().warn(String.format("Client %s sent a packet with an invalid/unregistered ID.", id.toString()));
                 }
                 break;
@@ -288,10 +293,18 @@ public class Server {
     }
 
 
+    public ArrayList<UUID> getNetworkClientIDs() {
+        return new ArrayList<>(networkClients.keySet());
+    }
+
+    public Optional<NetworkClient> getNetworkClient(UUID clientID) {
+        return Optional.ofNullable(networkClients.get(clientID));
+    }
+
+
 
     public Settings getSettings() { return settings; }
     public File getDataPath() { return dataPath; }
-
     public boolean isRunning() { return isRunning; }
 
     public Logger getLogger() { return logger; }
@@ -300,12 +313,16 @@ public class Server {
     public DatabaseManager getDBManager() { return databaseManager; }
     public AuthenticationManager getAuthManager() {return authenticationManager;}
 
+    public NetworkInterface getNetworkInterface() {return networkInterface;}
+
     public static Server get() { return instance; }
     public static Logger getMainLogger() { return get().getLogger(); }
 
     protected static boolean isClientCompatible(NetworkClient client) {
         return (client.getState() == ConnectionState.CONNECTED) || (client.getState() == ConnectionState.LOGGED_IN);
     }
+
+
 
 
     /**

@@ -1,4 +1,4 @@
-package net.cg360.spookums.server.auth;
+package net.cg360.spookums.server.util;
 
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
