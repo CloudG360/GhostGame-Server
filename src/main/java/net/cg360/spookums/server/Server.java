@@ -1,5 +1,6 @@
 package net.cg360.spookums.server;
 
+import net.cg360.spookums.server.auth.AuthToken;
 import net.cg360.spookums.server.auth.AuthenticationManager;
 import net.cg360.spookums.server.core.data.json.JsonTypeRegistry;
 import net.cg360.spookums.server.core.event.EventManager;
@@ -114,16 +115,22 @@ public class Server {
                 }
 
 
+                // Tests && Setup
                 getLogger().info("Running through pre-scheduler activities...");
-                getLogger().info("These are ran on the main thread to expect a wait!");
+                getLogger().info("These are ran on the main thread to expect a wait!\n");
 
 
-                getLogger().info("Created/repaired authentication tables? " + getAuthManager().createTables());
-                getLogger().info("Deleted any expired tokens ahead of time? " + getAuthManager().deleteOutdatedTokens());
+                getLogger().info("[DB] Created/repaired authentication tables? " + getAuthManager().createTables());
+                getLogger().info("[DB TEST] Created test token to expire now? " + getAuthManager().publishToken(
+                        "CG360_",
+                        new AuthToken(AuthToken.generateTokenString(), System.currentTimeMillis())
+                ));
+
+                getLogger().info("[DB] Deleted any expired tokens ahead of time? " + getAuthManager().deleteOutdatedTokens());
 
 
-                getLogger().info("Completed pre-scheduler activities.");
-
+                getLogger().info("Completed pre-scheduler activities.\n");
+                // Main server operation \/\/
 
 
                 this.serverScheduler.startScheduler();

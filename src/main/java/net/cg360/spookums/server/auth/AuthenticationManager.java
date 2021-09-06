@@ -51,10 +51,6 @@ public class AuthenticationManager {
         return false;
     }
 
-    private Connection getCoreConnection() {
-        return Server.get().getDBManager().access("core");
-    }
-
 
 
     public boolean createTables() {
@@ -166,6 +162,10 @@ public class AuthenticationManager {
         } catch (SQLException ignored) { }
 
         return Optional.empty();
+    }
+
+    protected static Connection getCoreConnection() {
+        return Server.get().getDBManager().access("core");
     }
 
 

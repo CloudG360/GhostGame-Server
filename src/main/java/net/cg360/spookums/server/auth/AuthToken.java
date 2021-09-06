@@ -31,11 +31,12 @@ public final class AuthToken {
         return expireTime;
     }
 
-
+    public static String generateTokenString() {
+        String[] uuid = UUID.randomUUID().toString().split(Pattern.quote("-"));
+        return String.join("", uuid);
+    }
 
     public static AuthToken generateToken() {
-        String[] uuid = UUID.randomUUID().toString().split(Pattern.quote("-"));
-        String cid = String.join("", uuid);
-        return new AuthToken(cid, System.currentTimeMillis() + AUTH_LENGTH);
+        return new AuthToken(generateTokenString(), System.currentTimeMillis() + AUTH_LENGTH);
     }
 }
