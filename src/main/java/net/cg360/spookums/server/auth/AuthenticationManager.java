@@ -5,11 +5,15 @@ import net.cg360.spookums.server.auth.record.AuthToken;
 import net.cg360.spookums.server.auth.record.AuthenticatedIdentity;
 import net.cg360.spookums.server.network.packet.auth.PacketInLogin;
 import net.cg360.spookums.server.network.packet.auth.PacketOutLoginResponse;
+import net.cg360.spookums.server.network.packet.generic.PacketInOutDisconnect;
 import net.cg360.spookums.server.network.user.NetworkClient;
+import net.cg360.spookums.server.util.SecretUtil;
 import net.cg360.spookums.server.util.clean.ErrorUtil;
+import net.cg360.spookums.server.util.clean.Pair;
 
 import java.sql.*;
 import java.util.HashMap;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -20,38 +24,51 @@ public class AuthenticationManager {
     // identity - holds the username, password hashes, the time the account was created, and other user data
     // authentication - holds username, token, and expiry | Used to login users automatically without storing the actual password on the client.
 
+    private static final String SQL_CREATE_USER_LOOKUP_TABLE = "CREATE TABLE IF NOT EXISTS user_lookup (accountID TEXT PRIMARY KEY, username TEXT);";
 
-    private static final String SQL_CREATE_IDENTITY_TABLE = "CREATE TABLE IF NOT EXISTS identity (username TEXT PRIMARY KEY, pwhash TEXT, salt TEXT, account_creation INTEGER);";
+    private static final String SQL_CREATE_IDENTITY_TABLE = "CREATE TABLE IF NOT EXISTS identity (accountID TEXT PRIMARY KEY, pwhash TEXT, salt TEXT, account_creation INTEGER);";
 
     // Integer supports longs.
-    private static final String SQL_CREATE_AUTH_TABLE = "CREATE TABLE IF NOT EXISTS authentication (username TEXT PRIMARY KEY, token TEXT, expire INTEGER);";
+    private static final String SQL_CREATE_AUTH_TABLE = "CREATE TABLE IF NOT EXISTS authentication (accountID TEXT PRIMARY KEY, token TEXT, expire INTEGER);";
+
+
+    // -- AUTHENTICATION TABLE OPERATIONS
 
     // Input in the current system millis
     private static final String SQL_CLEAR_OUTDATED_KEYS = "DELETE FROM authentication WHERE expire <= ?;";
 
-    // 1 = username;   2, 4 = token;   3, 5 = expire;
-    private static final String SQL_ASSIGN_TOKEN = "INSERT INTO authentication (username, token, expire) VALUES (?, ?, ?) ON CONFLICT(username) DO UPDATE SET token=?, expire=?;";
+    // 1 = accountID;   2, 4 = token;   3, 5 = expire;
+    private static final String SQL_ASSIGN_TOKEN = "INSERT INTO authentication (accountID, token, expire) VALUES (?, ?, ?) ON CONFLICT(accountID) DO UPDATE SET token=?, expire=?;";
 
-    // 1 = current time;    2 = username;
-    private static final String SQL_EXPIRE_CHECK_TOKEN = "DELETE FROM authentication WHERE expire <= ? AND username = ?;";
+    // 1 = current time;    2 = accountID;
+    private static final String SQL_EXPIRE_CHECK_TOKEN = "DELETE FROM authentication WHERE expire <= ? AND accountID = ?;";
 
-    // 1 = username;
-    private static final String SQL_CLEAR_USER_TOKENS = "DELETE FROM authentication WHERE username <= ?;";
+    // 1 = accountID;
+    private static final String SQL_CLEAR_USER_TOKENS = "DELETE FROM authentication WHERE accountID <= ?;";
 
-    // 1 = username;
-    private static final String SQL_FETCH_TOKEN = "SELECT token, expire FROM authentication WHERE username = ?;";
+    // 1 = accountID;
+    private static final String SQL_FETCH_TOKEN = "SELECT token, expire FROM authentication WHERE accountID = ?;";
 
-    // 1 = token;
-    private static final String SQL_FETCH_USERNAME = "SELECT username, expire FROM authentication WHERE token = ?;";
+    // 1 = accountID;
+    private static final String SQL_FETCH_USERNAME = "SELECT accountID, expire FROM authentication WHERE token = ?;";
+
+
+    // -- IDENTITY TABLE OPERATIONS
+
+    //
+    private static final String SQL_FETCH_PASS_AND_SALT = "SELECT pwhash, salt FROM identity WHERE accountID = ?;";
+
 
 
 
     private static AuthenticationManager primaryInstance;
 
-    protected HashMap<UUID, AuthenticatedIdentity> activeIdentities;
+    protected HashMap<UUID, AuthenticatedIdentity> activeNetIDIdentities;
+    protected HashMap<String, AuthenticatedIdentity> activeUsernameIdentities;
 
     public AuthenticationManager() {
-        this.activeIdentities = new HashMap<>();
+        this.activeNetIDIdentities = new HashMap<>();
+        this.activeUsernameIdentities = new HashMap<>();
     }
 
     public boolean setAsPrimaryInstance(){
@@ -70,6 +87,7 @@ public class AuthenticationManager {
             if(connection == null) return false;
 
             Statement s = connection.createStatement();
+            s.addBatch(SQL_CREATE_USER_LOOKUP_TABLE);
             s.addBatch(SQL_CREATE_IDENTITY_TABLE);
             s.addBatch(SQL_CREATE_AUTH_TABLE);
             s.executeBatch();
@@ -178,14 +196,14 @@ public class AuthenticationManager {
         return Optional.empty();
     }
 
-    public Optional<String> fetchUsername(String token, boolean failIfExpired) {
+    public Optional<Pair<String, Long>> fetchUsername(String token, boolean failIfExpired) {
         try {
             Connection connection = getCoreConnection();
             if(connection == null) return Optional.empty();
 
             PreparedStatement s = connection.prepareStatement(SQL_FETCH_USERNAME);
             s.setObject(1, token);
-            Optional<String> a = processAuthUserResults(s.executeQuery(), failIfExpired);
+            Optional<Pair<String, Long>> a = processAuthUserResults(s.executeQuery(), failIfExpired);
 
             ErrorUtil.quietlyClose(s);
             ErrorUtil.quietlyClose(connection);
@@ -202,25 +220,49 @@ public class AuthenticationManager {
         new Thread(() -> {
             // If a token was submitted, use that as a login.
             if (login.getToken() != null) {
-                Optional<String> u = this.fetchUsername(login.getToken(), true);
-                u.ifPresent(s -> {
+                String token = login.getToken();
+                Optional<Pair<String, Long>> u = this.fetchUsername(login.getToken(), true);
+
+                u.ifPresent(i -> {
+                    Pair<String, Long> loginPair = u.get();
+                    String username = loginPair.getFirst();
+                    long expire = loginPair.getSecond();
+                    AuthenticatedIdentity identity = new AuthenticatedIdentity(client, username, new AuthToken(token, expire));
+
+                    // The user is already logged into the server.
+                    if(isIdentityLoaded(identity)) {
+                        Server.get().getNetworkInterface().disconnectClient(client.getID(), new PacketInOutDisconnect("Your account is already logged onto the server!"));
+                        return;
+                    }
+
+                    addAuthIdentity(identity);
                     client.send(new PacketOutLoginResponse()
-                                    .setUsername(s)
-                                    .setToken(login.getToken())
+                                    .setUsername(username)
+                                    .setToken(token)
                                     .setSuccessful(true),
                             true);
                 });
 
                 // If a user + pass is submitted, verify it matches and then reassign their token.
             } else if (login.getUsername() != null && login.getPassword() != null) {
-                boolean correctCredentials = true;
+
 
                 if(correctCredentials) {
+                    String username = login.getUsername();
                     AuthToken token = AuthToken.generateToken();
-                    this.deleteAllUsernameTokens(login.getUsername());
-                    this.publishToken(login.getUsername(), token);
+                    this.deleteAllUsernameTokens(username);
+                    this.publishToken(username, token);
+                    AuthenticatedIdentity identity = new AuthenticatedIdentity(client, username, token);
+
+                    // The user is already logged into the server.
+                    if(isIdentityLoaded(identity)) {
+                        Server.get().getNetworkInterface().disconnectClient(client.getID(), new PacketInOutDisconnect("Your account is already logged onto the server!"));
+                        return;
+                    }
+
+                    addAuthIdentity(identity);
                     client.send(new PacketOutLoginResponse()
-                                    .setUsername(login.getUsername())
+                                    .setUsername(username)
                                     .setToken(token.getAuthToken())
                                     .setSuccessful(true),
                             true);
@@ -230,9 +272,20 @@ public class AuthenticationManager {
     }
 
 
-    public HashMap<UUID, AuthenticatedIdentity> getActiveIdentities() {
-        return activeIdentities;
+    protected boolean isIdentityLoaded(AuthenticatedIdentity identity) {
+        return activeNetIDIdentities.containsKey(identity.getClient().getID()) || activeUsernameIdentities.containsKey(identity.getUsername());
     }
+
+    protected boolean addAuthIdentity(AuthenticatedIdentity identity) {
+        if(!isIdentityLoaded(identity)) {
+            this.activeNetIDIdentities.put(identity.getClient().getID(), identity);
+            this.activeUsernameIdentities.put(identity.getUsername(), identity);
+            return true;
+        }
+        return false;
+    }
+
+
 
     protected static Optional<AuthToken> processAuthTokenResults(ResultSet set) {
 
@@ -250,7 +303,7 @@ public class AuthenticationManager {
         return Optional.empty();
     }
 
-    protected static Optional<String> processAuthUserResults(ResultSet set, boolean failIfExpired) {
+    protected static Optional<Pair<String, Long>> processAuthUserResults(ResultSet set, boolean failIfExpired) {
         try {
             if(set.next()) {
                 String username = set.getString("username");
@@ -258,7 +311,7 @@ public class AuthenticationManager {
 
                 if (username != null) {
                     if(failIfExpired && (System.currentTimeMillis() > expire)) return Optional.empty();
-                    return Optional.of(username);
+                    return Optional.of(Pair.of(username, expire));
                 }
             }
 
