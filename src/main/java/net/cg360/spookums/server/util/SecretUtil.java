@@ -4,6 +4,8 @@ import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.charset.StandardCharsets;
 import java.security.SecureRandom;
+import java.util.Arrays;
+import java.util.Objects;
 import java.util.Optional;
 
 public class SecretUtil {
@@ -31,22 +33,25 @@ public class SecretUtil {
             0x748f82ee, 0x78a5636f, 0x84c87814, 0x8cc70208, 0x90befffa, 0xa4506ceb, 0xbef9a3f7, 0xc67178f2
     };
 
+    public static SaltyHash createSHA256Hash(String plain) {
+        return createSHA256Hash(plain, null);
+    }
+
     // SHA256 breaks the plaintext into 512-bit blocks
     // This is not a perfect copy of SHA256 :)
     // It's the same algorithm but some values differ due to bit order.
-    public static SaltyHash createSHA256Hash(String plain, boolean shouldSalt) {
+    public static SaltyHash createSHA256Hash(String plain, byte[] saltIn) {
         int[] hashNums = copyArray(HASH_CONSTANTS);
         int[] roundNums = copyArray(ROUND_CONSTANTS);
 
         byte[] data = plain.getBytes(StandardCharsets.UTF_8);
-        byte[] salt = null;
-        if(shouldSalt) {
-            salt = generateSalt(16);
+        byte[] salt = (saltIn == null) ? generateSalt(16) : saltIn;
+
+        if(salt.length > 0) {
             byte[] newData = new byte[data.length + salt.length];
 
-            for(int i = 0; i < data.length; i++) newData[i] = data[i];
-            for(int i = 0; i < salt.length; i++) newData[data.length + i] = salt[i];
-
+            for (int i = 0; i < data.length; i++) newData[i] = data[i];
+            for (int i = 0; i < salt.length; i++) newData[data.length + i] = salt[i];
             data = newData;
         }
 
@@ -214,6 +219,21 @@ public class SecretUtil {
             if(salt == null) return Optional.empty();
             String s = new String(salt, StandardCharsets.UTF_8);
             return Optional.of(s);
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+            SaltyHash saltyHash = (SaltyHash) o;
+            return Objects.equals(hash, saltyHash.hash) && Arrays.equals(salt, saltyHash.salt);
+        }
+
+        @Override
+        public int hashCode() {
+            int result = Objects.hash(hash);
+            result = 31 * result + Arrays.hashCode(salt);
+            return result;
         }
     }
 }

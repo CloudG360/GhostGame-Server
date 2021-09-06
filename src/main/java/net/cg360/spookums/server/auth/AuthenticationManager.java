@@ -15,6 +15,7 @@ import net.cg360.spookums.server.util.SecretUtil;
 import net.cg360.spookums.server.util.clean.ErrorUtil;
 import net.cg360.spookums.server.util.clean.Pair;
 
+import java.nio.charset.StandardCharsets;
 import java.sql.*;
 import java.util.*;
 
@@ -61,8 +62,6 @@ public class AuthenticationManager {
 
 
 
-
-
     private static AuthenticationManager primaryInstance;
 
     protected HashMap<UUID, AuthenticatedIdentity> activeNetIDIdentities;
@@ -80,6 +79,7 @@ public class AuthenticationManager {
         }
         return false;
     }
+
 
 
 
@@ -147,6 +147,8 @@ public class AuthenticationManager {
         return false;
     }
 
+
+
     public Pair<AccountCreateState, AuthToken> createNewIdentity(String username, String password) {
         try {
             // Check an account doesn't already exist.
@@ -156,7 +158,7 @@ public class AuthenticationManager {
             if(connection == null) Pair.of(AccountCreateState.DB_OFFLINE, null);
 
             String newAccountID = UUID.randomUUID().toString().toLowerCase(Locale.ROOT);
-            SecretUtil.SaltyHash hashedPassword = SecretUtil.createSHA256Hash(password, true);
+            SecretUtil.SaltyHash hashedPassword = SecretUtil.createSHA256Hash(password);
             String hashPw = hashedPassword.getHash();
             String hashSalt = hashedPassword.getSaltString().orElse("");
 
@@ -189,19 +191,23 @@ public class AuthenticationManager {
         }
     }
 
-    public boolean updateUsername(String oldUsername, String newUsername) {
-        return true;
+    public boolean publishToken(SecureIdentity identity, AuthToken token) {
+        return publishTokenWithAccountID(identity.getAccountID(), token);
     }
 
-    public boolean publishToken(String username, AuthToken authToken) {
+    public boolean publishToken(String username, AuthToken token) {
+        Optional<SecureIdentity> i =  fetchSecureIdentity(username);
+        if(!i.isPresent()) return false;
+
+        String accountID = i.get().getAccountID();
+        return publishTokenWithAccountID(accountID, token);
+    }
+
+    protected boolean publishTokenWithAccountID(String accountID, AuthToken authToken) {
         try {
             Connection connection = getCoreConnection();
             if(connection == null) return false;
 
-            Optional<SecureIdentity> i =  fetchSecureIdentity(username);
-            if(!i.isPresent()) return false;
-
-            String accountID = i.get().getAccountID();
             String token = authToken.getAuthToken();
             long expire = authToken.getExpireTime();
 
@@ -222,6 +228,8 @@ public class AuthenticationManager {
         }
         return false;
     }
+
+
 
     public Optional<AuthToken> fetchToken(String token, boolean clearIfExpired) {
         try {
@@ -319,26 +327,45 @@ public class AuthenticationManager {
 
                 // If a user + pass is submitted, verify it matches and then reassign their token.
             } else if (login.getUsername() != null && login.getPassword() != null) {
+                String username = login.getUsername();
+                String password = login.getPassword();
+                Optional<SecureIdentity> si = fetchSecureIdentity(login.getUsername());
 
+                if(si.isPresent()) {
+                    SecureIdentity remoteIdentity = si.get();
+                    byte[] salt = remoteIdentity.getPasswordSalt().getBytes(StandardCharsets.UTF_8);
+                    SecretUtil.SaltyHash replicaPassword = SecretUtil.createSHA256Hash(password, salt);
 
-                if(true) {
-                    String username = login.getUsername();
-                    AuthToken token = AuthToken.generateToken();
-                    this.deleteAllUsernameTokens(username);
-                    this.publishToken(username, token);
-                    AuthenticatedIdentity identity = new AuthenticatedIdentity(client, username, token);
+                    // Check if password is equal? If so, success!
+                    if (replicaPassword.getHash().equalsIgnoreCase(remoteIdentity.getPasswordHash())) {
 
-                    // The user is already logged into the server.
-                    if(isIdentityLoaded(identity)) {
-                        Server.get().getNetworkInterface().disconnectClient(client.getID(), new PacketInOutDisconnect("Your account is already logged onto the server!"));
-                        return;
+                        AuthToken token = AuthToken.generateToken();
+                        this.deleteAllUsernameTokens(username);
+                        this.publishToken(remoteIdentity, token);
+                        AuthenticatedIdentity identity = new AuthenticatedIdentity(client, username, token);
+
+                        // The user is already logged into the server.
+                        if (isIdentityLoaded(identity)) {
+                            Server.get().getNetworkInterface().disconnectClient(client.getID(), new PacketInOutDisconnect("Your account is already logged onto the server!"));
+                            return;
+                        }
+
+                        addAuthIdentity(identity);
+                        client.send(new PacketOutLoginResponse()
+                                        .setUsername(username)
+                                        .setToken(token.getAuthToken())
+                                        .setStatus(PacketOutLoginResponse.Status.SUCCESS),
+                                true);
+                    } else {
+                        client.send(new PacketOutLoginResponse()
+                                        .setStatus(PacketOutLoginResponse.Status.INVALID_PASSWORD),
+                                true);
                     }
 
-                    addAuthIdentity(identity);
+                } else {
+                    // Possibly needs a better implementation. Database errors result in this too.
                     client.send(new PacketOutLoginResponse()
-                                    .setUsername(username)
-                                    .setToken(token.getAuthToken())
-                                    .setStatus(PacketOutLoginResponse.Status.SUCCESS),
+                                    .setStatus(PacketOutLoginResponse.Status.INVALID_USERNAME),
                             true);
                 }
             }
