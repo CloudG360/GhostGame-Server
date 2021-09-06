@@ -15,6 +15,7 @@ import net.cg360.spookums.server.network.PacketRegistry;
 import net.cg360.spookums.server.network.VanillaProtocol;
 import net.cg360.spookums.server.network.netimpl.NetworkInterface;
 import net.cg360.spookums.server.network.netimpl.socket.NISocket;
+import net.cg360.spookums.server.network.packet.auth.PacketInLogin;
 import net.cg360.spookums.server.network.packet.generic.PacketInOutDisconnect;
 import net.cg360.spookums.server.network.packet.info.PacketInProtocolCheck;
 import net.cg360.spookums.server.network.packet.info.PacketOutProtocolError;
@@ -251,7 +252,14 @@ public class Server {
 
             case VanillaProtocol.PACKET_LOGIN:
                 if(isClientCompatible(client)) {
-                    //TODO: Add authenticatedProfiles
+                    if(!(event.getPacket() instanceof PacketInLogin)) return;
+                    PacketInLogin login = (PacketInLogin) event.getPacket();
+
+                    if(login.isValid()) {
+
+                    } else {
+
+                    }
                 }
                 break;
 

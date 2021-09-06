@@ -2,7 +2,7 @@ package net.cg360.spookums.server.core.event.type.network;
 
 import net.cg360.spookums.server.core.event.type.Event;
 import net.cg360.spookums.server.network.packet.NetworkPacket;
-import net.cg360.spookums.server.util.Check;
+import net.cg360.spookums.server.util.clean.Check;
 
 import java.util.UUID;
 

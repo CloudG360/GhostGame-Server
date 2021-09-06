@@ -1,7 +1,7 @@
 package net.cg360.spookums.server.core.scheduler;
 
 import net.cg360.spookums.server.core.scheduler.task.SchedulerTask;
-import net.cg360.spookums.server.util.Check;
+import net.cg360.spookums.server.util.clean.Check;
 
 public final class SchedulerTaskEntry {
 

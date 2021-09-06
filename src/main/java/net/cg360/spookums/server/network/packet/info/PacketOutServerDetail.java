@@ -2,9 +2,6 @@ package net.cg360.spookums.server.network.packet.info;
 
 import net.cg360.spookums.server.network.VanillaProtocol;
 import net.cg360.spookums.server.network.packet.NetworkPacket;
-import net.cg360.spookums.server.util.Check;
-
-import java.nio.charset.StandardCharsets;
 
 public class PacketOutServerDetail extends NetworkPacket {
 

@@ -1,7 +1,6 @@
 package net.cg360.spookums.server.network;
 
 import net.cg360.spookums.server.network.packet.NetworkPacket;
-import net.cg360.spookums.server.util.Check;
 
 import java.util.HashMap;
 import java.util.Optional;

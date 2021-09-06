@@ -6,7 +6,7 @@ import net.cg360.spookums.server.core.data.LockableSettings;
 import net.cg360.spookums.server.core.data.Settings;
 import net.cg360.spookums.server.core.data.json.JsonTypeRegistry;
 import net.cg360.spookums.server.core.data.keyvalue.Key;
-import net.cg360.spookums.server.util.Check;
+import net.cg360.spookums.server.util.clean.Check;
 
 import java.io.BufferedReader;
 import java.io.File;

@@ -1,6 +1,6 @@
 package net.cg360.spookums.server.core.data;
 
-import net.cg360.spookums.server.util.Immutable;
+import net.cg360.spookums.server.util.clean.Immutable;
 import net.cg360.spookums.server.core.data.keyvalue.Key;
 
 /**

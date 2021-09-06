@@ -3,9 +3,7 @@ package net.cg360.spookums.server.core.event.type.network;
 import net.cg360.spookums.server.core.event.type.Event;
 import net.cg360.spookums.server.network.user.ConnectionState;
 import net.cg360.spookums.server.network.user.NetworkClient;
-import net.cg360.spookums.server.util.Check;
-
-import java.util.UUID;
+import net.cg360.spookums.server.util.clean.Check;
 
 // Not cancellable as these events are indicators for achieved states. In order to block
 // a client from reaching these states, other events should be used.

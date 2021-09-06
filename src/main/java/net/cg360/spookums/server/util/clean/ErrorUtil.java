@@ -1,4 +1,4 @@
-package net.cg360.spookums.server.util;
+package net.cg360.spookums.server.util.clean;
 
 import java.sql.Connection;
 import java.sql.Statement;

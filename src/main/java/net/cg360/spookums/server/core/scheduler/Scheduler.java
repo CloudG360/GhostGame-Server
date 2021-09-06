@@ -3,7 +3,7 @@ package net.cg360.spookums.server.core.scheduler;
 import net.cg360.spookums.server.Server;
 import net.cg360.spookums.server.core.scheduler.task.RunnableTypeTask;
 import net.cg360.spookums.server.core.scheduler.task.SchedulerTask;
-import net.cg360.spookums.server.util.Check;
+import net.cg360.spookums.server.util.clean.Check;
 
 import java.util.*;
 

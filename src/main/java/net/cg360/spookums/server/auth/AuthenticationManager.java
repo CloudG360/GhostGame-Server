@@ -1,7 +1,7 @@
 package net.cg360.spookums.server.auth;
 
 import net.cg360.spookums.server.Server;
-import net.cg360.spookums.server.util.ErrorUtil;
+import net.cg360.spookums.server.util.clean.ErrorUtil;
 
 import java.sql.*;
 import java.util.HashMap;

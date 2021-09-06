@@ -1,6 +1,6 @@
 package net.cg360.spookums.server.core.data.id;
 
-import net.cg360.spookums.server.util.Utility;
+import net.cg360.spookums.server.util.clean.Utility;
 
 import java.util.Objects;
 import java.util.regex.Pattern;

@@ -114,6 +114,24 @@ public class NetworkBuffer {
         throw new BufferUnderflowException();
     }
 
+    public boolean getBoolean() {
+        if(canReadBytesAhead(1)) {
+            byte value = get();
+            return value == ((byte) 0x01);
+        }
+        throw new BufferUnderflowException();
+    }
+
+    public short getUnsignedByte() {
+        if(canReadBytesAhead(1)) {
+            short total = 0;
+
+            total |= (fetchRawByte() & 0x00FF);
+            return (short) (total & 0xFFFF);
+        }
+        throw new BufferUnderflowException();
+    }
+
     public int getUnsignedShort() {
         if(canReadBytesAhead(2)) {
             int total = 0;
@@ -123,6 +141,19 @@ public class NetworkBuffer {
 
             return total & 0xFFFF;
         }
+        throw new BufferUnderflowException();
+    }
+
+    public String getSmallUTF8String() {
+        if(canReadBytesAhead(1)) {
+            short length = getUnsignedByte();
+
+            if(canReadBytesAhead(length)) {
+                byte[] strBytes = fetchRawBytes(length);
+                return new String(strBytes, StandardCharsets.UTF_8);
+            }
+        }
+
         throw new BufferUnderflowException();
     }
 
@@ -141,6 +172,14 @@ public class NetworkBuffer {
     public boolean put(byte... b) {
         if(canReadBytesAhead(b.length)) {
             for (byte value : b) writeByte(value);
+            return true;
+        }
+        return false;
+    }
+
+    public boolean putBoolean(boolean bool) {
+        if(canReadBytesAhead(1)) {
+            writeByte((byte) (bool ? 0x01 : 0x00));
             return true;
         }
         return false;

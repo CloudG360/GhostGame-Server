@@ -1,6 +1,7 @@
 package net.cg360.spookums.server.network;
 
 import net.cg360.spookums.server.Server;
+import net.cg360.spookums.server.network.packet.auth.PacketInLogin;
 import net.cg360.spookums.server.network.packet.generic.PacketInOutChatMessage;
 import net.cg360.spookums.server.network.packet.generic.PacketInOutDisconnect;
 import net.cg360.spookums.server.network.packet.info.*;
@@ -45,7 +46,7 @@ public class VanillaProtocol {
 
 
     // Account Management Packets
-    public static final byte PACKET_LOGIN = 0x20; // in - User attempts to login to their account
+    public static final byte PACKET_LOGIN = 0x20; // in - User attempts to login to their account with either a token or login details.
     public static final byte PACKET_CREATE_ACCOUNT = 0x22; // in - User attempts to create an account (Returns a login response packet)
     public static final byte PACKET_LOGIN_RESPONSE = 0x24; // out - Could split into token (success) packet + error (failure) packet.
 
@@ -85,7 +86,7 @@ public class VanillaProtocol {
                 .r(PACKET_RESPONSE_ERROR, null)
                 .r(PACKET_CHAT_MESSAGE, PacketInOutChatMessage.class)
 
-                .r(PACKET_LOGIN, null)
+                .r(PACKET_LOGIN, PacketInLogin.class)
                 .r(PACKET_CREATE_ACCOUNT, null)
                 .r(PACKET_LOGIN_RESPONSE, null)
 
