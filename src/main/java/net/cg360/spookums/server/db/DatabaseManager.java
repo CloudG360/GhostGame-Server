@@ -6,7 +6,6 @@ import java.io.File;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
-import java.util.HashMap;
 
 public class DatabaseManager {
 
@@ -28,12 +27,13 @@ public class DatabaseManager {
 
 
     public Connection access(String name) {
+        boolean result = new File(Server.get().getDataPath(), SQLITE_DATABASE_PATH).mkdirs();
+
         File file = new File(Server.get().getDataPath(), SQLITE_DATABASE_PATH + name + ".db");
         String path = CONNECTION_PREFIX +  file.getAbsolutePath();
 
         try {
-            Connection conn = DriverManager.getConnection(path);
-            return conn;
+            return DriverManager.getConnection(path);
 
         } catch (SQLException e) {
             e.printStackTrace();

@@ -3,10 +3,7 @@ package net.cg360.spookums.server.auth;
 import net.cg360.spookums.server.Server;
 import net.cg360.spookums.server.util.ErrorUtil;
 
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
+import java.sql.*;
 import java.util.HashMap;
 import java.util.Optional;
 import java.util.UUID;
@@ -16,7 +13,7 @@ public class AuthenticationManager {
     // SQLite DB Info:
     // User information is split into 2 tables:
     // identity - holds the username, password hashes, the time the account was created, and other user data
-    // authentication - holds username, token, and expirey | Used to login users automatically without storing the actual password on the client.
+    // authentication - holds username, token, and expiry | Used to login users automatically without storing the actual password on the client.
 
 
     private static final String SQL_CREATE_IDENTITY_TABLE = "CREATE TABLE IF NOT EXISTS identity (username TEXT PRIMARY KEY, pwhash TEXT, salt TEXT, account_creation INTEGER);";
@@ -62,14 +59,16 @@ public class AuthenticationManager {
 
     public boolean createTables() {
         try {
-            Connection connection = Server.get().getDBManager().access("core");
+            Connection connection = getCoreConnection();
             if(connection == null) return false;
 
-            PreparedStatement s = connection.prepareStatement(SQL_CREATE_IDENTITY_TABLE + " " + SQL_CREATE_AUTH_TABLE);
-            s.execute();
+            Statement s = connection.createStatement();
+            s.addBatch(SQL_CREATE_IDENTITY_TABLE);
+            s.addBatch(SQL_CREATE_AUTH_TABLE);
+            s.executeBatch();
 
-            ErrorUtil.quietlyClose(connection);
             ErrorUtil.quietlyClose(s);
+            ErrorUtil.quietlyClose(connection);
             return true;
 
         } catch (Exception err) {
@@ -83,15 +82,15 @@ public class AuthenticationManager {
     // Ran at the start of the server, cleans up the database.
     public boolean deleteOutdatedTokens() {
         try {
-            Connection connection = Server.get().getDBManager().access("core");
+            Connection connection = getCoreConnection();
             if(connection == null) return false;
 
             PreparedStatement s = connection.prepareStatement(SQL_CLEAR_OUTDATED_KEYS);
             s.setObject(1, System.currentTimeMillis());
             s.execute();
 
-            ErrorUtil.quietlyClose(connection);
             ErrorUtil.quietlyClose(s);
+            ErrorUtil.quietlyClose(connection);
             return true;
 
         } catch (SQLException err) {
@@ -103,7 +102,7 @@ public class AuthenticationManager {
 
     public boolean publishToken(String username, AuthToken authToken) {
         try {
-            Connection connection = Server.get().getDBManager().access("core");
+            Connection connection = getCoreConnection();
             if(connection == null) return false;
 
             PreparedStatement s = connection.prepareStatement(SQL_ASSIGN_TOKEN);
@@ -114,8 +113,8 @@ public class AuthenticationManager {
             s.setObject(5, authToken.getExpireTime());
             s.execute();
 
-            ErrorUtil.quietlyClose(connection);
             ErrorUtil.quietlyClose(s);
+            ErrorUtil.quietlyClose(connection);
             return true;
 
         } catch (SQLException err) {
@@ -126,26 +125,23 @@ public class AuthenticationManager {
 
     public Optional<AuthToken> fetchToken(String username, boolean clearIfExpired) {
         try {
-            Connection connection = Server.get().getDBManager().access("core");
+            Connection connection = getCoreConnection();
             if(connection == null) return Optional.empty();
-            PreparedStatement s;
 
             if(clearIfExpired) {
-                s = connection.prepareStatement(SQL_EXPIRE_CHECK_TOKEN + " " + SQL_FETCH_TOKEN);
-                s.setObject(1, System.currentTimeMillis());
-                s.setObject(2, username);
-                s.setObject(3, username);
-
-            } else {
-                s = connection.prepareStatement(SQL_FETCH_TOKEN);
-                s.setObject(1, username);
+                PreparedStatement c = connection.prepareStatement(SQL_EXPIRE_CHECK_TOKEN);
+                c.setObject(1, System.currentTimeMillis());
+                c.setObject(2, username);
+                c.execute();
+                ErrorUtil.quietlyClose(c);
             }
 
+            PreparedStatement s = connection.prepareStatement(SQL_FETCH_TOKEN);
+            s.setObject(1, username);
             Optional<AuthToken> a = processAuthTokenResults(s.executeQuery());
 
-            ErrorUtil.quietlyClose(connection);
             ErrorUtil.quietlyClose(s);
-
+            ErrorUtil.quietlyClose(connection);
             return a;
 
         } catch (SQLException err) {
