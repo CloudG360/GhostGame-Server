@@ -313,7 +313,7 @@ public class AuthenticationManager {
                     client.send(new PacketOutLoginResponse()
                                     .setUsername(username)
                                     .setToken(token)
-                                    .setSuccessful(true),
+                                    .setStatus(PacketOutLoginResponse.Status.SUCCESS),
                             true);
                 });
 
@@ -338,7 +338,7 @@ public class AuthenticationManager {
                     client.send(new PacketOutLoginResponse()
                                     .setUsername(username)
                                     .setToken(token.getAuthToken())
-                                    .setSuccessful(true),
+                                    .setStatus(PacketOutLoginResponse.Status.SUCCESS),
                             true);
                 }
             }
