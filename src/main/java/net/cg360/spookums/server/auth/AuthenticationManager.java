@@ -3,6 +3,10 @@ package net.cg360.spookums.server.auth;
 import net.cg360.spookums.server.Server;
 import net.cg360.spookums.server.auth.record.AuthToken;
 import net.cg360.spookums.server.auth.record.AuthenticatedIdentity;
+import net.cg360.spookums.server.auth.record.SecureIdentity;
+import net.cg360.spookums.server.auth.state.AccountCreateState;
+import net.cg360.spookums.server.core.event.handler.EventHandler;
+import net.cg360.spookums.server.core.event.type.network.ClientSocketStatusEvent;
 import net.cg360.spookums.server.network.packet.auth.PacketInLogin;
 import net.cg360.spookums.server.network.packet.auth.PacketOutLoginResponse;
 import net.cg360.spookums.server.network.packet.generic.PacketInOutDisconnect;
@@ -12,10 +16,7 @@ import net.cg360.spookums.server.util.clean.ErrorUtil;
 import net.cg360.spookums.server.util.clean.Pair;
 
 import java.sql.*;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Optional;
-import java.util.UUID;
+import java.util.*;
 
 public class AuthenticationManager {
 
@@ -24,7 +25,7 @@ public class AuthenticationManager {
     // identity - holds the username, password hashes, the time the account was created, and other user data
     // authentication - holds username, token, and expiry | Used to login users automatically without storing the actual password on the client.
 
-    private static final String SQL_CREATE_USER_LOOKUP_TABLE = "CREATE TABLE IF NOT EXISTS user_lookup (accountID TEXT PRIMARY KEY, username TEXT);";
+    private static final String SQL_CREATE_USER_LOOKUP_TABLE = "CREATE TABLE IF NOT EXISTS user_lookup (accountID TEXT, username TEXT, PRIMARY KEY (accountID, username));";
 
     private static final String SQL_CREATE_IDENTITY_TABLE = "CREATE TABLE IF NOT EXISTS identity (accountID TEXT PRIMARY KEY, pwhash TEXT, salt TEXT, account_creation INTEGER);";
 
@@ -32,31 +33,32 @@ public class AuthenticationManager {
     private static final String SQL_CREATE_AUTH_TABLE = "CREATE TABLE IF NOT EXISTS authentication (accountID TEXT PRIMARY KEY, token TEXT, expire INTEGER);";
 
 
+    // -- IDENTITY / LOOKUP OPERATIONS
+
+    private static final String SQL_FETCH_USERNAME_IDENTITY = "SELECT identity.accountID, identity.pwhash, identity.salt, identity.account_creation FROM identity INNER JOIN user_lookup on identity.accountID = user_lookup.accountID WHERE user_lookup.username = ?;";
+
+    private static final String SQL_ASSIGN_NEW_IDENTITY = "INSERT INTO identity (accountID, pwhash, salt, account_creation) VALUES (?, ?, ?, ?);";
+
+    private static final String SQL_ASSIGN_NEW_LOOKUP = "INSERT INTO user_lookup (accountID, username) VALUES (?, ?);";
+
+
     // -- AUTHENTICATION TABLE OPERATIONS
 
     // Input in the current system millis
-    private static final String SQL_CLEAR_OUTDATED_KEYS = "DELETE FROM authentication WHERE expire <= ?;";
+    private static final String SQL_CLEAR_OUTDATED_TOKENS = "DELETE FROM authentication WHERE expire <= ?;";
 
     // 1 = accountID;   2, 4 = token;   3, 5 = expire;
     private static final String SQL_ASSIGN_TOKEN = "INSERT INTO authentication (accountID, token, expire) VALUES (?, ?, ?) ON CONFLICT(accountID) DO UPDATE SET token=?, expire=?;";
 
-    // 1 = current time;    2 = accountID;
-    private static final String SQL_EXPIRE_CHECK_TOKEN = "DELETE FROM authentication WHERE expire <= ? AND accountID = ?;";
+    // 1 = accountID; SQLite doesn't support INNER JOIN in delete statements so I have to use IN! :)
+    private static final String SQL_CLEAR_USER_TOKENS = "DELETE FROM authentication WHERE authentication.accountID IN (SELECT user_lookup.accountID FROM user_lookup WHERE user_lookup.username = ?);";
+
+    // 1 = username;
+    private static final String SQL_FETCH_TOKEN = "SELECT authentication.token, authentication.expire FROM authentication INNER JOIN user_lookup ON user_lookup.accountID = authentication.accountID WHERE user_lookup.username = ?;";
 
     // 1 = accountID;
-    private static final String SQL_CLEAR_USER_TOKENS = "DELETE FROM authentication WHERE accountID <= ?;";
+    private static final String SQL_FETCH_USERNAME = "SELECT user_lookup.username, authentication.expire FROM authentication INNER JOIN user_lookup on authentication.accountID = user_lookup.accountID WHERE authentication.token = ?;";
 
-    // 1 = accountID;
-    private static final String SQL_FETCH_TOKEN = "SELECT token, expire FROM authentication WHERE accountID = ?;";
-
-    // 1 = accountID;
-    private static final String SQL_FETCH_USERNAME = "SELECT accountID, expire FROM authentication WHERE token = ?;";
-
-
-    // -- IDENTITY TABLE OPERATIONS
-
-    //
-    private static final String SQL_FETCH_PASS_AND_SALT = "SELECT pwhash, salt FROM identity WHERE accountID = ?;";
 
 
 
@@ -110,7 +112,7 @@ public class AuthenticationManager {
             Connection connection = getCoreConnection();
             if(connection == null) return false;
 
-            PreparedStatement s = connection.prepareStatement(SQL_CLEAR_OUTDATED_KEYS);
+            PreparedStatement s = connection.prepareStatement(SQL_CLEAR_OUTDATED_TOKENS);
             s.setObject(1, System.currentTimeMillis());
             s.execute();
 
@@ -145,6 +147,52 @@ public class AuthenticationManager {
         return false;
     }
 
+    public Pair<AccountCreateState, AuthToken> createNewIdentity(String username, String password) {
+        try {
+            // Check an account doesn't already exist.
+            if(fetchSecureIdentity(username).isPresent()) return Pair.of(AccountCreateState.TAKEN, null);
+
+            Connection connection = getCoreConnection();
+            if(connection == null) Pair.of(AccountCreateState.DB_OFFLINE, null);
+
+            String newAccountID = UUID.randomUUID().toString().toLowerCase(Locale.ROOT);
+            SecretUtil.SaltyHash hashedPassword = SecretUtil.createSHA256Hash(password, true);
+            String hashPw = hashedPassword.getHash();
+            String hashSalt = hashedPassword.getSaltString().orElse("");
+
+            //TODO: Create Identity record, and create a token
+            PreparedStatement s = connection.prepareStatement(SQL_ASSIGN_NEW_LOOKUP);
+            s.setObject(1, newAccountID);
+            s.setObject(2, username);
+            s.execute();
+            ErrorUtil.quietlyClose(s);
+
+
+            PreparedStatement sIdentity = connection.prepareStatement(SQL_ASSIGN_NEW_IDENTITY);
+            sIdentity.setObject(1, newAccountID);
+            sIdentity.setObject(2, hashPw);
+            sIdentity.setObject(3, hashSalt);
+            sIdentity.setObject(4, System.currentTimeMillis());
+            sIdentity.execute();
+            ErrorUtil.quietlyClose(sIdentity);
+            ErrorUtil.quietlyClose(connection);
+
+            AuthToken token = AuthToken.generateToken();
+            publishToken(username, token);
+
+            return Pair.of(AccountCreateState.CREATED, token);
+
+
+        } catch (SQLException err) {
+            err.printStackTrace();
+            return Pair.of(AccountCreateState.ERRORED, null);
+        }
+    }
+
+    public boolean updateUsername(String oldUsername, String newUsername) {
+        return true;
+    }
+
     public boolean publishToken(String username, AuthToken authToken) {
         try {
             Connection connection = getCoreConnection();
@@ -174,9 +222,8 @@ public class AuthenticationManager {
             if(connection == null) return Optional.empty();
 
             if(clearIfExpired) {
-                PreparedStatement c = connection.prepareStatement(SQL_EXPIRE_CHECK_TOKEN);
+                PreparedStatement c = connection.prepareStatement(SQL_CLEAR_OUTDATED_TOKENS);
                 c.setObject(1, System.currentTimeMillis());
-                c.setObject(2, token);
                 c.execute();
                 ErrorUtil.quietlyClose(c);
             }
@@ -204,6 +251,26 @@ public class AuthenticationManager {
             PreparedStatement s = connection.prepareStatement(SQL_FETCH_USERNAME);
             s.setObject(1, token);
             Optional<Pair<String, Long>> a = processAuthUserResults(s.executeQuery(), failIfExpired);
+
+            ErrorUtil.quietlyClose(s);
+            ErrorUtil.quietlyClose(connection);
+            return a;
+
+        } catch (SQLException err) {
+            err.printStackTrace();
+        }
+
+        return Optional.empty();
+    }
+
+    public Optional<SecureIdentity> fetchSecureIdentity(String username) {
+        try {
+            Connection connection = getCoreConnection();
+            if(connection == null) return Optional.empty();
+
+            PreparedStatement s = connection.prepareStatement(SQL_FETCH_USERNAME_IDENTITY);
+            s.setObject(1, username);
+            Optional<SecureIdentity> a = processAuthIdentityResults(s.executeQuery());
 
             ErrorUtil.quietlyClose(s);
             ErrorUtil.quietlyClose(connection);
@@ -247,7 +314,7 @@ public class AuthenticationManager {
             } else if (login.getUsername() != null && login.getPassword() != null) {
 
 
-                if(correctCredentials) {
+                if(true) {
                     String username = login.getUsername();
                     AuthToken token = AuthToken.generateToken();
                     this.deleteAllUsernameTokens(username);
@@ -285,7 +352,41 @@ public class AuthenticationManager {
         return false;
     }
 
+    protected boolean removeAuth(UUID id) {
+        AuthenticatedIdentity identity = this.activeNetIDIdentities.remove(id);
+        if(identity != null) {
+            this.activeUsernameIdentities.remove(identity.getUsername());
+            return true;
+        }
+        return false;
+    }
 
+
+
+    @EventHandler
+    public void onDisconnect(ClientSocketStatusEvent.Disconnect event) {
+        removeAuth(event.getClient().getID());
+    }
+
+
+
+    protected static Optional<SecureIdentity> processAuthIdentityResults(ResultSet set) {
+
+        try {
+            if(set.next()) {
+                String accountID = set.getString("accountID");
+                String pwHash = set.getString("pwhash");
+                String salt = set.getString("salt");
+                long accountCreation = set.getLong("accountCreation");
+
+                if ((accountID != null) && (pwHash != null) && (salt != null)) {
+                    return Optional.of(new SecureIdentity(accountID, pwHash, salt, accountCreation));
+                }
+            }
+        } catch (SQLException ignored) { }
+
+        return Optional.empty();
+    }
 
     protected static Optional<AuthToken> processAuthTokenResults(ResultSet set) {
 

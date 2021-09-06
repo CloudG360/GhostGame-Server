@@ -2,9 +2,11 @@ package net.cg360.spookums.server.network.netimpl;
 
 import net.cg360.spookums.server.network.packet.NetworkPacket;
 import net.cg360.spookums.server.network.packet.generic.PacketInOutDisconnect;
+import net.cg360.spookums.server.network.user.NetworkClient;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Optional;
 import java.util.UUID;
 
 /**
@@ -25,6 +27,8 @@ public interface NetworkInterface {
 
     boolean isClientConnected(UUID clientNetId);
     boolean isRunning();
-    UUID[] getClientNetIDs();
+
+    ArrayList<UUID> getClientNetIDs();
+    Optional<NetworkClient> getClient(UUID id);
 
 }

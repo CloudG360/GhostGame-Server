@@ -65,7 +65,6 @@ public class Server {
     // -- Network --
 
     protected NetworkInterface networkInterface;
-    protected HashMap<UUID, NetworkClient> networkClients;
 
 
     public Server(String[] args) {
@@ -139,7 +138,6 @@ public class Server {
 
                 getLogger().info("Starting network threads...");
                 networkInterface = new NISocket();
-                networkClients = new HashMap<>();
                 this.netServerThread = new Thread() {
 
                     @Override
@@ -186,13 +184,11 @@ public class Server {
     @EventHandler
     public void onClientConnect(ClientSocketStatusEvent.Open event) {
         getLogger().info("Connection | " + event.getClient().getID().toString());
-        this.networkClients.put(event.getClient().getID(), event.getClient());
     }
 
     @EventHandler
     public void onClientDisconnect(ClientSocketStatusEvent.Disconnect event) {
         getLogger().info("Disconnected | " + event.getClient().getID().toString());
-        this.networkClients.remove(event.getClient().getID(), event.getClient());
     }
 
     @EventHandler(ignoreIfCancelled = true, priority = Priority.HIGHEST)
@@ -204,8 +200,9 @@ public class Server {
         );
 
         UUID id = event.getClientNetID();
-        NetworkClient client = this.networkClients.get(event.getClientNetID());
-        if(client == null) return;
+        Optional<NetworkClient> cl = this.getNetworkInterface().getClient(event.getClientNetID());
+        if(!cl.isPresent()) return;
+        NetworkClient client = cl.get();
 
         switch (event.getPacket().getPacketID()) {
 
@@ -290,15 +287,6 @@ public class Server {
                 event.getPacket().toCoreString(),
                 event.getPacket().toString())
         );
-    }
-
-
-    public ArrayList<UUID> getNetworkClientIDs() {
-        return new ArrayList<>(networkClients.keySet());
-    }
-
-    public Optional<NetworkClient> getNetworkClient(UUID clientID) {
-        return Optional.ofNullable(networkClients.get(clientID));
     }
 
 

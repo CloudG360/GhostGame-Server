@@ -9,6 +9,7 @@ import net.cg360.spookums.server.network.VanillaProtocol;
 import net.cg360.spookums.server.network.netimpl.NetworkInterface;
 import net.cg360.spookums.server.network.packet.NetworkPacket;
 import net.cg360.spookums.server.network.packet.generic.PacketInOutDisconnect;
+import net.cg360.spookums.server.network.user.ConnectionState;
 import net.cg360.spookums.server.network.user.NetworkClient;
 import net.cg360.spookums.server.util.NetworkBuffer;
 
@@ -21,6 +22,7 @@ public class NISocket implements NetworkInterface {
     protected ServerSocket netSocket;
     protected HashMap<UUID, Socket> clientSockets;
     protected HashMap<UUID, SocketListenerThread> clientThreads;
+    protected HashMap<UUID, NetworkClient> clientProfiles;
 
     protected boolean isRunning = false;
 
@@ -28,6 +30,7 @@ public class NISocket implements NetworkInterface {
         this.netSocket = null;
         this.clientSockets = new HashMap<>();
         this.clientThreads = new HashMap<>();
+        this.clientProfiles = new HashMap<>();
     }
 
     @Override
@@ -55,6 +58,7 @@ public class NISocket implements NetworkInterface {
 
                         this.clientSockets.put(clientUUID, clientSocket);
                         this.clientThreads.put(clientUUID, socketListenerThread);
+                        this.clientProfiles.put(clientUUID, client);
 
                         socketListenerThread.start();
                         EventManager.get().call(new ClientSocketStatusEvent.Open(client));
@@ -203,6 +207,7 @@ public class NISocket implements NetworkInterface {
         if(!isRunning) return;
         if(clientSockets.containsKey(clientNetID)) {
             Socket conn = clientSockets.get(clientNetID);
+            NetworkClient client = this.clientProfiles.remove(clientNetID);
 
             if(conn.isConnected() && (!conn.isClosed())) {
 
@@ -215,7 +220,10 @@ public class NISocket implements NetworkInterface {
                 catch (Exception err) { err.printStackTrace(); }
             }
 
-            //Server.get().getServerEventManager().call(); Call an event to indicate a client has been disconnected.
+            if(client != null) {
+                client.setState(ConnectionState.DISCONNECTED);
+                Server.get().getServerEventManager().call(new ClientSocketStatusEvent.Disconnect(client));
+            }
 
             clientSockets.remove(clientNetID);
         }
@@ -244,8 +252,13 @@ public class NISocket implements NetworkInterface {
     }
 
     @Override
-    public synchronized UUID[] getClientNetIDs() {
-        if(!isRunning) return new UUID[0];
-        return clientSockets.keySet().toArray(new UUID[0]);
+    public synchronized ArrayList<UUID> getClientNetIDs() {
+        if(!isRunning) return new ArrayList<>();
+        return new ArrayList<>(clientProfiles.keySet());
+    }
+
+    @Override
+    public Optional<NetworkClient> getClient(UUID id) {
+        return Optional.ofNullable(clientProfiles.get(id));
     }
 }
