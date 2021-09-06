@@ -20,4 +20,22 @@ public class SecureIdentity {
         this.passwordSalt = passwordSalt;
         this.accountCreationTime = accountCreationTime;
     }
+
+
+
+    public String getAccountID() {
+        return accountID;
+    }
+
+    public String getPasswordHash() {
+        return passwordHash;
+    }
+
+    public String getPasswordSalt() {
+        return passwordSalt;
+    }
+
+    public long getAccountCreationTime() {
+        return accountCreationTime;
+    }
 }

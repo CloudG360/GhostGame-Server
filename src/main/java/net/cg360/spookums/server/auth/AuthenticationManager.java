@@ -198,12 +198,19 @@ public class AuthenticationManager {
             Connection connection = getCoreConnection();
             if(connection == null) return false;
 
+            Optional<SecureIdentity> i =  fetchSecureIdentity(username);
+            if(!i.isPresent()) return false;
+
+            String accountID = i.get().getAccountID();
+            String token = authToken.getAuthToken();
+            long expire = authToken.getExpireTime();
+
             PreparedStatement s = connection.prepareStatement(SQL_ASSIGN_TOKEN);
-            s.setObject(1, username);
-            s.setObject(2, authToken.getAuthToken());
-            s.setObject(3, authToken.getExpireTime());
-            s.setObject(4, authToken.getAuthToken());
-            s.setObject(5, authToken.getExpireTime());
+            s.setObject(1, accountID);
+            s.setObject(2, token);
+            s.setObject(3, expire);
+            s.setObject(4, token);
+            s.setObject(5, expire);
             s.execute();
 
             ErrorUtil.quietlyClose(s);
