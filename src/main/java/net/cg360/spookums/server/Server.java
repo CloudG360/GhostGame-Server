@@ -114,7 +114,20 @@ public class Server {
                 }
 
 
-                getLogger().info("Starting server scheduler...");
+                getLogger().info("Running through pre-scheduler activities...");
+                getLogger().info("These are ran on the main thread to expect a wait!");
+
+                getAuthManager().createTables();
+                getLogger().info("Created/repaired authentication tables.");
+
+                getAuthManager().deleteOutdatedTokens();
+                getLogger().info("Deleted any expired tokens ahead of time.");
+
+
+                getLogger().info("Completed pre-scheduler activities.");
+
+
+
                 this.serverScheduler.startScheduler();
                 getLogger().info("Started the scheduler! :)");
 
@@ -272,6 +285,7 @@ public class Server {
     public CommandingScheduler getServerScheduler() { return serverScheduler; }
     public EventManager getServerEventManager() { return serverEventManager; }
     public DatabaseManager getDBManager() { return databaseManager; }
+    public AuthenticationManager getAuthManager() {return authenticationManager;}
 
     public static Server get() { return instance; }
     public static Logger getMainLogger() { return get().getLogger(); }

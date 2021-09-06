@@ -1,9 +1,11 @@
 package net.cg360.spookums.server.auth;
 
 import net.cg360.spookums.server.Server;
+import net.cg360.spookums.server.util.ErrorUtil;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
+import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.HashMap;
 import java.util.Optional;
@@ -25,11 +27,14 @@ public class AuthenticationManager {
     // Input in the current system millis
     private static final String SQL_CLEAR_OUTDATED_KEYS = "DELETE FROM authentication WHERE expire <= ?;";
 
-    // 1 = uuid;   2, 4 == token;   3, 5 = expire
+    // 1 = username;   2, 4 = token;   3, 5 = expire;
     private static final String SQL_ASSIGN_TOKEN = "INSERT INTO authentication (username, token, expire) VALUES (?, ?, ?) ON CONFLICT(username) DO UPDATE SET token=?, expire=?;";
 
-    // 1 = uuid;   2, 4 == token;   3, 5 = expire
-    private static final String SQL_FETCH_TOKEN = "SELECT ();";
+    // 1 = current time;    2 = username;
+    private static final String SQL_EXPIRE_CHECK_TOKEN = "DELETE FROM authentication WHERE expire <= ? AND username = ?;";
+
+    // 1 = username;
+    private static final String SQL_FETCH_TOKEN = "SELECT username, token, expire FROM authentication WHERE username = ?;";
 
 
     private static AuthenticationManager primaryInstance;
@@ -49,12 +54,21 @@ public class AuthenticationManager {
         return false;
     }
 
+    private Connection getCoreConnection() {
+        return Server.get().getDBManager().access("core");
+    }
+
 
 
     public void createTables() {
         try {
-            Server.get().getDBManager().access("core").prepareStatement(SQL_CREATE_IDENTITY_TABLE);
-            Server.get().getDBManager().access("core").prepareStatement(SQL_CREATE_AUTH_TABLE);
+            Connection connection = Server.get().getDBManager().access("core");
+            PreparedStatement s = connection.prepareStatement(SQL_CREATE_IDENTITY_TABLE + " " + SQL_CREATE_AUTH_TABLE);
+            s.execute();
+
+            ErrorUtil.quietlyClose(connection);
+            ErrorUtil.quietlyClose(s);
+
         } catch (SQLException err) {
             err.printStackTrace();
         }
@@ -62,31 +76,85 @@ public class AuthenticationManager {
 
 
     // Ran at the start of the server, cleans up the database.
-    public void deleteOutdatedForeignTokens() {
+    public void deleteOutdatedTokens() {
         try {
-            Server.get().getDBManager().access("core").prepareStatement(SQL_CLEAR_OUTDATED_KEYS).setObject(1, System.currentTimeMillis());
+            Connection connection = Server.get().getDBManager().access("core");
+            PreparedStatement s = connection.prepareStatement(SQL_CLEAR_OUTDATED_KEYS);
+            s.setObject(1, System.currentTimeMillis());
+            s.execute();
+
+            ErrorUtil.quietlyClose(connection);
+            ErrorUtil.quietlyClose(s);
+
         } catch (SQLException err) {
             err.printStackTrace();
         }
     }
 
-    // NOTE TO SELF: Owner is NOT the socket UUID.
     public void publishToken(String username, AuthToken authToken) {
         try {
-            PreparedStatement s = Server.get().getDBManager().access("core").prepareStatement(SQL_ASSIGN_TOKEN);
+            Connection connection = Server.get().getDBManager().access("core");
+            PreparedStatement s = connection.prepareStatement(SQL_ASSIGN_TOKEN);
             s.setObject(1, username);
             s.setObject(2, authToken.getAuthToken());
             s.setObject(3, authToken.getExpireTime());
             s.setObject(4, authToken.getAuthToken());
             s.setObject(5, authToken.getExpireTime());
+            s.execute();
+
+            ErrorUtil.quietlyClose(connection);
+            ErrorUtil.quietlyClose(s);
 
         } catch (SQLException err) {
             err.printStackTrace();
         }
     }
 
-    public Optional<AuthToken> fetchToken(String username) {
+    public Optional<AuthToken> fetchToken(String username, boolean clearIfExpired) {
+        try {
+            Connection connection = Server.get().getDBManager().access("core");
+            PreparedStatement s;
 
+            if(clearIfExpired) {
+                s = connection.prepareStatement(SQL_EXPIRE_CHECK_TOKEN + " " + SQL_FETCH_TOKEN);
+                s.setObject(1, System.currentTimeMillis());
+                s.setObject(2, username);
+                s.setObject(3, username);
+
+            } else {
+                s = connection.prepareStatement(SQL_FETCH_TOKEN);
+                s.setObject(1, username);
+            }
+
+            Optional<AuthToken> a = processAuthTokenResults(s.executeQuery());
+
+            ErrorUtil.quietlyClose(connection);
+            ErrorUtil.quietlyClose(s);
+
+            return a;
+
+        } catch (SQLException err) {
+            err.printStackTrace();
+        }
+
+        return Optional.empty();
+    }
+
+
+
+    protected static Optional<AuthToken> processAuthTokenResults(ResultSet set) {
+
+        try {
+            String token = set.getString("token");
+            long expire = set.getLong("expire");
+
+            if((token != null) && (expire != 0)) {
+                return Optional.of(new AuthToken(token, expire));
+            }
+
+        } catch (SQLException ignored) { }
+
+        return Optional.empty();
     }
 
 

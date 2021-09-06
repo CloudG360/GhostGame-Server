@@ -33,7 +33,7 @@ public class SecretUtil {
 
     // SHA256 breaks the plaintext into 512-bit blocks
     // This is not a perfect copy of SHA256 :)
-    // It's the same algorithm but some of the values differ
+    // It's the same algorithm but some values differ due to bit order.
     public static SaltyHash createSHA256Hash(String plain, boolean shouldSalt) {
         int[] hashNums = copyArray(HASH_CONSTANTS);
         int[] roundNums = copyArray(ROUND_CONSTANTS);

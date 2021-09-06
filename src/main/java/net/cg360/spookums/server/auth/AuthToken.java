@@ -11,7 +11,7 @@ public final class AuthToken {
     private final long expireTime;
 
 
-    private AuthToken(String token, long expireMillis) {
+    public AuthToken(String token, long expireMillis) {
         this.authToken = token;
         this.expireTime = expireMillis;
     }
