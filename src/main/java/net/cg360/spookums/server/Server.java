@@ -113,6 +113,9 @@ public class Server {
                     getLogger().info("Claimed primary instances! This is the main server! :)");
                 }
 
+                this.getEventManager().addListener(this);
+                this.serverEventManager.addListener(this.authenticationManager);
+
 
                 // Tests && Setup
                 getLogger().info("Running through pre-scheduler activities...");
@@ -156,8 +159,6 @@ public class Server {
 
                 this.netServerThread.start();
                 getLogger().info("Starting network server thread!");
-
-                this.getServerEventManager().addListener(this);
 
                 VanillaProtocol.applyToRegistry(this.packetRegistry);
 
@@ -258,7 +259,9 @@ public class Server {
                         authenticationManager.processLoginPacket(login, client);
 
                     } else {
-                        client.send(new PacketOutLoginResponse().setSuccessful(false), true);
+                        client.send(new PacketOutLoginResponse()
+                                    .setStatus(PacketOutLoginResponse.Status.INVALID_PACKET),
+                                true);
                     }
                 }
                 break;
@@ -297,7 +300,7 @@ public class Server {
 
     public Logger getLogger() { return logger; }
     public CommandingScheduler getServerScheduler() { return serverScheduler; }
-    public EventManager getServerEventManager() { return serverEventManager; }
+    public EventManager getEventManager() { return serverEventManager; }
     public DatabaseManager getDBManager() { return databaseManager; }
     public AuthenticationManager getAuthManager() {return authenticationManager;}
 

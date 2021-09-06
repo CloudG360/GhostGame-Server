@@ -138,7 +138,7 @@ public class NISocket implements NetworkInterface {
                                 NetworkPacket packet = clz.newInstance().decode(buffer);
 
                                 PacketEvent.In<?> packetEvent = new PacketEvent.In<>(clientNetID, packet);
-                                Server.get().getServerEventManager().call(packetEvent);
+                                Server.get().getEventManager().call(packetEvent);
 
                                 collectedPackets.add(packet);
 
@@ -172,7 +172,7 @@ public class NISocket implements NetworkInterface {
             content.reset();
 
             PacketEvent.Out<?> packetEvent = new PacketEvent.Out<>(clientNetID, packet);
-            Server.get().getServerEventManager().call(packetEvent);
+            Server.get().getEventManager().call(packetEvent);
 
             if(!packetEvent.isCancelled()) {
                 byte[] sizeBytes = new byte[2];
@@ -222,7 +222,7 @@ public class NISocket implements NetworkInterface {
 
             if(client != null) {
                 client.setState(ConnectionState.DISCONNECTED);
-                Server.get().getServerEventManager().call(new ClientSocketStatusEvent.Disconnect(client));
+                Server.get().getEventManager().call(new ClientSocketStatusEvent.Disconnect(client));
             }
 
             clientSockets.remove(clientNetID);

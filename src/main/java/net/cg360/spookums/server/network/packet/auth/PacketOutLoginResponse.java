@@ -113,8 +113,10 @@ public class PacketOutLoginResponse extends NetworkPacket {
         INVALID_PASSWORD(2),
         INVALID_TOKEN(2),
         TOO_MANY_ATTEMPTS(3),
+        ALREADY_LOGGED_IN(4),
 
 
+        INVALID_PACKET(126),
         UNKNOWN(127);
 
 

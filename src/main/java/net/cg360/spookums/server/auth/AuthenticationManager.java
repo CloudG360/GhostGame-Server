@@ -9,7 +9,7 @@ import net.cg360.spookums.server.core.event.handler.EventHandler;
 import net.cg360.spookums.server.core.event.type.network.ClientSocketStatusEvent;
 import net.cg360.spookums.server.network.packet.auth.PacketInLogin;
 import net.cg360.spookums.server.network.packet.auth.PacketOutLoginResponse;
-import net.cg360.spookums.server.network.packet.generic.PacketInOutDisconnect;
+import net.cg360.spookums.server.network.user.ConnectionState;
 import net.cg360.spookums.server.network.user.NetworkClient;
 import net.cg360.spookums.server.util.SecretUtil;
 import net.cg360.spookums.server.util.clean.ErrorUtil;
@@ -148,7 +148,7 @@ public class AuthenticationManager {
     }
 
 
-
+    //TODO: Make sure to addAuthProfile and to change the
     public Pair<AccountCreateState, AuthToken> createNewIdentity(String username, String password) {
         try {
             // Check an account doesn't already exist.
@@ -162,7 +162,6 @@ public class AuthenticationManager {
             String hashPw = hashedPassword.getHash();
             String hashSalt = hashedPassword.getSaltString().orElse("");
 
-            //TODO: Create Identity record, and create a token
             PreparedStatement s = connection.prepareStatement(SQL_ASSIGN_NEW_LOOKUP);
             s.setObject(1, newAccountID);
             s.setObject(2, username);
@@ -309,20 +308,9 @@ public class AuthenticationManager {
                     Pair<String, Long> loginPair = u.get();
                     String username = loginPair.getFirst();
                     long expire = loginPair.getSecond();
+
                     AuthenticatedIdentity identity = new AuthenticatedIdentity(client, username, new AuthToken(token, expire));
-
-                    // The user is already logged into the server.
-                    if(isIdentityLoaded(identity)) {
-                        Server.get().getNetworkInterface().disconnectClient(client.getID(), new PacketInOutDisconnect("Your account is already logged onto the server!"));
-                        return;
-                    }
-
-                    addAuthIdentity(identity);
-                    client.send(new PacketOutLoginResponse()
-                                    .setUsername(username)
-                                    .setToken(token)
-                                    .setStatus(PacketOutLoginResponse.Status.SUCCESS),
-                            true);
+                    addAuthenticatorIdentity(client, identity);
                 });
 
                 // If a user + pass is submitted, verify it matches and then reassign their token.
@@ -342,20 +330,10 @@ public class AuthenticationManager {
                         AuthToken token = AuthToken.generateToken();
                         this.deleteAllUsernameTokens(username);
                         this.publishToken(remoteIdentity, token);
+
                         AuthenticatedIdentity identity = new AuthenticatedIdentity(client, username, token);
+                        addAuthenticatorIdentity(client, identity);
 
-                        // The user is already logged into the server.
-                        if (isIdentityLoaded(identity)) {
-                            Server.get().getNetworkInterface().disconnectClient(client.getID(), new PacketInOutDisconnect("Your account is already logged onto the server!"));
-                            return;
-                        }
-
-                        addAuthIdentity(identity);
-                        client.send(new PacketOutLoginResponse()
-                                        .setUsername(username)
-                                        .setToken(token.getAuthToken())
-                                        .setStatus(PacketOutLoginResponse.Status.SUCCESS),
-                                true);
                     } else {
                         client.send(new PacketOutLoginResponse()
                                         .setStatus(PacketOutLoginResponse.Status.INVALID_PASSWORD),
@@ -375,6 +353,28 @@ public class AuthenticationManager {
 
     protected boolean isIdentityLoaded(AuthenticatedIdentity identity) {
         return activeNetIDIdentities.containsKey(identity.getClient().getID()) || activeUsernameIdentities.containsKey(identity.getUsername());
+    }
+
+
+    protected void addAuthenticatorIdentity(NetworkClient client, AuthenticatedIdentity identity) {
+        // The user is already logged into the server.
+        if(isIdentityLoaded(identity)) {
+            client.send(new PacketOutLoginResponse()
+                            .setStatus(PacketOutLoginResponse.Status.ALREADY_LOGGED_IN),
+                    true);
+            return;
+        }
+
+        addAuthIdentity(identity);
+        client.setState(ConnectionState.LOGGED_IN);
+
+        Server.get().getEventManager().call(new ClientSocketStatusEvent.LoggedIn(client));
+
+        client.send(new PacketOutLoginResponse()
+                        .setUsername(identity.getUsername())
+                        .setToken(identity.getToken().getAuthToken())
+                        .setStatus(PacketOutLoginResponse.Status.SUCCESS),
+                true);
     }
 
     protected boolean addAuthIdentity(AuthenticatedIdentity identity) {
