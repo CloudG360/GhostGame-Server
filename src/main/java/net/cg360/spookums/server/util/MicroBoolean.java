@@ -7,6 +7,7 @@ public final class MicroBoolean {
     private byte values;
 
     public MicroBoolean(boolean... bools){
+        Check.inclusiveBounds(bools.length, 0, 7, "bools.length");
         this.values = 0x00;
 
         for(int i = 0; (i < 8) && (i < bools.length); i++) {
@@ -15,6 +16,12 @@ public final class MicroBoolean {
             }
         }
     }
+
+    private MicroBoolean(byte source) {
+        this.values = source;
+    }
+
+
 
     public void setValue(int index, boolean value) {
         Check.inclusiveBounds(index, 0, 7, "index");
@@ -37,4 +44,7 @@ public final class MicroBoolean {
     public byte getStorageByte() {
         return values;
     }
+
+    public static MicroBoolean from(byte source) { return new MicroBoolean(source); }
+    public static MicroBoolean of(boolean... bools) { return new MicroBoolean(bools); }
 }

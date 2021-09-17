@@ -48,7 +48,7 @@ public class VanillaProtocol {
 
     // Account Management Packets
     public static final byte PACKET_LOGIN = 0x20; // in - User attempts to login to their account with either a token or login details.
-    public static final byte PACKET_CREATE_ACCOUNT = 0x22; // in - User attempts to create an account (Returns a login response packet)
+    public static final byte PACKET_UPDATE_ACCOUNT = 0x22; // in - User attempts to create/update an account (Returns a new login in a login response packet)
     public static final byte PACKET_LOGIN_RESPONSE = 0x24; // out - Could split into token (success) packet + error (failure) packet.
 
 
@@ -88,7 +88,7 @@ public class VanillaProtocol {
                 .r(PACKET_CHAT_MESSAGE, PacketInOutChatMessage.class)
 
                 .r(PACKET_LOGIN, PacketInLogin.class)
-                .r(PACKET_CREATE_ACCOUNT, null)
+                .r(PACKET_UPDATE_ACCOUNT, null)
                 .r(PACKET_LOGIN_RESPONSE, PacketOutLoginResponse.class)
 
                 .r(PACKET_GAME_JOIN_REQUEST, null)
