@@ -148,14 +148,13 @@ public class AuthenticationManager {
     }
 
 
-    //TODO: Make sure to addAuthProfile and to change the
-    public Pair<AccountCreateState, AuthToken> createNewIdentity(String username, String password) {
+    public AccountCreateState createNewIdentity(String username, String password) {
         try {
             // Check an account doesn't already exist.
-            if(fetchSecureIdentity(username).isPresent()) return Pair.of(AccountCreateState.TAKEN, null);
+            if(fetchSecureIdentity(username).isPresent()) return AccountCreateState.TAKEN;
 
             Connection connection = getCoreConnection();
-            if(connection == null) Pair.of(AccountCreateState.DB_OFFLINE, null);
+            if(connection == null) return AccountCreateState.DB_OFFLINE;
 
             String newAccountID = UUID.randomUUID().toString().toLowerCase(Locale.ROOT);
             SecretUtil.SaltyHash hashedPassword = SecretUtil.createSHA256Hash(password);
@@ -178,16 +177,26 @@ public class AuthenticationManager {
             ErrorUtil.quietlyClose(sIdentity);
             ErrorUtil.quietlyClose(connection);
 
-            AuthToken token = AuthToken.generateToken();
-            publishToken(username, token);
-
-            return Pair.of(AccountCreateState.CREATED, token);
-
+            return AccountCreateState.CREATED;
 
         } catch (SQLException err) {
             err.printStackTrace();
-            return Pair.of(AccountCreateState.ERRORED, null);
+            return AccountCreateState.ERRORED;
         }
+    }
+
+    public Pair<AccountCreateState, AuthenticatedIdentity> createNewIdentityAndLogin(NetworkClient client, String username, String password) {
+        AccountCreateState state = createNewIdentity(username, password);
+
+        if(state == AccountCreateState.CREATED) {
+            AuthToken token = AuthToken.generateToken();
+            publishToken(username, token);
+
+            AuthenticatedIdentity identity = new AuthenticatedIdentity(client, username, token);
+            addAuthenticatorIdentity(identity);
+            return Pair.of(state, identity);
+
+        } else return Pair.of(state, null);
     }
 
     public boolean publishToken(SecureIdentity identity, AuthToken token) {
@@ -297,6 +306,10 @@ public class AuthenticationManager {
         return Optional.empty();
     }
 
+    public void processRegisterPacket(PacketInLogin login, NetworkClient client) {
+
+    }
+
     public void processLoginPacket(PacketInLogin login, NetworkClient client) {
         new Thread(() -> {
             // If a token was submitted, use that as a login.
@@ -310,7 +323,7 @@ public class AuthenticationManager {
                     long expire = loginPair.getSecond();
 
                     AuthenticatedIdentity identity = new AuthenticatedIdentity(client, username, new AuthToken(token, expire));
-                    addAuthenticatorIdentity(client, identity);
+                    addAuthenticatorIdentity(identity);
                 });
 
                 // If a user + pass is submitted, verify it matches and then reassign their token.
@@ -332,7 +345,7 @@ public class AuthenticationManager {
                         this.publishToken(remoteIdentity, token);
 
                         AuthenticatedIdentity identity = new AuthenticatedIdentity(client, username, token);
-                        addAuthenticatorIdentity(client, identity);
+                        addAuthenticatorIdentity(identity);
 
                     } else {
                         client.send(new PacketOutLoginResponse()
@@ -356,21 +369,23 @@ public class AuthenticationManager {
     }
 
 
-    protected void addAuthenticatorIdentity(NetworkClient client, AuthenticatedIdentity identity) {
+    protected void addAuthenticatorIdentity(AuthenticatedIdentity identity) {
         // The user is already logged into the server.
         if(isIdentityLoaded(identity)) {
-            client.send(new PacketOutLoginResponse()
+            identity.getClient().send(new PacketOutLoginResponse()
                             .setStatus(PacketOutLoginResponse.Status.ALREADY_LOGGED_IN),
                     true);
             return;
         }
 
         addAuthIdentity(identity);
-        client.setState(ConnectionState.LOGGED_IN);
+        identity.getClient().setState(ConnectionState.LOGGED_IN);
 
-        Server.get().getEventManager().call(new ClientSocketStatusEvent.LoggedIn(client));
+        Server.get().getEventManager().call(
+                new ClientSocketStatusEvent.LoggedIn(identity.getClient())
+        );
 
-        client.send(new PacketOutLoginResponse()
+        identity.getClient().send(new PacketOutLoginResponse()
                         .setUsername(identity.getUsername())
                         .setToken(identity.getToken().getAuthToken())
                         .setStatus(PacketOutLoginResponse.Status.SUCCESS),

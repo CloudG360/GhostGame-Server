@@ -1,11 +1,19 @@
 package net.cg360.spookums.server.util.math;
 
+import net.cg360.spookums.server.util.clean.Check;
+
 public class Vector2 {
 
     protected double x;
     protected double z;
 
-    public Vector2(Vector2 vec) { this(vec.x, vec.z); }
+    public Vector2(Vector2 vec) {
+        this(
+                vec == null ? 0 : vec.x,
+                vec == null ? 0 : vec.z
+        );
+    }
+
     public Vector2(double x, double z) {
         this.x = x;
         this.z = z;
@@ -78,4 +86,12 @@ public class Vector2 {
 
     public double getX() { return x; }
     public double getZ() { return z; }
+
+    public static Vector2 zero() {
+        return new Vector2(0, 0);
+    }
+
+    public static Vector2 one() {
+        return new Vector2(1, 1);
+    }
 }

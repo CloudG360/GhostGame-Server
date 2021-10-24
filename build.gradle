@@ -11,7 +11,7 @@ repositories {
 
 dependencies {
 
-    // Using Jars as SSL is a pain with a proxy.
+    // Using Jars in ./libs/compile as SSL is a pain with my sixth-form's proxy.
     //compile  'com.google.code.gson:gson:2.8.6'
     //compile group:'org.xerial', name:'sqlite-jdbc', version:'3.8.11.2'
     //compile group: 'org.slf4j', name: 'slf4j-simple', version: '1.6.1'

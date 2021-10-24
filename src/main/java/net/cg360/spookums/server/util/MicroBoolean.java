@@ -45,6 +45,7 @@ public final class MicroBoolean {
         return values;
     }
 
+    public static MicroBoolean empty() { return new MicroBoolean((byte) 0x00); }
     public static MicroBoolean from(byte source) { return new MicroBoolean(source); }
     public static MicroBoolean of(boolean... bools) { return new MicroBoolean(bools); }
 }
