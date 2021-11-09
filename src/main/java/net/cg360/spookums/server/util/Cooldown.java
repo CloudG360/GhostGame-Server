@@ -2,6 +2,10 @@ package net.cg360.spookums.server.util;
 
 import java.util.UUID;
 
+/**
+ * A utility class which handles a cooldown-type timer with
+ * a post-action.
+ */
 public class Cooldown {
 
     protected UUID cooldownToken;
@@ -21,6 +25,7 @@ public class Cooldown {
     }
 
 
+    /** Starts the cooldown timer. */
     public synchronized void start() {
         UUID token = UUID.randomUUID();
         float cooldown = self().cooldownDelay;
@@ -52,10 +57,14 @@ public class Cooldown {
         }.start();
     }
 
+    /**
+     * Cancels the current cooldowns expire action, using the "replaced"
+     * action instead. Can be used when an alternate cooldown has been created
+     * to replace the existing one.
+     */
     public synchronized void invalidate() {
         this.cooldownToken = UUID.randomUUID();
     }
-
 
     public Cooldown setCooldownDelay(float cooldownDelay) {
         if(cooldownDelay > 0) this.cooldownDelay = cooldownDelay;

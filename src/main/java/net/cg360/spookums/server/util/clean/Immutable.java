@@ -5,6 +5,10 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * A small utility class I wrote to make certain types unmodifiable.
+ * It's used in constructors primarily.
+ */
 public class Immutable {
 
     public static <K, V> Map<K, V> uMap(Map<K, V> obj, boolean isUnmodifiable){

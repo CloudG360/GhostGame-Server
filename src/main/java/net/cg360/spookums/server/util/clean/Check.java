@@ -48,16 +48,36 @@ public final class Check {
         return val;
     }
 
+    /**
+     * Assets that a value is above/equal to a number.
+     * @param val the value being checked.
+     * @param bound the lower bound checked (inclusive)
+     * @param name the name of the variable/property.
+     *
+     * @return the parameter "val"
+     */
     public static int inclusiveLowerBound(int val, int bound, String name) {
         if(val < bound) throw new IllegalStateException(String.format("'%s' is out of bounds (val = %s | Lower = %s)", name, val, bound));
         return val;
     }
 
+    /**
+     * Assets that a value is below/equal to a number.
+     * @param val the value being checked.
+     * @param bound the upper bound checked (inclusive)
+     * @param name the name of the variable/property.
+     *
+     * @return the parameter "val"
+     */
     public static int inclusiveUpperBound(int val, int bound, String name) {
         if(val > bound) throw new IllegalStateException(String.format("'%s' is out of bounds (val = %s | Upper = %s)", name, val, bound));
         return val;
     }
 
+    /**
+     * A nicer-looking way of doing a null check
+     * @return  obj == null
+     */
     public static boolean isNull(Object obj) {
         return obj == null;
     }

@@ -2,7 +2,7 @@ package net.cg360.spookums.server;
 
 import net.cg360.spookums.server.auth.record.AuthToken;
 import net.cg360.spookums.server.auth.AuthenticationManager;
-import net.cg360.spookums.server.core.data.json.JsonTypeRegistry;
+import net.cg360.spookums.server.core.data.json.old.JsonTypeRegistry;
 import net.cg360.spookums.server.core.event.EventManager;
 import net.cg360.spookums.server.core.event.handler.EventHandler;
 import net.cg360.spookums.server.core.event.handler.Priority;
@@ -33,6 +33,10 @@ import java.io.IOException;
 import java.util.*;
 import java.util.List;
 
+/**
+ * The main class of the server, collecting all the managers together
+ * and starting the server.
+ */
 public class Server {
 
     public static final int MSPT = 1000 / 20; // Millis per tick.

@@ -3,6 +3,10 @@ package net.cg360.spookums.server.util.clean;
 import java.sql.Connection;
 import java.sql.Statement;
 
+/**
+ * A utility method with a few error suppressing/assistive
+ * methods.
+ */
 public class ErrorUtil {
 
     public static void quietlyClose(Connection connection) {

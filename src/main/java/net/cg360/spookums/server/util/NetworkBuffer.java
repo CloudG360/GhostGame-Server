@@ -1,11 +1,16 @@
 package net.cg360.spookums.server.util;
 
-import net.cg360.spookums.server.Server;
-
-import java.nio.BufferOverflowException;
 import java.nio.BufferUnderflowException;
 import java.nio.charset.StandardCharsets;
 
+/**
+ * A utility class based in structure on Java's ByteBuffer. It
+ * was implemented identically on both this project and the C#
+ * client to ensure data sent across the network follows a
+ * consistent format.
+ *
+ * This fixed a lot of the issues I was having when transferring data so nice
+ */
 public class NetworkBuffer {
 
     public static int MAX_UNSIGNED_SHORT_VALUE = (int) (Math.pow(2, 16) - 1);
@@ -18,6 +23,8 @@ public class NetworkBuffer {
         this.buffer = bytes;
         this.pointerIndex = 0;
     }
+
+    // The 2 methods below are just nice ways of instantiating a NetworkBuffer, similar to a ByteBuffer
 
     public static NetworkBuffer wrap(byte... bytes) { return new NetworkBuffer(bytes); }
     public static NetworkBuffer allocate(int size) { return new NetworkBuffer(new byte[size]); }
@@ -63,17 +70,20 @@ public class NetworkBuffer {
     }
 
     protected void incrementPointer() {
-        pointerIndex++; // this was encased literally to debug it.
+        // This was encased in a method literally to debug it.
+        // It works now but I'm keeping it here :D
+        pointerIndex++;
     }
 
 
-    /** Unsafe way to fetch a byte. Make sure to check first :)*/
+    /** Unsafe way to fetch a byte. Make sure to check first :) */
     protected byte fetchRawByte() {
         byte b = buffer[pointerIndex];
         incrementPointer();
         return b;
     }
 
+    /** Unsafe way to fetch a series of bytes. Make sure to check first :) */
     protected byte[] fetchRawBytes(int byteCount) {
         byte[] bytes = new byte[byteCount];
 
@@ -84,20 +94,19 @@ public class NetworkBuffer {
         return bytes;
     }
 
-    /** Unsafe way to write a byte. Make sure to check first :)*/
+    /** Unsafe way to write a byte. Make sure to check first :) */
     protected void writeByte(byte b) {
         buffer[pointerIndex] = b;
         incrementPointer();
-
     }
 
-    /** Unsafe way to write a series of bytes. Make sure to check first :)*/
+    /** Unsafe way to write a series of bytes. Make sure to check first :) */
     protected void writeBytes(byte[] bytes) {
         for(byte b : bytes) writeByte(b);
     }
 
     // Could be signed, unsigned, or even a string character.
-    /** Fetches a byte from the buffer without converting it.*/
+    /** Fetches a byte from the buffer without converting it. */
     public byte get() {
         if(canReadBytesAhead(1)) {
             return fetchRawByte();
@@ -105,7 +114,7 @@ public class NetworkBuffer {
         throw new BufferUnderflowException();
     }
 
-    /** Fetches a quantity of bytes from the buffer without converting them.*/
+    /** Fetches a quantity of bytes from the buffer without converting them. */
     public void get(byte[] target) {
         if(canReadBytesAhead(target.length)) {
             for(int i = 0; i < target.length; i++) target[i] = fetchRawByte();
@@ -114,6 +123,7 @@ public class NetworkBuffer {
         throw new BufferUnderflowException();
     }
 
+    /** @return a boolean from the current pointer position in the network buffer. */
     public boolean getBoolean() {
         if(canReadBytesAhead(1)) {
             byte value = get();
@@ -122,6 +132,7 @@ public class NetworkBuffer {
         throw new BufferUnderflowException();
     }
 
+    /** @return an unsigned byte from the current pointer position in the network buffer. */
     public short getUnsignedByte() {
         if(canReadBytesAhead(1)) {
             short total = 0;
@@ -132,6 +143,7 @@ public class NetworkBuffer {
         throw new BufferUnderflowException();
     }
 
+    /** @return an unsigned short from the current pointer position in the network buffer. */
     public int getUnsignedShort() {
         if(canReadBytesAhead(2)) {
             int total = 0;
@@ -144,6 +156,7 @@ public class NetworkBuffer {
         throw new BufferUnderflowException();
     }
 
+    /** @return a UTF8 formatted string (<256 bytes length) from the current pointer position in the network buffer. */
     public String getSmallUTF8String() {
         if(canReadBytesAhead(1)) {
             short length = getUnsignedByte();
@@ -157,6 +170,7 @@ public class NetworkBuffer {
         throw new BufferUnderflowException();
     }
 
+    /** @return a UTF8 formatted string (the remaining length of the buffer) from the current pointer position in the network buffer. */
     public String getUnboundUTF8String(int byteCount) {
         if(canReadBytesAhead(byteCount)) {
            byte[] strBytes = fetchRawBytes(byteCount);

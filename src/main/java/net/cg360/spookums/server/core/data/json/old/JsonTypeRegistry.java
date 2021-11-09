@@ -1,4 +1,4 @@
-package net.cg360.spookums.server.core.data.json;
+package net.cg360.spookums.server.core.data.json.old;
 
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;

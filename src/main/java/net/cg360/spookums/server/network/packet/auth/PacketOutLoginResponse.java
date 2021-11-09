@@ -33,7 +33,7 @@ public class PacketOutLoginResponse extends NetworkPacket {
         this.statusCode = 0;
         this.token = null;
         this.username = null;
-        this.missingFields = MicroBoolean.from(0x00);
+        this.missingFields = MicroBoolean.from((byte) 0x00);
     }
 
     public PacketOutLoginResponse(String username, String token, Status status) {

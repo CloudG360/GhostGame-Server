@@ -4,7 +4,7 @@ import com.google.gson.*;
 import net.cg360.spookums.server.Server;
 import net.cg360.spookums.server.core.data.LockableSettings;
 import net.cg360.spookums.server.core.data.Settings;
-import net.cg360.spookums.server.core.data.json.JsonTypeRegistry;
+import net.cg360.spookums.server.core.data.json.old.JsonTypeRegistry;
 import net.cg360.spookums.server.core.data.keyvalue.Key;
 import net.cg360.spookums.server.util.clean.Check;
 

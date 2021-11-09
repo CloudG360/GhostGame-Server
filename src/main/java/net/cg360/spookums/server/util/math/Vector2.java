@@ -1,7 +1,8 @@
 package net.cg360.spookums.server.util.math;
 
-import net.cg360.spookums.server.util.clean.Check;
-
+/**
+ * A vector representation with a few helper methods.
+ */
 public class Vector2 {
 
     protected double x;

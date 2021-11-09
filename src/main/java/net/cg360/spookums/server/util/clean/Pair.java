@@ -1,5 +1,10 @@
 package net.cg360.spookums.server.util.clean;
 
+/**
+ * A combination of two types.
+ * @param <A> the first type
+ * @param <B> the second type
+ */
 public final class Pair <A, B> {
 
     public A objA;
