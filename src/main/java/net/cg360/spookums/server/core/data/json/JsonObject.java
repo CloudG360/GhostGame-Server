@@ -2,6 +2,7 @@ package net.cg360.spookums.server.core.data.json;
 
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
+import net.cg360.spookums.server.util.clean.Check;
 
 public final class JsonObject implements JsonHolder {
 
@@ -15,7 +16,10 @@ public final class JsonObject implements JsonHolder {
 
 
     public Json<?> getChild(String key) {
+        Check.nullParam(key, "key");
+        if(key.trim().length() == 0) throw new IllegalArgumentException("key must not be empty");
 
+        return dictionary.get(key.trim());
     }
 
     @Override
@@ -25,6 +29,16 @@ public final class JsonObject implements JsonHolder {
             return true;
         }
 
+        return false;
+    }
+
+    @Override
+    public boolean acceptNewChild(Json<?> child) {
+        return false;
+    }
+
+    @Override
+    public boolean hasChildren() {
         return false;
     }
 }

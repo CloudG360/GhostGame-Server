@@ -7,7 +7,7 @@ public final class Json<T> {
     protected Json<? extends JsonHolder> parent;
     protected T value;
 
-    protected Json(T value) {
+    public Json(T value) {
         this.parent = null;
         this.value = value;
     }
@@ -30,5 +30,9 @@ public final class Json<T> {
 
     public T getValue() {
         return value;
+    }
+
+    public static <T> Json<T> from(T val) {
+        return new Json<>(val);
     }
 }
