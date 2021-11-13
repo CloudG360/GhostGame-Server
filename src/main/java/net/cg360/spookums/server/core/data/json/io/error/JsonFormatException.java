@@ -1,4 +1,4 @@
-package net.cg360.spookums.server.core.data.json.io;
+package net.cg360.spookums.server.core.data.json.io.error;
 
 public class JsonFormatException extends RuntimeException {
 
