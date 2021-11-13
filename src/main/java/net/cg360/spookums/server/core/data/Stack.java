@@ -50,6 +50,10 @@ public class Stack<T> {
         return topPointer;
     }
 
+    public int getSize() {
+        return getPointerPos() + 1;
+    }
+
     public boolean isEmpty() {
         return topPointer <= -1;
     }

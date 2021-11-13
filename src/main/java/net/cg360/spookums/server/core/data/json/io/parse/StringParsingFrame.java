@@ -1,5 +1,6 @@
 package net.cg360.spookums.server.core.data.json.io.parse;
 
+import net.cg360.spookums.server.Server;
 import net.cg360.spookums.server.core.data.json.Json;
 import net.cg360.spookums.server.core.data.json.JsonObject;
 import net.cg360.spookums.server.core.data.json.io.JsonIO;
@@ -36,11 +37,14 @@ public abstract class StringParsingFrame extends ParsingFrame {
     @Override
     public void initFrame() {
         this.parseLine = getJsonIO().getCurrentLine();
+        //Server.getMainLogger().info(String.format("[Parser] quotation used to open string frame (depth %s)", jsonIOInstance.getParseFrameStack().getSize()));
     }
 
     @Override
     public Json<String> terminateFrame() {
-        return Json.from(buildString.toString());
+        Json<String> stringJson = Json.from(buildString.toString());
+        //Server.getMainLogger().info(String.format("[Parser] quotation used to close string frame (depth %s | result: %s)", jsonIOInstance.getParseFrameStack().getSize(), stringJson.getValue()));
+        return stringJson;
     }
 
 

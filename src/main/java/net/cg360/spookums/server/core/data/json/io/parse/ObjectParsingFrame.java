@@ -1,5 +1,6 @@
 package net.cg360.spookums.server.core.data.json.io.parse;
 
+import net.cg360.spookums.server.Server;
 import net.cg360.spookums.server.core.data.json.Json;
 import net.cg360.spookums.server.core.data.json.JsonObject;
 import net.cg360.spookums.server.core.data.json.io.JsonIO;
@@ -28,14 +29,15 @@ public class ObjectParsingFrame extends ParsingFrame {
 
     @Override
     public void initFrame() {
-
+        //Server.getMainLogger().info(String.format("[Parser] '{' used to open object frame (depth %s)", jsonIOInstance.getParseFrameStack().getSize()));
     }
 
     // }
 
     @Override
     public Json<?> terminateFrame() {
-        return holdingObject;
+        //Server.getMainLogger().info(String.format("[Parser] '}' used to close object frame (depth %s)", jsonIOInstance.getParseFrameStack().getSize()));
+        //return Json.from(new JsonObject());
     }
 
 

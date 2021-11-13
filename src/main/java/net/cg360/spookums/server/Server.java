@@ -2,6 +2,7 @@ package net.cg360.spookums.server;
 
 import net.cg360.spookums.server.auth.record.AuthToken;
 import net.cg360.spookums.server.auth.AuthenticationManager;
+import net.cg360.spookums.server.core.data.json.io.JsonIO;
 import net.cg360.spookums.server.core.data.json.old.JsonTypeRegistry;
 import net.cg360.spookums.server.core.event.EventManager;
 import net.cg360.spookums.server.core.event.handler.EventHandler;
@@ -134,6 +135,7 @@ public class Server {
 
                 getLogger().info("[DB] Deleted any expired tokens ahead of time? " + getAuthManager().deleteOutdatedTokens());
 
+                getLogger().info("These are ran on the main thread to expect a wait!\n");
 
                 getLogger().info("Completed pre-scheduler activities.\n");
                 // Main server operation \/\/

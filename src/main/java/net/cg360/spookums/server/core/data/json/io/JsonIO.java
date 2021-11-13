@@ -107,7 +107,7 @@ public class JsonIO {
                     ParsingFrame currentFrame = this.parseFrameStack.peek();
 
                     // ensures the character is exempt from forming a new frame.
-                    if(! (escapeNextCharacter || currentFrame.shouldHoldOnToCharacter(letter)) ) {
+                    if(! escapeNextCharacter ) {
 
                         // ---- check for escape backslashes ----
                         // Forces the next character to be read as a letter if so.
@@ -119,14 +119,16 @@ public class JsonIO {
                         }
 
 
-                        // ---- check for new frame opening (continue) ----
-                        // Open a new frame if a type exists for the character.
-                        // Then push it so its used.
-                        Class<? extends ParsingFrame> frameClass = this.boundaries.get(letter);
+                        if(!currentFrame.shouldHoldOnToCharacter(letter)) {
+                            // ---- check for new frame opening (continue) ----
+                            // Open a new frame if a type exists for the character.
+                            // Then push it so its used.
+                            Class<? extends ParsingFrame> frameClass = this.boundaries.get(letter);
 
-                        if(frameClass != null) {
-                            createAndPushNewFrame(frameClass);
-                            continue;
+                            if (frameClass != null) {
+                                createAndPushNewFrame(frameClass);
+                                continue;
+                            }
                         }
 
 
@@ -182,7 +184,8 @@ public class JsonIO {
             T frame = frameType.newInstance();
             frame.acceptJsonIOInstance(this);
 
-            parseFrameStack.push(frame);
+            this.parseFrameStack.push(frame);
+            frame.initFrame();
 
             return frame;
         } catch (Exception err) {
@@ -204,15 +207,15 @@ public class JsonIO {
 
 
     public Stack<ParsingFrame> getParseFrameStack() {
-        return parseFrameStack;
+        return this.parseFrameStack;
     }
 
     public HashMap<Character, Class<? extends ParsingFrame>> getBoundaries() {
-        return boundaries;
+        return this.boundaries;
     }
 
     public int getCurrentLine() {
-        return currentLine;
+        return this.currentLine;
     }
 
     public String getErrorLineNumber() {
