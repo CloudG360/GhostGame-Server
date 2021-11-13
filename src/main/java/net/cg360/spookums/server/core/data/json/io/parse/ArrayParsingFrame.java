@@ -24,6 +24,11 @@ public class ArrayParsingFrame extends ParsingFrame {
     }
 
     @Override
+    public void initFrame() {
+
+    }
+
+    @Override
     public Json<?> terminateFrame() {
         return holdingArray;
     }

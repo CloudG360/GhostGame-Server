@@ -25,6 +25,9 @@ public abstract class ParsingFrame {
     /** Processes the formation of an encapsulated inner frame. */
     public abstract void processConstructedInnerFrame(Json<?> frame);
 
+
+    public abstract void initFrame();
+
     /**
      * Notifies the parsing frame that its closing character has been reached.
      * @return the completed frame.
@@ -35,4 +38,12 @@ public abstract class ParsingFrame {
     public abstract char getOpeningCharacter();
     public abstract char getClosingCharacter();
 
+
+    public JsonIO getJsonIO() {
+        return jsonIOInstance;
+    }
+
+    public final String getErrorLineNumber() {
+        return getJsonIO().getErrorLineNumber();
+    }
 }

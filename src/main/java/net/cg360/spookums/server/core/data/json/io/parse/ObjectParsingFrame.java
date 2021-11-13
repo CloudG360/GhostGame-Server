@@ -13,6 +13,9 @@ public class ObjectParsingFrame extends ParsingFrame {
         return false;
     }
 
+    // TODO - Each line must either be empty space or be a definition line.
+    // {
+
     @Override
     public void processCharacter(char character) {
 
@@ -20,8 +23,15 @@ public class ObjectParsingFrame extends ParsingFrame {
 
     @Override
     public void processConstructedInnerFrame(Json<?> frame) {
+        // update the current "parameter" line
+    }
+
+    @Override
+    public void initFrame() {
 
     }
+
+    // }
 
     @Override
     public Json<?> terminateFrame() {

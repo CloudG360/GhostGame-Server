@@ -75,7 +75,7 @@ public class JsonIO {
     public JsonObject read(String text) {
         String[] lines  = text.split("\\r?\\n");
 
-        if(lines.length == 0) throw new JsonFormatException("Provided json is empty");
+        if(lines.length == 0) throw new JsonFormatException("No content was provided");
 
         this.parseFrameStack = Stack.ofLength(512);
         this.currentLine = 0;
@@ -95,7 +95,7 @@ public class JsonIO {
                     if(this.root != null) break full_loop;
 
                     if(letter != ' ') {
-                        if(letter != '{') throw new JsonFormatException(String.format("Illegal character at (Ln %s)", this.currentLine));
+                        if(letter != '{') throw new JsonFormatException("Illegal character found "+getErrorLineNumber());
 
                         //TODO: Support JsonArray roots
                         ObjectParsingFrame rootParsingFrame = createAndPushNewFrame(ObjectParsingFrame.class);
@@ -111,6 +111,8 @@ public class JsonIO {
 
                         // ---- check for escape backslashes ----
                         // Forces the next character to be read as a letter if so.
+                        // TODO: Factor in for special codes such as \n. \\n should be equivalent to two characters
+                        //       "\" and "n" whereas \n should be equivalent to a newline.
                         if(letter == '\\') {
                             escapeNextCharacter = true;
                             continue;
@@ -138,7 +140,7 @@ public class JsonIO {
 
                             // That was the root element, finish up.
                             if(this.parseFrameStack.isEmpty()) {
-                                if(branch == null) throw new JsonParseException("Root element parser returned a null tree.");
+                                if(branch == null) throw new JsonParseException("Root element parser returned a null tree");
 
                                 //TODO: Support JsonArray roots
                                 if(branch.getValue() instanceof JsonObject) {
@@ -169,7 +171,7 @@ public class JsonIO {
             }
         }
 
-        throw new JsonFormatException(String.format("Missing %s closing characters. Check for brackets and quotation marks .", this.parseFrameStack.getPointerPos() + 1));
+        throw new JsonFormatException(String.format("Missing %s closing characters - Check for brackets and quotation marks", this.parseFrameStack.getPointerPos() + 1));
     }
 
 
@@ -207,5 +209,13 @@ public class JsonIO {
 
     public HashMap<Character, Class<? extends ParsingFrame>> getBoundaries() {
         return boundaries;
+    }
+
+    public int getCurrentLine() {
+        return currentLine;
+    }
+
+    public String getErrorLineNumber() {
+        return "(ln "+this.getCurrentLine()+")";
     }
 }
