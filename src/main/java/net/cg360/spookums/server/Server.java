@@ -139,10 +139,22 @@ public class Server {
 
                 getLogger().info("These are ran on the main thread to expect a wait!\n");
 
-                JsonObject root = new JsonIO().read("{ 'this': [ 'should', 1, 2.0, -3.50000, -345, true, TRUE, trUE, FALSE ], 'work':'fine' }");
+                JsonIO json = new JsonIO();
+                String jsonArrayTest = "{ 'this': [ 'should', 1, 2.0, -3.50000, -345, true, TRUE, trUE, FALSE ], 'work':'fine' }";
+                String jsonObjectTest = "{ 'this': { 'bool': trUE, 'number': 34.6 }, 'work':'fine' }";
+
+                // Test 1 - Array
+                getLogger().info("[PARSER] Parsing "+jsonArrayTest);
+                JsonObject rootArrayTest = new JsonIO().read(jsonArrayTest);
                 getLogger().info("[PARSER] "+ Arrays.toString(
-                        ((JsonArray) root.getChild("this").getValue()).getChildren()
+                        ((JsonArray) rootArrayTest.getChild("this").getValue()).getChildren()
                 ));
+
+                // Test 2 - Object
+                getLogger().info("[PARSER] Parsing "+jsonObjectTest);
+                JsonObject rootObjTest = json.read(jsonObjectTest);
+                getLogger().info("[PARSER] "+ ((JsonObject) rootObjTest.getChild("this").getValue()).getChild("bool").getValue().toString());
+                getLogger().info("[PARSER] "+ ((JsonObject) rootObjTest.getChild("this").getValue()).getChild("number").getValue().toString());
 
                 getLogger().info("Completed pre-scheduler activities.\n");
                 // Main server operation \/\/

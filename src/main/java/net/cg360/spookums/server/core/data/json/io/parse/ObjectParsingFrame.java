@@ -5,24 +5,40 @@ import net.cg360.spookums.server.core.data.json.JsonObject;
 import net.cg360.spookums.server.core.data.json.io.error.JsonFormatException;
 
 import java.util.ArrayList;
+import java.util.regex.Pattern;
 
 public class ObjectParsingFrame extends ParsingFrame {
 
     protected Json<JsonObject> holdingObject;
-
     protected State currentReaderState;
 
     protected String lastFoundIdentifier;
-    protected ArrayList<Character> foundDigits;
+
+    // number recognition
+    protected StringBuilder foundDigits;
+    protected boolean foundFloatingPoint;
+
+    // boolean recognition
+    protected StringBuilder foundBoolLetters;
+    protected static final String FALSE = "false";
+    protected static final String TRUE  = "true";
+
+    // both
+    protected int valueLineNum;
 
 
     public ObjectParsingFrame() {
         this.holdingObject = Json.from(new JsonObject());
-
         this.currentReaderState = State.FIRST_AWAITING_IDENTIFIER;
 
         this.lastFoundIdentifier = null;
-        this.foundDigits = new ArrayList<>();
+
+        this.foundDigits = new StringBuilder();
+        this.foundFloatingPoint = false;
+
+        this.foundBoolLetters = new StringBuilder();
+
+        this.valueLineNum = -1;
     }
 
 
@@ -43,20 +59,93 @@ public class ObjectParsingFrame extends ParsingFrame {
                 if(character == ' ') return;
                  throw new JsonFormatException("Unexpected character - expecting quotes for identifier "+getErrorLineNumber());
 
+
             case COLON: // can be on new line
                 if(character == ' ') return;
                 if(character == ':') {
                     this.currentReaderState = State.VALUE;
-                    this.foundDigits.clear();
                 } else throw new JsonFormatException("Unexpected character - expecting colon after identifier "+getErrorLineNumber());
                 break;
 
+
             case VALUE: // can be on new line
-                //TODO: Accept numbers & update found number
-                // with numbers, look for [0-9] initially but continue with [0-9.]
-                // this step can skip the comma stage if the comma ends a number, thus terminating the value check.
-                // the comma stage more handles after strings or after numbers when spaces follow them.
+                if(hasFoundNumber()) {
+                    if(this.valueLineNum != getJsonIO().getCurrentLine()) {
+                        this.parseAndAddCollectedDigits();
+                        this.currentReaderState = State.COMMA;
+                        processCharacter(character);
+                        return;
+                    }
+
+                    if(character == ' ') {
+                        parseAndAddCollectedDigits();
+                        this.currentReaderState = State.COMMA;
+                        return;
+                    }
+
+                    if(character == ',') {
+                        parseAndAddCollectedDigits();
+                        this.currentReaderState = State.VALUE;
+                        return;
+                    }
+
+                    if(character == '.') {
+                        if(foundFloatingPoint)
+                            throw new JsonFormatException("Unexpected character - number has more than one point "+getErrorLineNumber());
+
+                        this.foundFloatingPoint = true;
+                        this.foundDigits.append(character);
+                        return;
+                    }
+
+                    String charSting = Character.toString(character);
+                    if (Pattern.matches("[0-9]", charSting)) {
+                        this.foundDigits.append(character);
+                        return;
+                    }
+
+
+                } else if(hasFoundBoolean()) {
+
+                    if(this.valueLineNum != getJsonIO().getCurrentLine())
+                        throw new JsonFormatException("Unexpected line break - expecting boolean/string type "+getErrorLineNumber());
+
+                    this.foundBoolLetters.append(character);
+                    String currentTerm = this.foundBoolLetters.toString().toLowerCase();
+
+                    if(TRUE.equalsIgnoreCase(currentTerm) || FALSE.equalsIgnoreCase(currentTerm)) {
+                        parseAndAddCollectedBool();
+                        this.currentReaderState = State.COMMA;
+                        return;
+                    }
+
+                    if(! (TRUE.startsWith(currentTerm) || FALSE.startsWith(currentTerm)))
+                        throw new JsonFormatException("Unexpected character - expecting boolean/string type " + getErrorLineNumber());
+
+
+                } else {
+
+                    String charSting = Character.toString(character);
+                    if (Pattern.matches("[0-9-]", charSting)) {
+                        this.foundDigits.append(character);
+                        this.valueLineNum = this.getJsonIO().getCurrentLine();
+                        this.currentReaderState = State.VALUE;
+                        return;
+                    }
+
+                    if(charSting.equalsIgnoreCase("t") || charSting.equalsIgnoreCase("f")) {
+                        this.foundBoolLetters.append(charSting);
+                        this.valueLineNum = this.getJsonIO().getCurrentLine();
+                        this.currentReaderState = State.VALUE;
+                        return;
+                    }
+
+                    if(character != ' ')
+                        throw new JsonFormatException("Unexpected character - expecting a value "+getErrorLineNumber());
+
+                }
                 break;
+
 
             case COMMA: // can be on new line
                 if(character == ' ') return;
@@ -118,12 +207,45 @@ public class ObjectParsingFrame extends ParsingFrame {
         //TODO: Lock the result
     }
 
-    protected void parseAndAddCollectedDigits() {
 
+    protected void parseAndAddCollectedDigits() {
+        String construct = foundDigits.toString();
+        Number number;
+
+        try {
+            if (foundFloatingPoint) number = Float.parseFloat(construct);
+            else                    number = Integer.parseInt(construct);
+
+        } catch (Exception err) {
+            throw new JsonFormatException(String.format("Invalid element [Is decimal? %s] - unable to parse number: %s ", foundFloatingPoint?"true":"false", err.getMessage()) + getErrorLineNumber());
+        }
+
+        Json<Number> numberJson = Json.from(number);
+        this.holdingObject.getValue().addChild(lastFoundIdentifier, numberJson);
+
+        this.foundDigits = new StringBuilder();
+        this.foundFloatingPoint = false;
+        this.lastFoundIdentifier = null;
     }
 
+    protected void parseAndAddCollectedBool() {
+        String construct = foundBoolLetters.toString();
+
+        if(construct.equalsIgnoreCase(TRUE))       this.holdingObject.getValue().addChild(lastFoundIdentifier, Json.from(true));
+        else if(construct.equalsIgnoreCase(FALSE)) this.holdingObject.getValue().addChild(lastFoundIdentifier, Json.from(false));
+        else throw new JsonFormatException("Invalid element - unable to parse boolean "+getErrorLineNumber());
+
+        this.foundBoolLetters = new StringBuilder();
+        this.lastFoundIdentifier = null;
+    }
+
+
     protected boolean hasFoundNumber() {
-        return foundDigits.size() > 0;
+        return foundDigits.length() > 0;
+    }
+
+    protected boolean hasFoundBoolean() {
+        return foundBoolLetters.length() > 0;
     }
 
 
