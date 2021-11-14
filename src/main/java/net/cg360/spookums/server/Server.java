@@ -2,6 +2,7 @@ package net.cg360.spookums.server;
 
 import net.cg360.spookums.server.auth.record.AuthToken;
 import net.cg360.spookums.server.auth.AuthenticationManager;
+import net.cg360.spookums.server.core.data.json.JsonArray;
 import net.cg360.spookums.server.core.data.json.JsonObject;
 import net.cg360.spookums.server.core.data.json.io.JsonIO;
 import net.cg360.spookums.server.core.data.json.old.JsonTypeRegistry;
@@ -138,8 +139,10 @@ public class Server {
 
                 getLogger().info("These are ran on the main thread to expect a wait!\n");
 
-                JsonObject root = new JsonIO().read("{ 'this':'should', 'work':'fine' }");
-                getLogger().info("[PARSER] "+ Arrays.toString(root.getKeys()));
+                JsonObject root = new JsonIO().read("{ 'this': [ 'should', 1, 2.0, -3.5, -345 ], 'work':'fine' }");
+                getLogger().info("[PARSER] "+ Arrays.toString(
+                        ((JsonArray) root.getChild("this").getValue()).getChildren()
+                ));
 
                 getLogger().info("Completed pre-scheduler activities.\n");
                 // Main server operation \/\/

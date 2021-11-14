@@ -7,20 +7,26 @@ import net.cg360.spookums.server.core.data.json.JsonObject;
 import net.cg360.spookums.server.core.data.json.io.error.JsonFormatException;
 
 import java.util.ArrayList;
+import java.util.regex.Pattern;
 
 public class ArrayParsingFrame extends ParsingFrame {
 
     protected Json<JsonArray> holdingArray = null;
 
     protected State currentReaderState;
-    protected ArrayList<Character> foundDigits;
+
+    protected StringBuilder foundDigits;
+    protected boolean foundFloatingPoint;
+    protected int numberOnLine;
 
 
     public ArrayParsingFrame() {
-        this.holdingArray = null;
+        this.holdingArray = Json.from(new JsonArray());
 
         this.currentReaderState = State.FIRST_VALUE;
-        this.foundDigits = new ArrayList<>();
+        this.foundDigits = new StringBuilder();
+        this.foundFloatingPoint = false;
+        this.numberOnLine = -1;
     }
 
 
@@ -32,7 +38,7 @@ public class ArrayParsingFrame extends ParsingFrame {
 
     @Override
     public void processCharacter(char character) {
-        if(character == ' ') return; // All spaces are legal
+
 
         State lastState = this.currentReaderState;
 
@@ -40,13 +46,60 @@ public class ArrayParsingFrame extends ParsingFrame {
 
             case FIRST_VALUE:
             case VALUE: // can be on new line
-                //TODO: Accept numbers - CHANGE TO "VALUE" WHEN FIRST NUMBER FOUND
-                // with numbers, look for [0-9.]
-                // this step can skip the comma stage if the comma ends a number, thus terminating the value check.
-                // the comma stage more handles after strings or after numbers when spaces follow them.
+
+                if(hasFoundNumber()) {
+                    if(this.numberOnLine != getJsonIO().getCurrentLine()) {
+                        this.parseAndAddCollectedDigits();
+                        this.currentReaderState = State.COMMA;
+                        processCharacter(character);
+                        return;
+                    }
+
+                    if(character == ' ') {
+                        parseAndAddCollectedDigits();
+                        this.currentReaderState = State.COMMA;
+                        return;
+                    }
+
+                    if(character == ',') {
+                        parseAndAddCollectedDigits();
+                        this.currentReaderState = State.VALUE;
+                        return;
+                    }
+
+                    if(character == '.') {
+                        if(foundFloatingPoint)
+                            throw new JsonFormatException("Unexpected character - number has more than one point "+getErrorLineNumber());
+
+                        this.foundFloatingPoint = true;
+                        this.foundDigits.append(character);
+                        return;
+                    }
+
+                    String charSting = Character.toString(character);
+                    if (Pattern.matches("[0-9]", charSting)) {
+                        this.foundDigits.append(character);
+                        return;
+                    }
+
+                } else {
+
+                    String charSting = Character.toString(character);
+                    if (Pattern.matches("[0-9-]", charSting)) {
+                        this.foundDigits.append(character);
+                        this.numberOnLine = this.getJsonIO().getCurrentLine();
+                        return;
+                    }
+
+                    if(character != ' ')
+                        throw new JsonFormatException("Unexpected character - expecting a value "+getErrorLineNumber());
+
+                }
+
                 break;
 
             case COMMA: // can be on new line
+                if(character == ' ') return;
                 if(character == ',') {
                     this.currentReaderState = State.VALUE;
                 } else throw new JsonFormatException("Unexpected character - expecting comma after entry "+getErrorLineNumber());
@@ -93,11 +146,26 @@ public class ArrayParsingFrame extends ParsingFrame {
 
 
     protected void parseAndAddCollectedDigits() {
+        String construct = foundDigits.toString();
+        Number number = null;
 
+        try {
+            if (foundFloatingPoint) number = Float.parseFloat(construct);
+            else                    number = Integer.parseInt(construct);
+
+        } catch (Exception err) {
+            throw new JsonFormatException(String.format("Invalid element [Is decimal? %s] - unable to parse number: %s ", foundFloatingPoint?"true":"false", err.getMessage()) + getErrorLineNumber());
+        }
+
+        Json<Number> numberJson = Json.from(number);
+        this.holdingArray.getValue().addChild(numberJson);
+
+        this.foundDigits = new StringBuilder();
+        this.foundFloatingPoint = false;
     }
 
     protected boolean hasFoundNumber() {
-        return foundDigits.size() > 0;
+        return foundDigits.length() > 0;
     }
 
 

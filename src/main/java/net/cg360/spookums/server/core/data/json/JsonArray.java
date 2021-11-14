@@ -10,6 +10,10 @@ public class JsonArray extends JsonContainerReachback implements JsonHolder {
 
     protected ArrayList<Json<?>> children;
 
+    public JsonArray() {
+        this.children = new ArrayList<>();
+    }
+
     /**
      * Fetches a child from the list at a given index
      * @param index the index to draw from
@@ -58,5 +62,9 @@ public class JsonArray extends JsonContainerReachback implements JsonHolder {
     @Override
     public boolean hasChildren() {
         return children.size() > 0;
+    }
+
+    public Json<?>[] getChildren() {
+        return children.toArray(new Json[0]);
     }
 }

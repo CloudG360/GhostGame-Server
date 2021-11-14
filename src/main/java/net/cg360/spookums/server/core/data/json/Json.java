@@ -32,12 +32,19 @@ public final class Json<T> {
         Json<T> json = new Json<>(val);
 
         if(json.getValue() instanceof JsonContainerReachback) {
-            JsonContainerReachback v1 = (JsonContainerReachback) json.getValue();
             Json<? extends JsonContainerReachback> j1 = (Json<? extends JsonContainerReachback>) json;
 
             ((JsonContainerReachback) val).setSelfContainer(j1);
         }
 
         return json;
+    }
+
+
+    @Override
+    public String toString() {
+        return "  Json: " +
+                "hasParent=(" + hasParent() + ")" +
+                ", value=(" + value + ")  ";
     }
 }
