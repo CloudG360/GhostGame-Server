@@ -1,11 +1,12 @@
 package net.cg360.spookums.server.core.data.json;
 
+import net.cg360.spookums.server.core.data.json.io.error.JsonParseException;
 import net.cg360.spookums.server.util.clean.Check;
 
 import java.util.ArrayList;
 import java.util.Optional;
 
-public class JsonArray implements JsonHolder {
+public class JsonArray extends JsonContainerReachback implements JsonHolder {
 
     protected ArrayList<Json<?>> children;
 
@@ -40,13 +41,17 @@ public class JsonArray implements JsonHolder {
     @Override
     public boolean removeChild(Json<?> child) {
         Check.nullParam(child, "child");
+        if(child.parent == this.getSelf()) child.parent = null;
         return children.remove(child);
     }
 
-    @Override
-    public boolean acceptNewChild(Json<?> child) {
+    @SuppressWarnings("unchecked")
+    public boolean addChild(Json<?> child) {
         Check.nullParam(child, "child");
         children.add(child);
+
+        if(!(this.getSelf().getValue() instanceof JsonArray)) throw new IllegalStateException("Json array has none-array container");
+        child.parent = (Json<? extends JsonArray>) this.getSelf();
         return true;
     }
 

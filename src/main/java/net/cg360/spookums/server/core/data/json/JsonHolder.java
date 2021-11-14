@@ -8,12 +8,6 @@ public interface JsonHolder {
      */
     boolean removeChild(Json<?> child);
 
-    /**
-     * Adds or sets a child in the parent object.
-     * @return true if the child is successfully added/updated.
-     */
-    boolean acceptNewChild(Json<?> child);
-
     /** @return true if the holding object has at least one child. */
     boolean hasChildren();
 

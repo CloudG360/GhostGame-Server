@@ -7,7 +7,7 @@ public final class Json<T> {
     protected Json<? extends JsonHolder> parent;
     protected T value;
 
-    public Json(T value) {
+    private Json(T value) {
         this.parent = null;
         this.value = value;
     }
@@ -17,12 +17,7 @@ public final class Json<T> {
     protected boolean setParent(Json<JsonHolder> parent) {
         Check.nullParam(parent, "parent");
 
-        this.parent.getValue().removeChild(this);
-        if(parent.getValue().acceptNewChild(this)) {
-            this.parent = parent;
-            return true;
-        }
-
+        this.parent = parent;
         return false;
     }
 
@@ -32,7 +27,17 @@ public final class Json<T> {
         return value;
     }
 
+    @SuppressWarnings("unchecked")
     public static <T> Json<T> from(T val) {
-        return new Json<>(val);
+        Json<T> json = new Json<>(val);
+
+        if(json.getValue() instanceof JsonContainerReachback) {
+            JsonContainerReachback v1 = (JsonContainerReachback) json.getValue();
+            Json<? extends JsonContainerReachback> j1 = (Json<? extends JsonContainerReachback>) json;
+
+            ((JsonContainerReachback) val).setSelfContainer(j1);
+        }
+
+        return json;
     }
 }
