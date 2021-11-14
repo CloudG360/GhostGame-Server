@@ -12,21 +12,32 @@ import java.util.regex.Pattern;
 public class ArrayParsingFrame extends ParsingFrame {
 
     protected Json<JsonArray> holdingArray = null;
-
     protected State currentReaderState;
 
+    // number recognition
     protected StringBuilder foundDigits;
     protected boolean foundFloatingPoint;
-    protected int numberOnLine;
+
+    // boolean recognition
+    protected StringBuilder foundBoolLetters;
+    protected static final String FALSE = "false";
+    protected static final String TRUE  = "true";
+
+    // both
+    protected int valueLineNum;
+
 
 
     public ArrayParsingFrame() {
         this.holdingArray = Json.from(new JsonArray());
-
         this.currentReaderState = State.FIRST_VALUE;
+
         this.foundDigits = new StringBuilder();
         this.foundFloatingPoint = false;
-        this.numberOnLine = -1;
+
+        this.foundBoolLetters = new StringBuilder();
+
+        this.valueLineNum = -1;
     }
 
 
@@ -48,7 +59,7 @@ public class ArrayParsingFrame extends ParsingFrame {
             case VALUE: // can be on new line
 
                 if(hasFoundNumber()) {
-                    if(this.numberOnLine != getJsonIO().getCurrentLine()) {
+                    if(this.valueLineNum != getJsonIO().getCurrentLine()) {
                         this.parseAndAddCollectedDigits();
                         this.currentReaderState = State.COMMA;
                         processCharacter(character);
@@ -82,12 +93,39 @@ public class ArrayParsingFrame extends ParsingFrame {
                         return;
                     }
 
+
+                } else if(hasFoundBoolean()) {
+
+                    if(this.valueLineNum != getJsonIO().getCurrentLine())
+                        throw new JsonFormatException("Unexpected line break - expecting boolean/string type "+getErrorLineNumber());
+
+                    this.foundBoolLetters.append(character);
+                    String currentTerm = this.foundBoolLetters.toString().toLowerCase();
+
+                    if(TRUE.equalsIgnoreCase(currentTerm) || FALSE.equalsIgnoreCase(currentTerm)) {
+                        parseAndAddCollectedBool();
+                        this.currentReaderState = State.COMMA;
+                        return;
+                    }
+
+                    if(! (TRUE.startsWith(currentTerm) || FALSE.startsWith(currentTerm)))
+                        throw new JsonFormatException("Unexpected character - expecting boolean/string type " + getErrorLineNumber());
+
+
                 } else {
 
                     String charSting = Character.toString(character);
                     if (Pattern.matches("[0-9-]", charSting)) {
                         this.foundDigits.append(character);
-                        this.numberOnLine = this.getJsonIO().getCurrentLine();
+                        this.valueLineNum = this.getJsonIO().getCurrentLine();
+                        this.currentReaderState = State.VALUE;
+                        return;
+                    }
+
+                    if(charSting.equalsIgnoreCase("t") || charSting.equalsIgnoreCase("f")) {
+                        this.foundBoolLetters.append(charSting);
+                        this.valueLineNum = this.getJsonIO().getCurrentLine();
+                        this.currentReaderState = State.VALUE;
                         return;
                     }
 
@@ -147,7 +185,7 @@ public class ArrayParsingFrame extends ParsingFrame {
 
     protected void parseAndAddCollectedDigits() {
         String construct = foundDigits.toString();
-        Number number = null;
+        Number number;
 
         try {
             if (foundFloatingPoint) number = Float.parseFloat(construct);
@@ -164,8 +202,23 @@ public class ArrayParsingFrame extends ParsingFrame {
         this.foundFloatingPoint = false;
     }
 
+    protected void parseAndAddCollectedBool() {
+        String construct = foundBoolLetters.toString();
+
+        if(construct.equalsIgnoreCase(TRUE))       this.holdingArray.getValue().addChild(Json.from(true));
+        else if(construct.equalsIgnoreCase(FALSE)) this.holdingArray.getValue().addChild(Json.from(false));
+        else throw new JsonFormatException("Invalid element - unable to parse boolean "+getErrorLineNumber());
+
+        this.foundBoolLetters = new StringBuilder();
+    }
+
+
     protected boolean hasFoundNumber() {
         return foundDigits.length() > 0;
+    }
+
+    protected boolean hasFoundBoolean() {
+        return foundBoolLetters.length() > 0;
     }
 
 
@@ -180,7 +233,6 @@ public class ArrayParsingFrame extends ParsingFrame {
     }
 
 
-
     protected enum State {
 
         FIRST_VALUE, // can terminate here, otherwise, awaiting_identifier.
@@ -188,5 +240,4 @@ public class ArrayParsingFrame extends ParsingFrame {
         COMMA, // looking for comma or termination.
 
     }
-
 }

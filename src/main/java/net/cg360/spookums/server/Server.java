@@ -139,7 +139,7 @@ public class Server {
 
                 getLogger().info("These are ran on the main thread to expect a wait!\n");
 
-                JsonObject root = new JsonIO().read("{ 'this': [ 'should', 1, 2.0, -3.5, -345 ], 'work':'fine' }");
+                JsonObject root = new JsonIO().read("{ 'this': [ 'should', 1, 2.0, -3.50000, -345, true, TRUE, trUE, FALSE ], 'work':'fine' }");
                 getLogger().info("[PARSER] "+ Arrays.toString(
                         ((JsonArray) root.getChild("this").getValue()).getChildren()
                 ));
