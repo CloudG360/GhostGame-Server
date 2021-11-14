@@ -65,4 +65,8 @@ public final class JsonObject extends JsonContainerReachback implements JsonHold
     public boolean hasChildren() {
         return false;
     }
+
+    public String[] getKeys() {
+        return this.dictionary.keySet().toArray(new String[0]);
+    }
 }

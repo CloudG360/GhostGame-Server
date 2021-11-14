@@ -101,7 +101,9 @@ public class ObjectParsingFrame extends ParsingFrame {
     @Override
     public Json<?> terminateFrame() {
         //Server.getMainLogger().info(String.format("[Parser] '}' used to close object frame (depth %s)", jsonIOInstance.getParseFrameStack().getSize()));
-        return holdingObject; //TODO: Lock
+        if(this.currentReaderState == State.FIRST_AWAITING_IDENTIFIER || this.currentReaderState == State.COMMA) return holdingObject;
+        else throw new JsonFormatException("Unexpected ending - the object was closed after an invalid character");
+        //TODO: Lock the result
     }
 
 
