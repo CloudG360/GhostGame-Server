@@ -1,18 +1,17 @@
 package net.cg360.spookums.server.core.config;
 
-import com.google.gson.*;
 import net.cg360.spookums.server.Server;
 import net.cg360.spookums.server.core.data.LockableSettings;
 import net.cg360.spookums.server.core.data.Settings;
-import net.cg360.spookums.server.core.data.json.old.JsonTypeRegistry;
+import net.cg360.spookums.server.core.data.json.JsonObject;
+import net.cg360.spookums.server.core.data.json.io.JsonIO;
+import net.cg360.spookums.server.core.data.json.io.error.JsonFormatException;
+import net.cg360.spookums.server.core.data.json.io.error.JsonParseException;
 import net.cg360.spookums.server.core.data.keyvalue.Key;
 import net.cg360.spookums.server.util.clean.Check;
 
-import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileNotFoundException;
-import java.io.FileReader;
-import java.util.Iterator;
 import java.util.Optional;
 
 public class Configuration implements IConfiguration {
@@ -50,17 +49,8 @@ public class Configuration implements IConfiguration {
         if(sourceFile.exists() && sourceFile.isFile()) {
 
             try {
-                FileReader reader = new FileReader(sourceFile);
-                BufferedReader r = new BufferedReader(reader);
-                Iterator<String> lines = r.lines().iterator();
-
-                String jsonIn = "";
-                while (lines.hasNext()) {
-                    jsonIn = jsonIn.concat(lines.next());
-                }
-
-                JsonElement element = JsonParser.parseString(jsonIn);
-                Optional<Settings> newSettings = JsonTypeRegistry.get().deserialize(element, Settings.class);
+                JsonObject element = new JsonIO().read(sourceFile);
+                Optional<Settings> newSettings = Optional.empty(); //TODO: Parse Settings Object
 
                 if(newSettings.isPresent()) {
                     Settings source = newSettings.get();
@@ -86,7 +76,7 @@ public class Configuration implements IConfiguration {
 
             } catch (FileNotFoundException errNotFound){
                 return false;
-            } catch (JsonSyntaxException | JsonIOException errJson) {
+            } catch (JsonFormatException | JsonParseException errJson) {
                 Server.getMainLogger().error("Malformed Json in configuration source: "+errJson.getMessage());
                 return false;
             }
