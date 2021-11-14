@@ -4,7 +4,7 @@ import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
 import net.cg360.spookums.server.util.clean.Check;
 
-public final class JsonObject implements JsonHolder {
+public final class JsonObject extends JsonContainerReachback implements JsonHolder  {
 
     protected BiMap<String, Json<?>> dictionary;
     protected BiMap<Json<?>, String> reverse;
@@ -24,7 +24,10 @@ public final class JsonObject implements JsonHolder {
 
     @Override
     public boolean removeChild(Json<?> child) {
+        Check.nullParam(child, "child");
+
         if(reverse.containsKey(child)) {
+            if(child.parent == this.getSelf()) child.parent = null;
             reverse.remove(child);
             return true;
         }
@@ -32,8 +35,29 @@ public final class JsonObject implements JsonHolder {
         return false;
     }
 
-    @Override
-    public boolean acceptNewChild(Json<?> child) {
+    public boolean removeChild(String name) {
+        Check.nullParam(name, "name");
+
+        if(dictionary.containsKey(name)) {
+            Json<?> child = dictionary.remove(name);
+            if(child.parent == this.getSelf()) child.parent = null;
+            return true;
+        }
+
+        return false;
+    }
+
+    @SuppressWarnings("unchecked")
+    public boolean addChild(String name, Json<?> child) {
+        Check.nullParam(name, "name");
+        Check.nullParam(child, "child");
+
+        if(this.dictionary.containsKey(name)) removeChild(name);
+        this.dictionary.put(name, child);
+
+        if(!(this.getSelf().getValue() instanceof JsonObject)) throw new IllegalStateException("Json array has none-array container");
+        child.parent = (Json<? extends JsonObject>) this.getSelf();
+
         return false;
     }
 
