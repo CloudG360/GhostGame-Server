@@ -2,16 +2,19 @@ package net.cg360.spookums.server;
 
 import net.cg360.spookums.server.auth.record.AuthToken;
 import net.cg360.spookums.server.auth.AuthenticationManager;
+import net.cg360.spookums.server.core.data.LockableSettings;
 import net.cg360.spookums.server.core.data.json.JsonArray;
 import net.cg360.spookums.server.core.data.json.JsonObject;
 import net.cg360.spookums.server.core.data.json.io.JsonIO;
+import net.cg360.spookums.server.core.data.json.io.JsonUtil;
+import net.cg360.spookums.server.core.data.json.io.error.JsonFormatException;
+import net.cg360.spookums.server.core.data.json.io.error.JsonParseException;
 import net.cg360.spookums.server.core.event.EventManager;
 import net.cg360.spookums.server.core.event.handler.EventHandler;
 import net.cg360.spookums.server.core.event.handler.Priority;
 import net.cg360.spookums.server.core.event.type.network.ClientSocketStatusEvent;
 import net.cg360.spookums.server.core.event.type.network.PacketEvent;
 import net.cg360.spookums.server.core.scheduler.CommandingScheduler;
-import net.cg360.spookums.server.core.data.Settings;
 import net.cg360.spookums.server.db.DatabaseManager;
 import net.cg360.spookums.server.network.PacketRegistry;
 import net.cg360.spookums.server.network.VanillaProtocol;
@@ -30,8 +33,7 @@ import org.slf4j.Logger;
 import org.slf4j.impl.SimpleLoggerFactory;
 
 import java.awt.*;
-import java.io.File;
-import java.io.IOException;
+import java.io.*;
 import java.util.*;
 import java.util.List;
 
@@ -43,15 +45,11 @@ public class Server {
 
     public static final int MSPT = 1000 / 20; // Millis per tick.
 
-    protected static String serverName = "Test Server";
-    protected static String serverDesc = "It's not yet finished! - me, sometime in 2021";
-    protected static String serverRegion = "gb-en";
-
-
     protected static Server instance;
+    protected static SimpleLoggerFactory loggerFactory = new SimpleLoggerFactory();
 
     protected File dataPath;
-    protected Settings settings;
+    protected LockableSettings settings;
 
     protected boolean isRunning;
 
@@ -72,28 +70,11 @@ public class Server {
     protected NetworkInterface networkInterface;
 
 
-    public Server(String[] args) {
+    public Server() {
         this.dataPath = new File("./"); // Configurable maybe?
-        this.settings = new Settings();
-
         this.isRunning = false;
 
         this.logger = new SimpleLoggerFactory().getLogger("Server");
-        getLogger().info("Preparing server...");
-
-
-        // -- Core Components --
-
-        this.serverScheduler = new CommandingScheduler();
-        this.serverEventManager = new EventManager();
-        this.databaseManager = new DatabaseManager();
-        this.authenticationManager = new AuthenticationManager();
-
-
-        // -- Core Registries --
-
-        this.packetRegistry = new PacketRegistry();
-
     }
 
 
@@ -104,6 +85,19 @@ public class Server {
             try {
                 this.isRunning = true;
                 getLogger().info("Starting server...");
+
+                this.settings = ServerConfig.loadServerConfiguration(this, true);
+
+
+                // -- Core Components --
+                this.serverScheduler = new CommandingScheduler();
+                this.serverEventManager = new EventManager();
+                this.databaseManager = new DatabaseManager();
+                this.authenticationManager = new AuthenticationManager();
+
+                // -- Core Registries --
+                this.packetRegistry = new PacketRegistry();
+
 
                 // Attempt to claim the primary instances.
                 boolean resultScheduler = this.serverScheduler.setAsPrimaryInstance();
@@ -187,6 +181,17 @@ public class Server {
         }
     }
 
+
+
+
+
+
+
+
+
+
+
+
     public void test_jsonParsing() {
         JsonIO json = new JsonIO();
         String jsonArrayTest = "{ 'this': [ 'should', 1, 2.0, -3.50000, -345, true, TRUE, trUE, FALSE ], 'work':'fine' }";
@@ -268,7 +273,10 @@ public class Server {
 
 
             case VanillaProtocol.PACKET_SERVER_PING_REQUEST:
-                client.send(new PacketOutServerDetail(serverName, serverRegion, serverDesc), true);
+                String name = this.settings.getOrElse(ServerConfig.SERVER_NAME, "????");
+                String region = this.settings.getOrElse(ServerConfig.REGION, "?????");
+                String description = this.settings.getOrElse(ServerConfig.DESCRIPTION, "??? : D ???");
+                client.send(new PacketOutServerDetail(name, region, description), true);
                 break;
 
 
@@ -298,7 +306,7 @@ public class Server {
 
             case VanillaProtocol.PACKET_PROTOCOL_INVALID_PACKET:
             default:
-                if(settings.getOrElse(ServerCfgKeys.LOG_UNSUPPORTED_PACKETS, false)) {
+                if(settings.getOrElse(ServerConfig.LOG_UNSUPPORTED_PACKETS, false)) {
                     getLogger().warn(String.format("Client %s sent a packet with an invalid/unregistered ID.", id.toString()));
                 }
                 break;
@@ -319,7 +327,7 @@ public class Server {
 
 
 
-    public Settings getSettings() { return settings; }
+    public LockableSettings getSettings() { return settings; }
     public File getDataPath() { return dataPath; }
     public boolean isRunning() { return isRunning; }
 
@@ -333,6 +341,7 @@ public class Server {
 
     public static Server get() { return instance; }
     public static Logger getMainLogger() { return get().getLogger(); }
+    public static Logger getLogger(String name) { return Server.loggerFactory.getLogger(name); }
 
     protected static boolean isClientCompatible(NetworkClient client) {
         return (client.getState() == ConnectionState.CONNECTED) || (client.getState() == ConnectionState.LOGGED_IN);
@@ -357,7 +366,7 @@ public class Server {
             Runtime.getRuntime().exec(new String[]{"cmd","/c","start","cmd","/k","java -jar \"" + filename + "\""}); // Run the jar but in a cmd window.
 
         } else {
-            instance = new Server(args);
+            instance = new Server(); // args are not used. Use config instead.
             instance.start();
             System.out.println("!!!  Stopped Server :^)  !!!"); // No logger prepared, use java's own methods (ew)
             System.exit(0);

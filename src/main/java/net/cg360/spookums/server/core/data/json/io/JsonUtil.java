@@ -15,15 +15,12 @@ import java.util.IllegalFormatException;
 public final class JsonUtil {
 
     // It is checked! Java is dumb! :)
-    @SuppressWarnings("unchecked")
-    public static LockableSettings jsonToSettings(Json<? extends JsonObject> json, boolean isLocked) {
-        Check.nullParam(json, "json");
-        Check.nullParam(json.getValue(), "json.value");
-
+    public static LockableSettings jsonToSettings(JsonObject parent, boolean isLocked) {
+        Check.nullParam(parent, "parent");
         LockableSettings settings = new LockableSettings();
 
-        for(String key : json.getValue().getKeys()) {
-            Json<?> element = json.getValue().getChild(key);
+        for(String key : parent.getKeys()) {
+            Json<?> element = parent.getChild(key);
 
             Check.nullParam(key, "key");
             Check.nullParam(element, "element{wrapper}");
@@ -35,8 +32,7 @@ public final class JsonUtil {
             Object saveObj = element.getValue();
 
             if(saveObj instanceof JsonObject) {
-                Json<? extends JsonObject> objEl = (Json<? extends JsonObject>) element;
-                saveObj = jsonToSettings(objEl, isLocked);
+                saveObj = jsonToSettings((JsonObject) saveObj, isLocked);
 
             // Json Array: Get the values in object[] form.
             } else if (saveObj instanceof JsonArray) {
