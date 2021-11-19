@@ -3,6 +3,7 @@ package net.cg360.spookums.server.core.data.json.io;
 import net.cg360.spookums.server.core.data.Stack;
 import net.cg360.spookums.server.core.data.json.Json;
 import net.cg360.spookums.server.core.data.json.JsonObject;
+import net.cg360.spookums.server.core.data.json.io.error.JsonEmptyException;
 import net.cg360.spookums.server.core.data.json.io.error.JsonFormatException;
 import net.cg360.spookums.server.core.data.json.io.error.JsonParseException;
 import net.cg360.spookums.server.core.data.json.io.parse.ArrayParsingFrame;
@@ -52,6 +53,10 @@ public class JsonIO {
     // As it's the root, it does not need a Json<?> container to hold a parent.
     public JsonObject read(File file) throws FileNotFoundException {
         Check.nullParam(file, "file");
+
+        if(!file.exists()) throw new FileNotFoundException("Unable to find config file");
+        if(!file.isFile()) throw new FileNotFoundException("Unable to find a config file [Dir in its place]");
+
         FileReader standardReader = new FileReader(file);
         BufferedReader read = new BufferedReader(standardReader);
         Iterator<String> lines = read.lines().iterator();
@@ -75,7 +80,8 @@ public class JsonIO {
     public JsonObject read(String text) {
         String[] lines  = text.split("\\r?\\n");
 
-        if(lines.length == 0) throw new JsonFormatException("No content was provided");
+        if(lines.length == 0 || (lines.length == 1 && lines[0].trim().equals("")))
+            throw new JsonEmptyException("The provided json string was empty");
 
         this.parseFrameStack = Stack.ofLength(512);
         this.currentLine = 0;
@@ -165,7 +171,7 @@ public class JsonIO {
 
 
                         // ---- if neither, pass as letter in next section ----
-                    }
+                    } else escapeNextCharacter = false;
 
                     currentFrame.processCharacter(letter);
 

@@ -5,6 +5,7 @@ import net.cg360.spookums.server.core.data.Settings;
 import net.cg360.spookums.server.core.data.json.JsonObject;
 import net.cg360.spookums.server.core.data.json.io.JsonIO;
 import net.cg360.spookums.server.core.data.json.io.JsonUtil;
+import net.cg360.spookums.server.core.data.json.io.error.JsonEmptyException;
 import net.cg360.spookums.server.core.data.json.io.error.JsonFormatException;
 import net.cg360.spookums.server.core.data.json.io.error.JsonParseException;
 import net.cg360.spookums.server.core.data.keyvalue.Key;
@@ -29,13 +30,13 @@ public class ServerConfig {
 
     public static String DEFAULT_CONFIG =
             "{" + "\n" +
-                    String.format("'%s': %s", LOG_UNSUPPORTED_PACKETS.get(), "true") + "," + "\n" +
-                    String.format("'%s': %s", LOG_PACKET_IO          .get(), "true") + "," + "\n" +
-                    String.format("'%s': %s", RUN_TESTS              .get(), "true") + "," + "\n" +
-                    "" + "\n" +
-                    String.format("'%s': %s", SERVER_NAME.get(), "true") + "," + "\n" +
-                    String.format("'%s': %s", DESCRIPTION.get(), "true") + "," + "\n" +
-                    String.format("'%s': %s", REGION     .get(), "true") + " " + "\n" +
+            String.format("     \"%s\": %s", LOG_UNSUPPORTED_PACKETS.get(), "true") + "," + "\n" +
+            String.format("     \"%s\": %s", LOG_PACKET_IO          .get(), "true") + "," + "\n" +
+            String.format("     \"%s\": %s", RUN_TESTS              .get(), "true") + "," + "\n" +
+            "" + "\n" +
+            String.format("     \"%s\": %s", SERVER_NAME.get(), "\"Test Server\"") + "," + "\n" +
+            String.format("     \"%s\": %s", DESCRIPTION.get(), "\"Unfinished business on an unfinished server. It'll be done soon! :)\"") + "," + "\n" +
+            String.format("     \"%s\": %s", REGION     .get(), "\"en-gb\"") + " " + "\n" +
             "}";
 
     protected static int verifyAllKeys(Settings settings) {
@@ -64,7 +65,7 @@ public class ServerConfig {
         try {
             root = json.read(cfgFile);
 
-        } catch (FileNotFoundException err) {
+        } catch (FileNotFoundException | JsonEmptyException err) {
             cfgLog.warn("No server configuration found! Creating a copy from default settings.");
             root = json.read(ServerConfig.DEFAULT_CONFIG);
 
@@ -72,13 +73,19 @@ public class ServerConfig {
                 FileWriter writer = new FileWriter(cfgFile);
                 BufferedWriter write = new BufferedWriter(writer);
                 write.write(ServerConfig.DEFAULT_CONFIG);
+                write.close();
+
             } catch (IOException err2) {
                 cfgLog.error("Unable to write a new server configuration copy:");
                 err2.printStackTrace();
             }
 
-        } catch (JsonFormatException | JsonParseException err) {
-            cfgLog.error("Unable to parse json configuration! Using default settings.");
+        } catch (JsonFormatException err) {
+            cfgLog.error("Unable to parse json configuration! Using default settings: "+err.getMessage());
+            root = json.read(ServerConfig.DEFAULT_CONFIG);
+
+        } catch (JsonParseException err) {
+            cfgLog.error("Unable to parse json configuration due to an internal error! Using default settings.");
             err.printStackTrace();
             root = json.read(ServerConfig.DEFAULT_CONFIG);
         }
@@ -87,8 +94,13 @@ public class ServerConfig {
         // If I add plugin support, I might change this ?   idk
         loadedSettings = JsonUtil.jsonToSettings(root, false);
 
-        cfgLog.warn("Filling in the blanks!");
-        if(fillInDefaults) verifyAllKeys(loadedSettings);
+
+        if(fillInDefaults) {
+            cfgLog.warn("Filling in the blanks!");
+            int replacements = verifyAllKeys(loadedSettings); //todo: print count of replacements
+
+            cfgLog.warn("Using the defaults for "+replacements+" properties!");
+        }
 
         cfgLog.warn("Loaded configuration!");
         return loadedSettings.lock();
