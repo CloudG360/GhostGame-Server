@@ -95,7 +95,7 @@ public class Scheduler extends SchedulingType {
                                         task.getTask().run();
 
                                     } catch (Exception err) {
-                                        Server.getMainLogger().error("Error thrown in a scheduler (asynchronous) task:");
+                                        Server.getLogger(Server.S7R_LOG).error("Error thrown in a scheduler (asynchronous) task:");
                                         err.printStackTrace();
                                     }
 
@@ -119,7 +119,7 @@ public class Scheduler extends SchedulingType {
                                 task.getTask().run();
 
                             } catch (Exception err) {
-                                Server.get().getLogger().error("Error thrown in a scheduler (synchronous) task:");
+                                Server.getLogger(Server.S7R_LOG).error("Error thrown in a scheduler (synchronous) task:");
                                 err.printStackTrace();
                             }
                         }

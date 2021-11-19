@@ -55,7 +55,7 @@ public class PacketOutServerNotice extends NetworkPacket {
 
     @Override
     protected void decodeBody(int inboundSize) {
-        Server.getMainLogger().warn("Attempted to decode the outbound packet: PacketServerNotice");
+        Server.getLogger(Server.NET_LOG).warn("Attempted to decode the outbound packet: PacketServerNotice");
         // Not a server-bound packet so do nothing.
     }
 
@@ -65,7 +65,7 @@ public class PacketOutServerNotice extends NetworkPacket {
     public String getText() { return text; }
 
     public void setType(byte type) {
-        if((type > 3) || (type < 0)) Server.getMainLogger().warn("Unrecognized type ID in PacketServerNotice (should be from 0-3)");
+        if((type > 3) || (type < 0)) Server.getLogger(Server.NET_LOG).warn("Unrecognized type ID in PacketServerNotice (should be from 0-3)");
         this.type = type;
     }
     public void setType(Type type) { this.type = type.getTypeID(); }

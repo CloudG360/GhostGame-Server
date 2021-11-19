@@ -48,6 +48,16 @@ public class Server {
     protected static Server instance;
     protected static SimpleLoggerFactory loggerFactory = new SimpleLoggerFactory();
 
+    public static final String BASE_LOG = "Server";
+    public static final String BOOT_LOG = "Server/Boot";
+    public static final String NET_LOG = "Server/Network";
+    public static final String DB_LOG = "Server/Database";
+    public static final String S7R_LOG = "Server/Scheduler";
+    public static final String EVNT_LOG = "Server/Events";
+    public static final String B7R_LOG = "Game/Behaviour";
+    public static final String TEST_LOG = "Test"; // Server.TEST_LOG + "/Thingy"
+
+
     protected File dataPath;
     protected LockableSettings settings;
 
@@ -84,7 +94,12 @@ public class Server {
 
             try {
                 this.isRunning = true;
-                getLogger().info("Starting server...");
+
+                Logger dbLog = Server.getLogger(Server.DB_LOG);
+                Logger btLog = Server.getLogger(Server.BOOT_LOG);
+                Logger netLog = Server.getLogger(Server.NET_LOG);
+
+                btLog.info("Starting server...");
 
                 this.settings = ServerConfig.loadServerConfiguration(this, true);
 
@@ -107,7 +122,7 @@ public class Server {
                 boolean resultPacketRegistry = this.packetRegistry.setAsPrimaryInstance();
 
                 if(resultScheduler && resultEventManager && resultDatabaseManager && resultAuthManager && resultPacketRegistry){
-                    getLogger().info("Claimed primary instances! This is the main server! :)");
+                    btLog.info("Claimed primary instances! This is the main server! :)");
                 }
 
                 this.getEventManager().addListener(this);
@@ -115,31 +130,25 @@ public class Server {
 
 
                 // Tests && Setup
-                getLogger().info("Running through pre-scheduler activities...");
-                getLogger().info("These are ran on the main thread to expect a wait!\n");
+                btLog.info("Running through pre-scheduler activities...");
+                btLog.info("These are ran on the main thread to expect a wait!\n");
+
+                dbLog.info("Created/repaired database authentication tables? " + getAuthManager().createTables());
+                dbLog.info("Deleted any expired tokens ahead of time? " + getAuthManager().deleteOutdatedTokens());
 
 
-                getLogger().info("[DB] Created/repaired authentication tables? " + getAuthManager().createTables());
-                getLogger().info("[DB TEST] Created test token to expire now? " + getAuthManager().publishToken(
-                        "CG360_",
-                        new AuthToken(AuthToken.generateTokenString(), System.currentTimeMillis())
-                ));
-
-                getLogger().info("[DB] Deleted any expired tokens ahead of time? " + getAuthManager().deleteOutdatedTokens());
-
-                getLogger().info("These are ran on the main thread to expect a wait!\n");
+                if(this.getSettings().getOrElse(ServerConfig.RUN_LAUNCH_TESTS, false)) runLaunchTests();
 
 
-
-                getLogger().info("Completed pre-scheduler activities.\n");
+                btLog.info("Completed pre-scheduler activities.\n");
                 // Main server operation \/\/
 
 
                 this.serverScheduler.startScheduler();
-                getLogger().info("Started the scheduler! :)");
+                btLog.info("Started the scheduler! ");
 
 
-                getLogger().info("Starting network threads...");
+                btLog.info("Starting network threads...");
                 networkInterface = new NISocket();
                 this.netServerThread = new Thread() {
 
@@ -147,7 +156,7 @@ public class Server {
                     public void run() {
                         networkInterface.openServerBlocking("127.0.0.1", 22057);
                         netClientsThread.interrupt();
-                        getLogger().info("Stopped down the network server thread.");
+                        netLog.info("Stopped down the network server thread.");
                     }
 
                     @Override
@@ -158,7 +167,7 @@ public class Server {
                 };
 
                 this.netServerThread.start();
-                getLogger().info("Starting network server thread!");
+                btLog.info("Starting network server thread!");
 
                 VanillaProtocol.applyToRegistry(this.packetRegistry);
 
@@ -171,7 +180,7 @@ public class Server {
                 }
 
             } catch (Exception err) {
-                getLogger().info("Error whilst running server... :<");
+                logger.info("Error whilst running server... :<");
                 err.printStackTrace();
                 this.isRunning = false;
             }
@@ -182,6 +191,10 @@ public class Server {
     }
 
 
+    protected void runLaunchTests() {
+
+
+    }
 
 
 
@@ -189,42 +202,50 @@ public class Server {
 
 
 
-
+    public void test_databaseControl() {
+        Logger log = Server.getLogger(Server.TEST_LOG + "/Database");
+        log.info("Created test token to expire now? " + getAuthManager().publishToken(
+                "CG360_",
+                new AuthToken(AuthToken.generateTokenString(), System.currentTimeMillis())
+        ));
+    }
 
 
     public void test_jsonParsing() {
+        Logger log = Server.getLogger(Server.TEST_LOG + "/JsonValueParser");
+
         JsonIO json = new JsonIO();
         String jsonArrayTest = "{ 'this': [ 'should', 1, 2.0, -3.50000, -345, true, TRUE, trUE, FALSE ], 'work':'fine' }";
         String jsonObjectTest = "{ 'this': { 'bool': trUE, 'number': 34.6 }, 'work':'fine' }";
 
         // Test 1 - Array
-        getLogger().info("[PARSER] Parsing "+jsonArrayTest);
+        log.info("Parsing "+jsonArrayTest);
         JsonObject rootArrayTest = new JsonIO().read(jsonArrayTest);
-        getLogger().info("[PARSER] "+ Arrays.toString(
+        log.info(Arrays.toString(
                 ((JsonArray) rootArrayTest.getChild("this").getValue()).getChildren()
         ));
 
         // Test 2 - Object
-        getLogger().info("[PARSER] Parsing "+jsonObjectTest);
+        log.info("Parsing "+jsonObjectTest);
         JsonObject rootObjTest = json.read(jsonObjectTest);
-        getLogger().info("[PARSER] "+ ((JsonObject) rootObjTest.getChild("this").getValue()).getChild("bool").getValue().toString());
-        getLogger().info("[PARSER] "+ ((JsonObject) rootObjTest.getChild("this").getValue()).getChild("number").getValue().toString());
+        log.info(((JsonObject) rootObjTest.getChild("this").getValue()).getChild("bool").getValue().toString());
+        log.info(((JsonObject) rootObjTest.getChild("this").getValue()).getChild("number").getValue().toString());
     }
 
 
     @EventHandler
     public void onClientConnect(ClientSocketStatusEvent.Open event) {
-        getLogger().info("Connection | " + event.getClient().getID().toString());
+        Server.getLogger(Server.NET_LOG).info("Connection | " + event.getClient().getID().toString());
     }
 
     @EventHandler
     public void onClientDisconnect(ClientSocketStatusEvent.Disconnect event) {
-        getLogger().info("Disconnected | " + event.getClient().getID().toString());
+        Server.getLogger(Server.NET_LOG).info("Disconnected | " + event.getClient().getID().toString());
     }
 
     @EventHandler(ignoreIfCancelled = true, priority = Priority.HIGHEST)
     public void onPacketIn(PacketEvent.In<?> event) {
-        getLogger().info(String.format("IN | %s << %s %s",
+        Server.getLogger(Server.NET_LOG).info(String.format("IN | %s << %s %s",
                 event.getClientNetID().toString(),
                 event.getPacket().toCoreString(),
                 event.getPacket().toString())
@@ -256,16 +277,16 @@ public class Server {
                             String append = (VanillaProtocol.PROTOCOL_ID < protocolCheck.getProtocolVersion()) ? "Client is newer than the server." : "Client is older than the server.";
                             client.send(new PacketOutProtocolError(VanillaProtocol.PROTOCOL_ID, VanillaProtocol.SUPPORTED_VERSION_STRING), true);
                             networkInterface.disconnectClient(id, null);
-                            getLogger().info(String.format("Client %s attempted to connect with an unsupported protocol. %s", id.toString(), append));
+                            Server.getLogger(NET_LOG).info(String.format("Client %s attempted to connect with an unsupported protocol. %s", id.toString(), append));
                         }
 
                     } else {
                         networkInterface.disconnectClient(id, new PacketInOutDisconnect("Invalid network version! How'd you manage that? :)"));
-                        getLogger().warn(String.format("Client %s attempted to connect with an invalid protocol version check.", id.toString()));
+                        Server.getLogger(NET_LOG).warn(String.format("Client %s attempted to connect with an invalid protocol version check.", id.toString()));
                     }
 
                 } else {
-                    getLogger().warn(String.format("Client %s sent protocol check packet at an unexpected point. Ignoring.", id.toString()));
+                    Server.getLogger(NET_LOG).warn(String.format("Client %s sent protocol check packet at an unexpected point. Ignoring.", id.toString()));
                 }
 
                 break;
@@ -307,7 +328,7 @@ public class Server {
             case VanillaProtocol.PACKET_PROTOCOL_INVALID_PACKET:
             default:
                 if(settings.getOrElse(ServerConfig.LOG_UNSUPPORTED_PACKETS, false)) {
-                    getLogger().warn(String.format("Client %s sent a packet with an invalid/unregistered ID.", id.toString()));
+                    Server.getLogger(NET_LOG).warn(String.format("Client %s sent a packet with an invalid/unregistered ID.", id.toString()));
                 }
                 break;
 
@@ -318,7 +339,7 @@ public class Server {
 
     @EventHandler(ignoreIfCancelled = true, priority = Priority.HIGHEST)
     public void onPacketOut(PacketEvent.Out<?> event) {
-        getLogger().info(String.format("OUT | %s >> %s %s",
+        Server.getLogger(Server.NET_LOG).info(String.format("OUT | %s >> %s %s",
                 event.getClientNetID().toString(),
                 event.getPacket().toCoreString(),
                 event.getPacket().toString())
@@ -331,7 +352,6 @@ public class Server {
     public File getDataPath() { return dataPath; }
     public boolean isRunning() { return isRunning; }
 
-    public Logger getLogger() { return logger; }
     public CommandingScheduler getServerScheduler() { return serverScheduler; }
     public EventManager getEventManager() { return serverEventManager; }
     public DatabaseManager getDBManager() { return databaseManager; }
@@ -340,7 +360,6 @@ public class Server {
     public NetworkInterface getNetworkInterface() {return networkInterface;}
 
     public static Server get() { return instance; }
-    public static Logger getMainLogger() { return get().getLogger(); }
     public static Logger getLogger(String name) { return Server.loggerFactory.getLogger(name); }
 
     protected static boolean isClientCompatible(NetworkClient client) {

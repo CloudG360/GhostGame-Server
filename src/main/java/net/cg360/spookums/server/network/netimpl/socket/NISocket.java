@@ -143,7 +143,7 @@ public class NISocket implements NetworkInterface {
                                 collectedPackets.add(packet);
 
                             } else {
-                                Server.getMainLogger().warn(String.format("Invalid packet received (Unrecognized type id: %s)", packetID));
+                                Server.getLogger(Server.NET_LOG).warn(String.format("Invalid packet received (Unrecognized type id: %s)", packetID));
                             }
                         }
                     }
@@ -154,7 +154,7 @@ public class NISocket implements NetworkInterface {
 
             } catch (InstantiationException | IllegalAccessException err) {
                 err.printStackTrace();
-                Server.getMainLogger().error("A packet type is broken in this case! Submit a bug report. :)");
+                Server.getLogger(Server.NET_LOG).error("A packet type is broken in this case! Submit a bug report. :)");
             }
 
         }
@@ -213,7 +213,7 @@ public class NISocket implements NetworkInterface {
 
                 if(disconnectPacket != null) {
                     try { sendDataPacket(clientNetID, disconnectPacket, true); }
-                    catch (RuntimeException err) { Server.getMainLogger().warn("Client disconnected with a IOException"); }
+                    catch (RuntimeException err) { Server.getLogger(Server.NET_LOG).warn("Client disconnected with a IOException"); }
                 }
 
                 try { conn.close(); }

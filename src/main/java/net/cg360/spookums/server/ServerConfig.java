@@ -20,7 +20,7 @@ public class ServerConfig {
 
     public static final Key<Boolean> LOG_UNSUPPORTED_PACKETS = new Key<>("log_unsupported_packets");
     public static final Key<Boolean> LOG_PACKET_IO = new Key<>("log_packet_io");
-    public static final Key<Boolean> RUN_TESTS = new Key<>("run_tests");
+    public static final Key<Boolean> RUN_LAUNCH_TESTS = new Key<>("should_run_launch_tests");
 
     public static final Key<String> SERVER_NAME = new Key<>("name");
     public static final Key<String> DESCRIPTION = new Key<>("description");
@@ -31,8 +31,8 @@ public class ServerConfig {
     public static String DEFAULT_CONFIG =
             "{" + "\n" +
             String.format("     \"%s\": %s", LOG_UNSUPPORTED_PACKETS.get(), "true") + "," + "\n" +
-            String.format("     \"%s\": %s", LOG_PACKET_IO          .get(), "true") + "," + "\n" +
-            String.format("     \"%s\": %s", RUN_TESTS              .get(), "true") + "," + "\n" +
+            String.format("     \"%s\": %s", LOG_PACKET_IO          .get(), "false") + "," + "\n" +
+            String.format("     \"%s\": %s", RUN_LAUNCH_TESTS       .get(), "false") + "," + "\n" +
             "" + "\n" +
             String.format("     \"%s\": %s", SERVER_NAME.get(), "\"Test Server\"") + "," + "\n" +
             String.format("     \"%s\": %s", DESCRIPTION.get(), "\"Unfinished business on an unfinished server. It'll be done soon! :)\"") + "," + "\n" +
@@ -43,8 +43,8 @@ public class ServerConfig {
         int replacements = 0;
 
         if(!checkSetting(settings, LOG_UNSUPPORTED_PACKETS, true)) replacements++;
-        if(!checkSetting(settings, LOG_PACKET_IO, true)) replacements++;
-        if(!checkSetting(settings, RUN_TESTS, true)) replacements++;
+        if(!checkSetting(settings, LOG_PACKET_IO, false)) replacements++;
+        if(!checkSetting(settings, RUN_LAUNCH_TESTS, false)) replacements++;
 
         if(!checkSetting(settings, SERVER_NAME, "Test Server")) replacements++;
         if(!checkSetting(settings, DESCRIPTION, "Unfinished business on an unfinished server. It'll be done soon! :)")) replacements++;

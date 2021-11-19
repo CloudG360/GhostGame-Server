@@ -98,7 +98,7 @@ public class VanillaProtocol {
                 .r(PACKET_REQUEST_GAME_DETAIL, null)
                 .r(PACKET_GAME_DETAIL, null);
 
-        Server.getMainLogger().info(
+        Server.getLogger(Server.NET_LOG).info(
                 String.format("Applied protocol version %s to %s packet registry.",
                         PROTOCOL_ID,
                         packetRegistry == PacketRegistry.get() ? "the primary" : "a"

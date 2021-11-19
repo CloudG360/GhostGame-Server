@@ -67,7 +67,7 @@ public class EventManager {
                 if(!filter.checkEvent(event)) return;
 
             } catch (Exception err) {
-                Server.getMainLogger().warn("Error processing filter for event type '"+event.getClass().getName()+"'; Skipping result.");
+                Server.getLogger(Server.EVNT_LOG).warn("Error processing filter for event type '"+event.getClass().getName()+"'; Skipping result.");
                 err.printStackTrace();
             }
         }
@@ -228,7 +228,7 @@ public class EventManager {
             methodPair.getMethod().invoke(owningListener, event);
 
         } catch (Exception err) {
-            Server.getMainLogger().error("An error was thrown during the invocation of an event:");
+            Server.getLogger(Server.EVNT_LOG).error("An error was thrown during the invocation of an event:");
             err.printStackTrace();
         }
     }
