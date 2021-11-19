@@ -38,4 +38,12 @@ public final class Key<T> {
     public int hashCode() {
         return Objects.hash(key);
     }
+
+    public static <T> Key<T> of(Identifier id) {
+        return new Key<>(id);
+    }
+
+    public static <T> Key<T> of(String string) {
+        return new Key<>(string);
+    }
 }

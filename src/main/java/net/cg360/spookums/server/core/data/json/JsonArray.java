@@ -67,4 +67,18 @@ public class JsonArray extends JsonContainerReachback implements JsonHolder {
     public Json<?>[] getChildren() {
         return children.toArray(new Json[0]);
     }
+
+    public Object[] getChildrenValues() {
+        Json<?>[] jsonChildren = this.getChildren();
+        Object[] children = new Object[jsonChildren.length];
+
+        for(int i = 0; i < jsonChildren.length; i++) {
+            Json<?> child = jsonChildren[i];
+            Check.nullParam(child.getValue(), String.format("array.child_%s.value", i));
+
+            children[i] = child;
+        }
+
+        return children;
+    }
 }
