@@ -18,6 +18,9 @@ import java.io.*;
  */
 public class ServerConfig {
 
+    public static final Key<String> SERVER_IP = new Key<>("ip");
+    public static final Key<Integer> SERVER_PORT = new Key<>("port");
+
     public static final Key<Boolean> LOG_UNSUPPORTED_PACKETS = new Key<>("log_unsupported_packets");
     public static final Key<Boolean> LOG_PACKET_IO = new Key<>("log_packet_io");
     public static final Key<Boolean> RUN_LAUNCH_TESTS = new Key<>("should_run_launch_tests");
@@ -30,6 +33,9 @@ public class ServerConfig {
 
     public static String DEFAULT_CONFIG =
             "{" + "\n" +
+            String.format("     \"%s\": %s", SERVER_IP              .get(), "\"0.0.0.0\"") + "," + "\n" +
+            String.format("     \"%s\": %s", SERVER_PORT            .get(), "22057") + "," + "\n" +
+
             String.format("     \"%s\": %s", LOG_UNSUPPORTED_PACKETS.get(), "true") + "," + "\n" +
             String.format("     \"%s\": %s", LOG_PACKET_IO          .get(), "false") + "," + "\n" +
             String.format("     \"%s\": %s", RUN_LAUNCH_TESTS       .get(), "false") + "," + "\n" +
@@ -41,6 +47,9 @@ public class ServerConfig {
 
     protected static int verifyAllKeys(Settings settings) {
         int replacements = 0;
+
+        if(!checkSetting(settings, SERVER_IP, "0.0.0.0")) replacements++;
+        if(!checkSetting(settings, SERVER_PORT, 22057)) replacements++;
 
         if(!checkSetting(settings, LOG_UNSUPPORTED_PACKETS, true)) replacements++;
         if(!checkSetting(settings, LOG_PACKET_IO, false)) replacements++;
@@ -108,9 +117,9 @@ public class ServerConfig {
 
     // Just going to assume settings isn't null as this isn't
     // an important utility method.
-    public static <T> boolean checkSetting(Settings settings, Key<T> key, T type) {
+    public static <T> boolean checkSetting(Settings settings, Key<T> key, T defaultValue) {
         if(settings.get(key) == null) {
-            settings.set(key, type);
+            settings.set(key, defaultValue);
             return false; // invalid, replaced.
         }
 

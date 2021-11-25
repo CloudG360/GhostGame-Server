@@ -7,6 +7,7 @@ import net.cg360.spookums.server.core.data.json.JsonArray;
 import net.cg360.spookums.server.core.data.json.JsonObject;
 import net.cg360.spookums.server.core.data.json.io.JsonIO;
 import net.cg360.spookums.server.core.data.json.io.JsonUtil;
+import net.cg360.spookums.server.core.data.json.io.error.ConfigFormatException;
 import net.cg360.spookums.server.core.data.json.io.error.JsonFormatException;
 import net.cg360.spookums.server.core.data.json.io.error.JsonParseException;
 import net.cg360.spookums.server.core.event.EventManager;
@@ -29,6 +30,8 @@ import net.cg360.spookums.server.network.packet.info.PacketOutProtocolSuccess;
 import net.cg360.spookums.server.network.packet.info.PacketOutServerDetail;
 import net.cg360.spookums.server.network.user.ConnectionState;
 import net.cg360.spookums.server.network.user.NetworkClient;
+import net.cg360.spookums.server.util.Patterns;
+import net.cg360.spookums.server.util.clean.Check;
 import org.slf4j.Logger;
 import org.slf4j.impl.SimpleLoggerFactory;
 
@@ -149,12 +152,22 @@ public class Server {
 
 
                 btLog.info("Starting network threads...");
-                networkInterface = new NISocket();
+                this.networkInterface = new NISocket();
+
+                String serverIP = this.getSettings().getOrElse(ServerConfig.SERVER_IP, "0.0.0.0");
+                int port = this.getSettings().getOrElse(ServerConfig.SERVER_PORT, 22057);
+
+                if(!serverIP.matches(Patterns.IPV4_ADDRESS))
+                    throw new ConfigFormatException("The property 'server-ip' must be an IPv4 address!");
+                // Ports up to 1024 are reserved mostly so let's start from 1024.
+                Check.inclusiveLowerBound(port, 1024, "config.port");
+
+
                 this.netServerThread = new Thread() {
 
                     @Override
                     public void run() {
-                        networkInterface.openServerBlocking("127.0.0.1", 22057);
+                        networkInterface.openServerBlocking(serverIP, port);
                         netClientsThread.interrupt();
                         netLog.info("Stopped down the network server thread.");
                     }
@@ -192,8 +205,8 @@ public class Server {
 
 
     protected void runLaunchTests() {
-
-
+        test_databaseControl();
+        test_jsonParsing();
     }
 
 
@@ -245,11 +258,14 @@ public class Server {
 
     @EventHandler(ignoreIfCancelled = true, priority = Priority.HIGHEST)
     public void onPacketIn(PacketEvent.In<?> event) {
-        Server.getLogger(Server.NET_LOG).info(String.format("IN | %s << %s %s",
-                event.getClientNetID().toString(),
-                event.getPacket().toCoreString(),
-                event.getPacket().toString())
-        );
+
+        if(this.settings.getOrElse(ServerConfig.LOG_PACKET_IO, false)) {
+            Server.getLogger(Server.NET_LOG).info(String.format("IN | %s << %s %s",
+                    event.getClientNetID().toString(),
+                    event.getPacket().toCoreString(),
+                    event.getPacket().toString())
+            );
+        }
 
         UUID id = event.getClientNetID();
         Optional<NetworkClient> cl = this.getNetworkInterface().getClient(event.getClientNetID());
@@ -274,10 +290,15 @@ public class Server {
                             this.serverEventManager.call(new ClientSocketStatusEvent.Connected(client));
 
                         } else {
-                            String append = (VanillaProtocol.PROTOCOL_ID < protocolCheck.getProtocolVersion()) ? "Client is newer than the server." : "Client is older than the server.";
+                            String append = (VanillaProtocol.PROTOCOL_ID < protocolCheck.getProtocolVersion())
+                                    ? "Client is newer than the server."
+                                    : "Client is older than the server.";
+
                             client.send(new PacketOutProtocolError(VanillaProtocol.PROTOCOL_ID, VanillaProtocol.SUPPORTED_VERSION_STRING), true);
                             networkInterface.disconnectClient(id, null);
-                            Server.getLogger(NET_LOG).info(String.format("Client %s attempted to connect with an unsupported protocol. %s", id.toString(), append));
+                            Server.getLogger(NET_LOG).info(
+                                    String.format("Client %s attempted to connect with an unsupported protocol. %s", id.toString(), append)
+                            );
                         }
 
                     } else {
@@ -327,9 +348,11 @@ public class Server {
 
             case VanillaProtocol.PACKET_PROTOCOL_INVALID_PACKET:
             default:
-                if(settings.getOrElse(ServerConfig.LOG_UNSUPPORTED_PACKETS, false)) {
-                    Server.getLogger(NET_LOG).warn(String.format("Client %s sent a packet with an invalid/unregistered ID.", id.toString()));
-                }
+                if(settings.getOrElse(ServerConfig.LOG_UNSUPPORTED_PACKETS, false))
+                    Server.getLogger(NET_LOG).warn(
+                            String.format("Client %s sent a packet with an invalid/unregistered ID.", id.toString())
+                    );
+
                 break;
 
 
@@ -339,11 +362,13 @@ public class Server {
 
     @EventHandler(ignoreIfCancelled = true, priority = Priority.HIGHEST)
     public void onPacketOut(PacketEvent.Out<?> event) {
-        Server.getLogger(Server.NET_LOG).info(String.format("OUT | %s >> %s %s",
-                event.getClientNetID().toString(),
-                event.getPacket().toCoreString(),
-                event.getPacket().toString())
-        );
+        if(this.settings.getOrElse(ServerConfig.LOG_PACKET_IO, false)) {
+            Server.getLogger(Server.NET_LOG).info(String.format("OUT | %s >> %s %s",
+                    event.getClientNetID().toString(),
+                    event.getPacket().toCoreString(),
+                    event.getPacket().toString())
+            );
+        }
     }
 
 
