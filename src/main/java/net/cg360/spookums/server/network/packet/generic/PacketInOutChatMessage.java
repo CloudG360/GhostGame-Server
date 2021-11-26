@@ -42,7 +42,7 @@ public class PacketInOutChatMessage extends NetworkPacket {
     }
 
 
-    public String getText() { return text; }
+    public String getText() { return this.text; }
 
 
 

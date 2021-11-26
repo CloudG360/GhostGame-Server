@@ -24,7 +24,7 @@ public class PacketInProtocolCheck extends NetworkPacket {
         if(!this.isValid) throw new IllegalStateException("Attempting to encode a known malformed packet");
 
         this.getBodyData().reset();
-        this.getBodyData().putUnsignedShort(protocolVersion);
+        this.getBodyData().putUnsignedShort(this.protocolVersion);
 
         return 2; // Update if more is added
     }
@@ -46,10 +46,10 @@ public class PacketInProtocolCheck extends NetworkPacket {
 
 
     public int getProtocolVersion() {
-        return protocolVersion;
+        return this.protocolVersion;
     }
 
     public boolean isValid() {
-        return isValid;
+        return this.isValid;
     }
 }

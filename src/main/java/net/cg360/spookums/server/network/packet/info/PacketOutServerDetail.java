@@ -36,9 +36,9 @@ public class PacketOutServerDetail extends NetworkPacket {
 
     @Override
     protected int encodeBody() {
-        String name = (serverName == null) || (serverName.length() > 60) || (serverName.length() < 1) ? "Unidentified Server" : serverName;
-        String region = (serverRegion == null) || (serverRegion.length() > 5) || (serverRegion.length() < 1) ? "?" : serverRegion;
-        String description = serverDescription == null ? "Welcome to this server!" : serverDescription;
+        String name   = (this.serverName == null)   || (this.serverName.length() > 60)  || (this.serverName.length() < 1)   ? "Unidentified Server" : this.serverName;
+        String region = (this.serverRegion == null) || (this.serverRegion.length() > 5) || (this.serverRegion.length() < 1) ? "?" : this.serverRegion;
+        String description = (this.serverDescription == null) ? "Welcome to this server!" : this.serverDescription;
 
         this.getBodyData().putUnsignedByte(pingVersion);
 

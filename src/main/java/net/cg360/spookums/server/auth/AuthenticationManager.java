@@ -8,10 +8,12 @@ import net.cg360.spookums.server.auth.state.AccountCreateState;
 import net.cg360.spookums.server.core.event.handler.EventHandler;
 import net.cg360.spookums.server.core.event.type.network.ClientSocketStatusEvent;
 import net.cg360.spookums.server.network.packet.auth.PacketInLogin;
+import net.cg360.spookums.server.network.packet.auth.PacketInUpdateAccount;
 import net.cg360.spookums.server.network.packet.auth.PacketOutLoginResponse;
 import net.cg360.spookums.server.network.user.ConnectionState;
 import net.cg360.spookums.server.network.user.NetworkClient;
 import net.cg360.spookums.server.util.SecretUtil;
+import net.cg360.spookums.server.util.clean.Check;
 import net.cg360.spookums.server.util.clean.ErrorUtil;
 import net.cg360.spookums.server.util.clean.Pair;
 
@@ -106,7 +108,13 @@ public class AuthenticationManager {
     }
 
 
-    // Ran at the start of the server, cleans up the database.
+    /**
+     * A task typically ran on server startup, its role
+     * is to clear any currently outdated tokens on the
+     * database. This does not affect users currently
+     * connected to the server.
+     * @return true if the action was successful.
+     */
     public boolean deleteOutdatedTokens() {
         try {
             Connection connection = getCoreConnection();
@@ -127,6 +135,11 @@ public class AuthenticationManager {
         return false;
     }
 
+    /**
+     * Deletes all existing tokens for a specific username, whether
+     * they're outdated or not.
+     * @return true if the action was successful.
+     */
     public boolean deleteAllUsernameTokens(String username) {
         try {
             Connection connection = getCoreConnection();
@@ -148,6 +161,15 @@ public class AuthenticationManager {
     }
 
 
+    /**
+     * Attempts to create a new user identity on the server, assigning
+     * a UUID lookup and storing a hashed password with their username.
+     *
+     * @param username the username for the account
+     * @param password the password for the account
+     *
+     * @return the enum AccountCreateState indicates how the action went.
+     */
     public AccountCreateState createNewIdentity(String username, String password) {
         try {
             // Check an account doesn't already exist.
@@ -185,6 +207,15 @@ public class AuthenticationManager {
         }
     }
 
+    /**
+     * Creates a user identity for a user and automatically logs
+     * them into the user if possible.
+     *
+     * @param client the network record of the client
+     * @param username the username for the account
+     * @param password the password for the account
+     * @return a combination of the return from #createNewIdentify() and a logged in identity.
+     */
     public Pair<AccountCreateState, AuthenticatedIdentity> createNewIdentityAndLogin(NetworkClient client, String username, String password) {
         AccountCreateState state = createNewIdentity(username, password);
 
@@ -199,10 +230,23 @@ public class AuthenticationManager {
         } else return Pair.of(state, null);
     }
 
+    /**
+     * Publishes a token using a cached SecureIdentity
+     * @param identity
+     * @param token
+     * @return true if the token was pushed to the database.
+     */
     public boolean publishToken(SecureIdentity identity, AuthToken token) {
         return publishTokenWithAccountID(identity.getAccountID(), token);
     }
 
+    /**
+     * Publishes a token based on a username, fetching a SecureIdentity
+     * used to extract an account identifier.
+     * @param username
+     * @param token
+     * @return true if the token was pushed to the database.
+     */
     public boolean publishToken(String username, AuthToken token) {
         Optional<SecureIdentity> i =  fetchSecureIdentity(username);
         if(!i.isPresent()) return false;
@@ -211,6 +255,12 @@ public class AuthenticationManager {
         return publishTokenWithAccountID(accountID, token);
     }
 
+    /**
+     * Publishes a token using a unique account identifier
+     * @param accountID
+     * @param authToken
+     * @return true if the token was pushed to the database.
+     */
     protected boolean publishTokenWithAccountID(String accountID, AuthToken authToken) {
         try {
             Connection connection = getCoreConnection();
@@ -238,7 +288,12 @@ public class AuthenticationManager {
     }
 
 
-
+    /**
+     * Fetches a token from the database, getting its expire time.
+     * @param token
+     * @param clearIfExpired
+     * @return
+     */
     public Optional<AuthToken> fetchToken(String token, boolean clearIfExpired) {
         try {
             Connection connection = getCoreConnection();
@@ -266,6 +321,12 @@ public class AuthenticationManager {
         return Optional.empty();
     }
 
+    /**
+     * Fetches a users username based on their token. Used
+     * during login to quickly verify if their token is valid.
+     *
+     * @param failIfExpired if the token is expired, should it return an empty
+     */
     public Optional<Pair<String, Long>> fetchUsername(String token, boolean failIfExpired) {
         try {
             Connection connection = getCoreConnection();
@@ -286,6 +347,12 @@ public class AuthenticationManager {
         return Optional.empty();
     }
 
+
+    /**
+     * Fetches a secure identity from the database
+     * @param username the username to fetch for
+     * @return a SecureIdentity record
+     */
     public Optional<SecureIdentity> fetchSecureIdentity(String username) {
         try {
             Connection connection = getCoreConnection();
@@ -306,9 +373,19 @@ public class AuthenticationManager {
         return Optional.empty();
     }
 
-    public void processRegisterPacket(PacketInLogin login, NetworkClient client) {
 
+
+    public void processRegisterPacket(PacketInUpdateAccount reg, NetworkClient client) {
+        //TODO: Do this.
+
+        if(reg.isCreatingNewAccount()) {
+            if(Check.isNull(reg.getNewUsername()) || Check.isNull(reg.getNewPassword())) {
+
+            }
+        }
     }
+
+
 
     public void processLoginPacket(PacketInLogin login, NetworkClient client) {
         new Thread(() -> {

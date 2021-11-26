@@ -25,7 +25,9 @@ public class PacketOutProtocolError extends NetworkPacket {
     @Override
     protected int encodeBody() {
 
-        String targetString = requiredClientVersionString == null ? "Unknown Version" : requiredClientVersionString;
+        String targetString = this.requiredClientVersionString == null
+                ? "Unknown Version"
+                : this.requiredClientVersionString;
 
         this.getBodyData().reset();
         this.getBodyData().putUnsignedShort(requiredProtocolVersion);
@@ -36,7 +38,6 @@ public class PacketOutProtocolError extends NetworkPacket {
 
     @Override
     protected void decodeBody(int inboundSize) {
-
         this.getBodyData().reset();
         this.requiredProtocolVersion = this.getBodyData().getUnsignedShort();
         this.requiredClientVersionString = this.getBodyData().getUnboundUTF8String(inboundSize - 1);

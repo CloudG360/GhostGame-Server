@@ -55,16 +55,16 @@ public class PacketOutLoginResponse extends NetworkPacket {
 
     @Override
     protected int encodeBody() {
-        getBodyData().reset();
-        if(isSuccess()) {
-            return getBodyData().putSmallUTF8String(username)
-                    + getBodyData().putSmallUTF8String(token);
+        this.getBodyData().reset();
+        if(this.isSuccess()) {
+            return this.getBodyData().putSmallUTF8String(username)
+                    + this.getBodyData().putSmallUTF8String(token);
         }
         return 0;
     }
 
     @Override
-    protected void decodeBody(int inboundSize) {}
+    protected void decodeBody(int inboundSize) { }
 
 
 
@@ -73,11 +73,11 @@ public class PacketOutLoginResponse extends NetworkPacket {
     }
 
     public String getUsername() {
-        return username;
+        return this.username;
     }
 
     public String getToken() {
-        return token;
+        return this.token;
     }
 
     public Status getStatusCode() {
@@ -155,6 +155,8 @@ public class PacketOutLoginResponse extends NetworkPacket {
                     return TOO_MANY_ATTEMPTS;
                 case 4:
                     return ALREADY_LOGGED_IN;
+                case 5:
+                    return MISSING_FIELDS;
 
                 case 126:
                     return INVALID_PACKET;

@@ -22,6 +22,7 @@ import net.cg360.spookums.server.network.VanillaProtocol;
 import net.cg360.spookums.server.network.netimpl.NetworkInterface;
 import net.cg360.spookums.server.network.netimpl.socket.NISocket;
 import net.cg360.spookums.server.network.packet.auth.PacketInLogin;
+import net.cg360.spookums.server.network.packet.auth.PacketInUpdateAccount;
 import net.cg360.spookums.server.network.packet.auth.PacketOutLoginResponse;
 import net.cg360.spookums.server.network.packet.generic.PacketInOutDisconnect;
 import net.cg360.spookums.server.network.packet.info.PacketInProtocolCheck;
@@ -341,6 +342,22 @@ public class Server {
                 }
                 break;
 
+
+
+            case VanillaProtocol.PACKET_UPDATE_ACCOUNT:
+                if(isClientCompatible(client)) {
+                    if(!(event.getPacket() instanceof PacketInUpdateAccount)) return;
+                    PacketInUpdateAccount update = (PacketInUpdateAccount) event.getPacket();
+
+                    if(update.isValid()) {
+
+                    } else {
+                        client.send(new PacketOutLoginResponse());
+                    }
+                }
+
+                break;
+
             // When adding new packets, remember to include an isClientCompatible()
             // This ensures the protocol is compatible.
 
@@ -388,6 +405,7 @@ public class Server {
     public static Logger getLogger(String name) { return Server.loggerFactory.getLogger(name); }
 
     protected static boolean isClientCompatible(NetworkClient client) {
+        // It's past the protocol checks so it's compatible with the server.
         return (client.getState() == ConnectionState.CONNECTED) || (client.getState() == ConnectionState.LOGGED_IN);
     }
 
@@ -401,13 +419,12 @@ public class Server {
     public static void main(String[] args) throws IOException {
         List<String> argsList = Arrays.asList(args);
 
-        // Checks:
-        // - Is no terminal window present?
-        // - Does the user environment support a graphical terminal?
-        // - Headless flag *is not* present.
+
+        // Sourced from -> https://stackoverflow.com/questions/7704405/how-do-i-make-my-java-application-open-a-console-terminal-window
+        // Thanks StackOverflow <3_<3
         if((System.console() == null) && (!GraphicsEnvironment.isHeadless()) && (!argsList.contains("-headless"))) {
             String filename = Server.class.getProtectionDomain().getCodeSource().getLocation().toString().substring(6);
-            Runtime.getRuntime().exec(new String[]{"cmd","/c","start","cmd","/k","java -jar \"" + filename + "\""}); // Run the jar but in a cmd window.
+            Runtime.getRuntime().exec(new String[]{"cmd", "/c", "start", "cmd", "/k","java -jar \"" + filename + "\""}); // Run the jar but in a cmd window.
 
         } else {
             instance = new Server(); // args are not used. Use config instead.

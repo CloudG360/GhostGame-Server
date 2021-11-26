@@ -17,7 +17,7 @@ public abstract class PacketInOutTokenHolder extends NetworkPacket {
 
     @Override
     protected int encodeBody() {
-        String finalToken = token == null ? NO_TOKEN : token;
+        String finalToken = this.token == null ? NO_TOKEN : this.token;
         byte[] encodedToken = finalToken.getBytes(StandardCharsets.UTF_8);
 
         this.getBodyData().reset();
@@ -27,6 +27,6 @@ public abstract class PacketInOutTokenHolder extends NetworkPacket {
         return (short) (encodedToken.length + 1); // array length + token bytes
     }
 
-    public String getToken() { return token; }
+    public String getToken() { return this.token; }
     public void setToken(String token) { this.token = token; }
 }

@@ -3,6 +3,7 @@ package net.cg360.spookums.server.network.packet.info;
 import net.cg360.spookums.server.Server;
 import net.cg360.spookums.server.network.VanillaProtocol;
 import net.cg360.spookums.server.network.packet.NetworkPacket;
+import net.cg360.spookums.server.util.clean.Check;
 
 import java.nio.charset.StandardCharsets;
 
@@ -33,6 +34,7 @@ public class PacketOutServerNotice extends NetworkPacket {
 
 
 
+
     @Override
     protected byte getPacketTypeID() {
         return VanillaProtocol.PACKET_SERVER_NOTICE;
@@ -40,12 +42,12 @@ public class PacketOutServerNotice extends NetworkPacket {
 
     @Override
     protected int encodeBody() {
-        if(this.text == null) {
+        if(Check.isNull(this.text)) {
             this.text = "...";
         }
 
         this.getBodyData().reset();
-        this.getBodyData().put(type);
+        this.getBodyData().put(this.type);
 
         // Using a "simple" string rather than a "tracked" string.
         int size = this.getBodyData().putUnboundUTF8String(this.text);
@@ -61,11 +63,13 @@ public class PacketOutServerNotice extends NetworkPacket {
 
 
 
-    public byte getType() { return type; }
-    public String getText() { return text; }
+    public byte getType() { return this.type; }
+    public String getText() { return this.text; }
+
 
     public void setType(byte type) {
-        if((type > 3) || (type < 0)) Server.getLogger(Server.NET_LOG).warn("Unrecognized type ID in PacketServerNotice (should be from 0-3)");
+        if((this.type > 3) || (this.type < 0))
+            Server.getLogger(Server.NET_LOG).warn("Unrecognized type ID in PacketServerNotice (should be from 0-3)");
         this.type = type;
     }
     public void setType(Type type) { this.type = type.getTypeID(); }
@@ -75,8 +79,8 @@ public class PacketOutServerNotice extends NetworkPacket {
     @Override
     public String toString() {
         return "Content: {" +
-                "type=" + type +
-                ", text='" + text + "'" +
+                "type=" + this.type +
+                ", text='" + this.text + "'" +
                 "}";
     }
 

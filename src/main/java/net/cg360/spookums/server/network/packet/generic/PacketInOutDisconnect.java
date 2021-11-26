@@ -58,7 +58,7 @@ public class PacketInOutDisconnect extends NetworkPacket {
     }
 
 
-    public String getText() { return text; }
+    public String getText() { return this.text; }
 
 
 

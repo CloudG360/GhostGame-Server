@@ -29,7 +29,7 @@ public abstract class NetworkPacket {
     protected abstract void decodeBody(int inboundSize); // Takes data from the body buffer and converts it to fields.
 
     public final NetworkBuffer encode() {
-        bodySize = encodeBody();
+        this.bodySize = this.encodeBody();
         int size = bodySize + 1;
 
         NetworkBuffer data = NetworkBuffer.wrap(new byte[2+size]);
@@ -59,20 +59,20 @@ public abstract class NetworkPacket {
         }
 
         this.body.reset();
-        decodeBody(this.bodySize);
+        this.decodeBody(this.bodySize);
         return this;
     }
 
-    public final NetworkBuffer getBodyData() { return body; }
-    public final byte getPacketID() { return packetID; }
-    public final int getBodySize() { return bodySize; }
+    public final NetworkBuffer getBodyData() { return this.body; }
+    public final byte getPacketID() { return this.packetID; }
+    public final int getBodySize() { return this.bodySize; }
 
 
 
     public String toCoreString() {
         return "(" +
-                "ID=" + packetID +
-                "| size=" + bodySize +
+                "ID=" + this.packetID +
+                "| size=" + this.bodySize +
                 ")";
     }
 }

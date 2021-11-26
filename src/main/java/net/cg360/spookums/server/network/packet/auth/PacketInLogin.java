@@ -39,17 +39,17 @@ public class PacketInLogin extends NetworkPacket {
 
     @Override
     protected void decodeBody(int inboundSize) {
-        getBodyData().reset();
-        if(getBodyData().canReadBytesAhead(1)) {
+        this.getBodyData().reset();
+        if(this.getBodyData().canReadBytesAhead(1)) {
             mode = getBodyData().get();
 
             switch (mode) {
                 case 0:
-                    if(getBodyData().canReadBytesAhead(1)) username = getBodyData().getSmallUTF8String();
-                    if(getBodyData().canReadBytesAhead(1)) password = getBodyData().getSmallUTF8String();
+                    if(this.getBodyData().canReadBytesAhead(1)) username = getBodyData().getSmallUTF8String();
+                    if(this.getBodyData().canReadBytesAhead(1)) password = getBodyData().getSmallUTF8String();
                         break;
                 case 1:
-                    if(getBodyData().canReadBytesAhead(1)) token = getBodyData().getSmallUTF8String();
+                    if(this.getBodyData().canReadBytesAhead(1)) token = getBodyData().getSmallUTF8String();
                     break;
 
                 default:

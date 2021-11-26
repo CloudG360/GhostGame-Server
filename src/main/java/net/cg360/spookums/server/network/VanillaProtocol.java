@@ -2,9 +2,12 @@ package net.cg360.spookums.server.network;
 
 import net.cg360.spookums.server.Server;
 import net.cg360.spookums.server.network.packet.auth.PacketInLogin;
+import net.cg360.spookums.server.network.packet.auth.PacketInUpdateAccount;
 import net.cg360.spookums.server.network.packet.auth.PacketOutLoginResponse;
 import net.cg360.spookums.server.network.packet.generic.PacketInOutChatMessage;
 import net.cg360.spookums.server.network.packet.generic.PacketInOutDisconnect;
+import net.cg360.spookums.server.network.packet.generic.PacketInOutError;
+import net.cg360.spookums.server.network.packet.generic.PacketInOutWarn;
 import net.cg360.spookums.server.network.packet.info.*;
 
 public class VanillaProtocol {
@@ -82,13 +85,13 @@ public class VanillaProtocol {
                 .r(PACKET_SERVER_NOTICE, PacketOutServerNotice.class)
                 .r(PACKET_DISCONNECT_REASON, PacketInOutDisconnect.class)
 
-                .r(PACKET_RESPONSE_WARNING, null)
+                .r(PACKET_RESPONSE_WARNING, PacketInOutWarn.class)
                 .r(PACKET_RESPONSE_SUCCESS, null)
-                .r(PACKET_RESPONSE_ERROR, null)
+                .r(PACKET_RESPONSE_ERROR, PacketInOutError.class)
                 .r(PACKET_CHAT_MESSAGE, PacketInOutChatMessage.class)
 
                 .r(PACKET_LOGIN, PacketInLogin.class)
-                .r(PACKET_UPDATE_ACCOUNT, null)
+                .r(PACKET_UPDATE_ACCOUNT, PacketInUpdateAccount.class)
                 .r(PACKET_LOGIN_RESPONSE, PacketOutLoginResponse.class)
 
                 .r(PACKET_GAME_JOIN_REQUEST, null)
