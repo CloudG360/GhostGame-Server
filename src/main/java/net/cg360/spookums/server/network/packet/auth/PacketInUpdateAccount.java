@@ -9,6 +9,11 @@ import net.cg360.spookums.server.util.clean.Check;
 // ordered based on their apperence in the flags.
 public class PacketInUpdateAccount extends NetworkPacket {
 
+    protected static final int EXISTING_PASSWORD_ID = 1;
+    protected static final int NEW_PASSWORD_ID = 2;
+    protected static final int EXISTING_USERNAME_ID = 3;
+    protected static final int NEW_USERNAME_ID = 4;
+
     protected boolean createNewAccount = false;
 
     protected String existingPassword = null;
@@ -43,10 +48,10 @@ public class PacketInUpdateAccount extends NetworkPacket {
 
             this.createNewAccount = flags1.getValue(0);
 
-            ifStringFlagTrue(flags1, 1, () -> this.existingPassword = this.getBodyData().getSmallUTF8String());
-            ifStringFlagTrue(flags1, 2, () -> this.newPassword = this.getBodyData().getSmallUTF8String());
-            ifStringFlagTrue(flags1, 3, () -> this.existingUsername = this.getBodyData().getSmallUTF8String());
-            ifStringFlagTrue(flags1, 4, () -> this.newUsername = this.getBodyData().getSmallUTF8String());
+            ifStringFlagTrue(flags1, EXISTING_PASSWORD_ID, () -> this.existingPassword = this.getBodyData().getSmallUTF8String());
+            ifStringFlagTrue(flags1, NEW_PASSWORD_ID, () -> this.newPassword = this.getBodyData().getSmallUTF8String());
+            ifStringFlagTrue(flags1, EXISTING_USERNAME_ID, () -> this.existingUsername = this.getBodyData().getSmallUTF8String());
+            ifStringFlagTrue(flags1, NEW_USERNAME_ID, () -> this.newUsername = this.getBodyData().getSmallUTF8String());
             //ifStringFlagTrue(flags1, 5, () -> this.??? = this.getBodyData().getSmallUTF8String());
             //ifStringFlagTrue(flags1, 6, () -> this.??? = this.getBodyData().getSmallUTF8String());
             //ifStringFlagTrue(flags1, 7, () -> this.??? = this.getBodyData().getSmallUTF8String());
@@ -62,10 +67,22 @@ public class PacketInUpdateAccount extends NetworkPacket {
 
 
     public boolean isValid() {
-        if(this.isCreatingNewAccount())
-            return !(Check.isNull(this.getNewUsername()) || Check.isNull(this.getNewPassword()));
-        else
-            return !Check.isNull(this.getExistingUsername()); // Some changes don't require the password.
+        return getMissingFields().isEmpty();
+    }
+
+
+    public MicroBoolean getMissingFields() {
+        if(this.isCreatingNewAccount()) {
+            MicroBoolean missingFields = MicroBoolean.empty();
+            missingFields.setValue(NEW_USERNAME_ID, Check.isNull(this.getNewUsername()));
+            missingFields.setValue(NEW_PASSWORD_ID, Check.isNull(this.getNewPassword()));
+
+            return missingFields;
+
+        } else {
+            return MicroBoolean.empty()
+                    .setValue(EXISTING_USERNAME_ID, Check.isNull(this.getExistingUsername())); // Some changes don't require the password.
+        }
     }
 
 

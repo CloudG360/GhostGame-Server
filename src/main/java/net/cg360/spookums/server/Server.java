@@ -2,6 +2,8 @@ package net.cg360.spookums.server;
 
 import net.cg360.spookums.server.auth.record.AuthToken;
 import net.cg360.spookums.server.auth.AuthenticationManager;
+import net.cg360.spookums.server.auth.record.AuthenticatedIdentity;
+import net.cg360.spookums.server.auth.state.AccountCreateState;
 import net.cg360.spookums.server.core.data.LockableSettings;
 import net.cg360.spookums.server.core.data.json.JsonArray;
 import net.cg360.spookums.server.core.data.json.JsonObject;
@@ -31,8 +33,10 @@ import net.cg360.spookums.server.network.packet.info.PacketOutProtocolSuccess;
 import net.cg360.spookums.server.network.packet.info.PacketOutServerDetail;
 import net.cg360.spookums.server.network.user.ConnectionState;
 import net.cg360.spookums.server.network.user.NetworkClient;
+import net.cg360.spookums.server.util.MicroBoolean;
 import net.cg360.spookums.server.util.Patterns;
 import net.cg360.spookums.server.util.clean.Check;
+import net.cg360.spookums.server.util.clean.Pair;
 import org.slf4j.Logger;
 import org.slf4j.impl.SimpleLoggerFactory;
 
@@ -275,6 +279,7 @@ public class Server {
 
         switch (event.getPacket().getPacketID()) {
 
+
             case VanillaProtocol.PACKET_PROTOCOL_CHECK:
                 if(client.getState() == ConnectionState.OPEN) {
                     if(!(event.getPacket() instanceof PacketInProtocolCheck)) return;
@@ -319,6 +324,7 @@ public class Server {
                 String name = this.settings.getOrElse(ServerConfig.SERVER_NAME, "????");
                 String region = this.settings.getOrElse(ServerConfig.REGION, "?????");
                 String description = this.settings.getOrElse(ServerConfig.DESCRIPTION, "??? : D ???");
+
                 client.send(new PacketOutServerDetail(name, region, description), true);
                 break;
 
@@ -348,14 +354,56 @@ public class Server {
                 if(isClientCompatible(client)) {
                     if(!(event.getPacket() instanceof PacketInUpdateAccount)) return;
                     PacketInUpdateAccount update = (PacketInUpdateAccount) event.getPacket();
+                    MicroBoolean missingValues = update.getMissingFields();
 
                     if(update.isValid()) {
 
+                        if(update.isCreatingNewAccount()) {
+                            String username = update.getNewUsername();
+                            String password = update.getNewPassword();
+
+                            Pair<AccountCreateState, AuthenticatedIdentity> accountState =
+                                    this.getAuthManager().createNewIdentityAndLogin(client, username, password);
+
+                            PacketOutLoginResponse loginResponse = new PacketOutLoginResponse();
+
+                            switch (accountState.getFirst()) {
+                                case CREATED:
+                                    loginResponse.setStatus(PacketOutLoginResponse.Status.SUCCESS);
+
+                                    AuthenticatedIdentity loginIdentity = accountState.getSecond();
+                                    loginResponse.setUsername(loginIdentity.getUsername());
+                                    loginResponse.setToken(loginIdentity.getToken().getAuthToken());
+                                    break;
+
+                                case TAKEN:      loginResponse.setStatus(PacketOutLoginResponse.Status.TAKEN_USERNAME);         break;
+                                case DB_OFFLINE: loginResponse.setStatus(PacketOutLoginResponse.Status.TECHNICAL_SERVER_ERROR); break;
+                                case ERRORED:    loginResponse.setStatus(PacketOutLoginResponse.Status.GENERAL_REGISTER_ERROR); break;
+
+                            }
+
+                            client.send(loginResponse, true);
+
+                        } else {
+
+                            getLogger(NET_LOG).warn("WARNING!");
+                            client.send(
+                                    new PacketOutLoginResponse()
+                                            .setStatus(PacketOutLoginResponse.Status.FAILURE_GENERAL),
+                                    true
+                            );
+
+                        }
+
                     } else {
-                        client.send(new PacketOutLoginResponse());
+                        client.send(
+                                new PacketOutLoginResponse()
+                                        .setStatus(PacketOutLoginResponse.Status.MISSING_FIELDS)
+                                        .setMissingFields(missingValues),
+                                true
+                        );
                     }
                 }
-
                 break;
 
             // When adding new packets, remember to include an isClientCompatible()

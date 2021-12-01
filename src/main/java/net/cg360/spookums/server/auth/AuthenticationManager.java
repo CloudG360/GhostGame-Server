@@ -221,10 +221,10 @@ public class AuthenticationManager {
 
         if(state == AccountCreateState.CREATED) {
             AuthToken token = AuthToken.generateToken();
-            publishToken(username, token);
+            this.publishToken(username, token);
 
             AuthenticatedIdentity identity = new AuthenticatedIdentity(client, username, token);
-            addAuthenticatorIdentity(identity);
+            this.addAuthenticatorIdentity(identity);
             return Pair.of(state, identity);
 
         } else return Pair.of(state, null);
@@ -237,7 +237,7 @@ public class AuthenticationManager {
      * @return true if the token was pushed to the database.
      */
     public boolean publishToken(SecureIdentity identity, AuthToken token) {
-        return publishTokenWithAccountID(identity.getAccountID(), token);
+        return this.publishTokenWithAccountID(identity.getAccountID(), token);
     }
 
     /**
@@ -248,11 +248,11 @@ public class AuthenticationManager {
      * @return true if the token was pushed to the database.
      */
     public boolean publishToken(String username, AuthToken token) {
-        Optional<SecureIdentity> i =  fetchSecureIdentity(username);
+        Optional<SecureIdentity> i =  this.fetchSecureIdentity(username);
         if(!i.isPresent()) return false;
 
         String accountID = i.get().getAccountID();
-        return publishTokenWithAccountID(accountID, token);
+        return this.publishTokenWithAccountID(accountID, token);
     }
 
     /**

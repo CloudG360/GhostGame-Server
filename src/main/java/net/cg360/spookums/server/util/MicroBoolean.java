@@ -32,7 +32,7 @@ public final class MicroBoolean {
      * @param index the bit in the storage byte to modify (0 to 7 inclusive)
      * @param value the value of the boolean
      */
-    public void setValue(int index, boolean value) {
+    public MicroBoolean setValue(int index, boolean value) {
         Check.inclusiveBounds(index, 0, 7, "index");
 
         // Sets the bits differently based on if they're true or false.
@@ -41,6 +41,8 @@ public final class MicroBoolean {
         // the position to 0.
         if(value) this.values |= ((0b00000001 << index) & 0xFF);
         else      this.values &= ((~(0b00000001 << index)) & 0xFF);
+
+        return this;
     }
 
     /**
@@ -58,6 +60,10 @@ public final class MicroBoolean {
         return values;
     }
 
+
+    public boolean isEmpty() {
+        return this.values == 0x00;
+    }
 
     // Below are a few static methods that make creation look a bit nicer :D
 
