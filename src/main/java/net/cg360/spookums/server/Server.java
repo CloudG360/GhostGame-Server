@@ -59,6 +59,7 @@ public class Server {
     public static final String BASE_LOG = "Server";
     public static final String BOOT_LOG = "Server/Boot";
     public static final String NET_LOG = "Server/Network";
+    public static final String AUTH_LOG = "Server/Auth";
     public static final String DB_LOG = "Server/Database";
     public static final String S7R_LOG = "Server/Scheduler";
     public static final String EVNT_LOG = "Server/Events";
@@ -376,9 +377,32 @@ public class Server {
                                     loginResponse.setToken(loginIdentity.getToken().getAuthToken());
                                     break;
 
-                                case TAKEN:      loginResponse.setStatus(PacketOutLoginResponse.Status.TAKEN_USERNAME);         break;
-                                case DB_OFFLINE: loginResponse.setStatus(PacketOutLoginResponse.Status.TECHNICAL_SERVER_ERROR); break;
-                                case ERRORED:    loginResponse.setStatus(PacketOutLoginResponse.Status.GENERAL_REGISTER_ERROR); break;
+                                case TAKEN:
+                                    loginResponse.setStatus(PacketOutLoginResponse.Status.TAKEN_USERNAME);
+                                    Server.getLogger(AUTH_LOG).warn(String.format(
+                                            "%s failed to register an account with the name %s (taken)",
+                                            client.getID().toString(),
+                                            username
+                                    ));
+                                    break;
+
+                                case DB_OFFLINE:
+                                    loginResponse.setStatus(PacketOutLoginResponse.Status.TECHNICAL_SERVER_ERROR);
+                                    Server.getLogger(AUTH_LOG).warn(String.format(
+                                            "%s failed to register an account with the name %s (db offline)",
+                                            client.getID().toString(),
+                                            username
+                                    ));
+                                    break;
+
+                                case ERRORED:
+                                    loginResponse.setStatus(PacketOutLoginResponse.Status.GENERAL_REGISTER_ERROR);
+                                    Server.getLogger(AUTH_LOG).warn(String.format(
+                                                "%s failed to register an account with the name %s (error)",
+                                                client.getID().toString(),
+                                                username
+                                            ));
+                                    break;
 
                             }
 
@@ -386,7 +410,7 @@ public class Server {
 
                         } else {
 
-                            getLogger(NET_LOG).warn("WARNING!");
+                            Server.getLogger(NET_LOG).warn("Protocol issue! - updating existing accounts is not yet implemented server-side");
                             client.send(
                                     new PacketOutLoginResponse()
                                             .setStatus(PacketOutLoginResponse.Status.FAILURE_GENERAL),

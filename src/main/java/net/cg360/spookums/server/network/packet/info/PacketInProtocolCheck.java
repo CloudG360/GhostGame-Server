@@ -8,6 +8,8 @@ public class PacketInProtocolCheck extends NetworkPacket {
     protected boolean isValid;
     protected int protocolVersion;
 
+    public PacketInProtocolCheck() { this(VanillaProtocol.PROTOCOL_ID); }
+
     public PacketInProtocolCheck(short protocolVersion) {
         this.isValid = true;
         this.protocolVersion = protocolVersion;

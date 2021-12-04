@@ -11,6 +11,8 @@ public class PacketOutProtocolError extends NetworkPacket {
     protected int requiredProtocolVersion; // Send 0 if the check packet was malformed.
     protected String requiredClientVersionString; // Simple String
 
+    public PacketOutProtocolError() { this(VanillaProtocol.PROTOCOL_ID, null); }
+
     public PacketOutProtocolError(int protocolVersion, String requiredClientVersionString) {
         this.requiredProtocolVersion = protocolVersion;
         this.requiredClientVersionString = requiredClientVersionString;
