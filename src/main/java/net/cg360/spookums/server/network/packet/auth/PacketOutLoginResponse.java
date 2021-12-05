@@ -21,6 +21,14 @@ public class PacketOutLoginResponse extends NetworkPacket {
      * 2 = Provided Password/Token is invalid/incorrect.
      * 3 = Too many attempts.
      */
+    // FORMAT:
+    // Success:
+    // - 1 byte: code
+    // - small utf8 str: username
+    // - small utf8 str: password
+    // Failure:
+    // - 1 byte: code
+    // - 1 byte: MicroBoolean missing fields
     protected byte statusCode;
 
     protected String username;
@@ -56,11 +64,18 @@ public class PacketOutLoginResponse extends NetworkPacket {
     @Override
     protected int encodeBody() {
         this.getBodyData().reset();
+        int size = 1;
+        this.getBodyData().putUnsignedByte(statusCode);
+
         if(this.isSuccess()) {
-            return this.getBodyData().putSmallUTF8String(username)
-                    + this.getBodyData().putSmallUTF8String(token);
+            size += this.getBodyData().putSmallUTF8String(username);
+            size += this.getBodyData().putSmallUTF8String(token);
+
+        } else {
+            this.getBodyData().putUnsignedByte(missingFields.getStorageByte());
+            size += 1;
         }
-        return 0;
+        return size;
     }
 
     @Override
@@ -150,15 +165,25 @@ public class PacketOutLoginResponse extends NetworkPacket {
                 case 0:
                     return SUCCESS; // Success/Generic fail
                 case 1:
-                    return INVALID_USERNAME;
+                    return FAILURE_GENERAL;
+
                 case 2:
-                    return INVALID_PASSWORD; // Pass/Token
+                    return INVALID_USERNAME;
                 case 3:
-                    return TOO_MANY_ATTEMPTS;
+                    return INVALID_PASSWORD; // Pass/Token
                 case 4:
-                    return ALREADY_LOGGED_IN;
+                    return TOO_MANY_ATTEMPTS;
                 case 5:
+                    return ALREADY_LOGGED_IN;
+
+                case 6:
                     return MISSING_FIELDS;
+                case 7:
+                    return TAKEN_USERNAME;
+                case 8:
+                    return TECHNICAL_SERVER_ERROR;
+                case 9:
+                    return GENERAL_REGISTER_ERROR;
 
                 case 126:
                     return INVALID_PACKET;
