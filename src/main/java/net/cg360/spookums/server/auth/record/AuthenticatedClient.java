@@ -4,13 +4,13 @@ import net.cg360.spookums.server.network.user.ConnectionState;
 import net.cg360.spookums.server.network.user.NetworkClient;
 import net.cg360.spookums.server.util.clean.Check;
 
-public class AuthenticatedIdentity {
+public class AuthenticatedClient {
 
     protected NetworkClient client;
     protected String username;
     protected AuthToken authentication;
 
-    public AuthenticatedIdentity(NetworkClient client, String username, AuthToken token) {
+    public AuthenticatedClient(NetworkClient client, String username, AuthToken token) {
         Check.nullParam(client, "client");
         Check.nullParam(username, "username");
         Check.nullParam(token, "token");

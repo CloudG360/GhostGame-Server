@@ -2,16 +2,13 @@ package net.cg360.spookums.server;
 
 import net.cg360.spookums.server.auth.record.AuthToken;
 import net.cg360.spookums.server.auth.AuthenticationManager;
-import net.cg360.spookums.server.auth.record.AuthenticatedIdentity;
+import net.cg360.spookums.server.auth.record.AuthenticatedClient;
 import net.cg360.spookums.server.auth.state.AccountCreateState;
 import net.cg360.spookums.server.core.data.LockableSettings;
 import net.cg360.spookums.server.core.data.json.JsonArray;
 import net.cg360.spookums.server.core.data.json.JsonObject;
 import net.cg360.spookums.server.core.data.json.io.JsonIO;
-import net.cg360.spookums.server.core.data.json.io.JsonUtil;
 import net.cg360.spookums.server.core.data.json.io.error.ConfigFormatException;
-import net.cg360.spookums.server.core.data.json.io.error.JsonFormatException;
-import net.cg360.spookums.server.core.data.json.io.error.JsonParseException;
 import net.cg360.spookums.server.core.event.EventManager;
 import net.cg360.spookums.server.core.event.handler.EventHandler;
 import net.cg360.spookums.server.core.event.handler.Priority;
@@ -143,7 +140,7 @@ public class Server {
                 btLog.info("These are ran on the main thread to expect a wait!\n");
 
                 dbLog.info("Created/repaired database authentication tables? " + getAuthManager().createTables());
-                dbLog.info("Deleted any expired tokens ahead of time? " + getAuthManager().deleteOutdatedTokens());
+                dbLog.info("Deleted any expired tokens ahead of time? " + getAuthManager().deleteAllOutdatedTokens());
 
 
                 if(this.getSettings().getOrElse(ServerConfig.RUN_LAUNCH_TESTS, false)) runLaunchTests();
@@ -223,7 +220,7 @@ public class Server {
 
     public void test_databaseControl() {
         Logger log = Server.getLogger(Server.TEST_LOG + "/Database");
-        log.info("Created test token to expire now? " + getAuthManager().publishToken(
+        log.info("Created test token to expire now? " + getAuthManager().publishTokenWithUsername(
                 "CG360_",
                 new AuthToken(AuthToken.generateTokenString(), System.currentTimeMillis())
         ));
@@ -359,65 +356,7 @@ public class Server {
 
                     if(update.isValid()) {
 
-                        if(update.isCreatingNewAccount()) {
-                            String username = update.getNewUsername();
-                            String password = update.getNewPassword();
-
-                            Pair<AccountCreateState, AuthenticatedIdentity> accountState =
-                                    this.getAuthManager().createNewIdentityAndLogin(client, username, password);
-
-                            PacketOutLoginResponse loginResponse = new PacketOutLoginResponse();
-
-                            switch (accountState.getFirst()) {
-                                case CREATED:
-                                    loginResponse.setStatus(PacketOutLoginResponse.Status.SUCCESS);
-
-                                    AuthenticatedIdentity loginIdentity = accountState.getSecond();
-                                    loginResponse.setUsername(loginIdentity.getUsername());
-                                    loginResponse.setToken(loginIdentity.getToken().getAuthToken());
-                                    break;
-
-                                case TAKEN:
-                                    loginResponse.setStatus(PacketOutLoginResponse.Status.TAKEN_USERNAME);
-                                    Server.getLogger(AUTH_LOG).warn(String.format(
-                                            "%s failed to register an account with the name %s (taken)",
-                                            client.getID().toString(),
-                                            username
-                                    ));
-                                    break;
-
-                                case DB_OFFLINE:
-                                    loginResponse.setStatus(PacketOutLoginResponse.Status.TECHNICAL_SERVER_ERROR);
-                                    Server.getLogger(AUTH_LOG).warn(String.format(
-                                            "%s failed to register an account with the name %s (db offline)",
-                                            client.getID().toString(),
-                                            username
-                                    ));
-                                    break;
-
-                                case ERRORED:
-                                    loginResponse.setStatus(PacketOutLoginResponse.Status.GENERAL_REGISTER_ERROR);
-                                    Server.getLogger(AUTH_LOG).warn(String.format(
-                                                "%s failed to register an account with the name %s (error)",
-                                                client.getID().toString(),
-                                                username
-                                            ));
-                                    break;
-
-                            }
-
-                            client.send(loginResponse, true);
-
-                        } else {
-
-                            Server.getLogger(NET_LOG).warn("Protocol issue! - updating existing accounts is not yet implemented server-side");
-                            client.send(
-                                    new PacketOutLoginResponse()
-                                            .setStatus(PacketOutLoginResponse.Status.FAILURE_GENERAL),
-                                    true
-                            );
-
-                        }
+                        this.authenticationManager.processRegisterPacket(update, client);
 
                     } else {
                         client.send(

@@ -2,15 +2,15 @@ package net.cg360.spookums.server.auth;
 
 import net.cg360.spookums.server.Server;
 import net.cg360.spookums.server.auth.record.AuthToken;
-import net.cg360.spookums.server.auth.record.AuthenticatedIdentity;
-import net.cg360.spookums.server.auth.record.SecureIdentity;
+import net.cg360.spookums.server.auth.record.AuthenticatedClient;
+import net.cg360.spookums.server.auth.record.StoredIdentity;
 import net.cg360.spookums.server.auth.state.AccountCreateState;
 import net.cg360.spookums.server.core.event.handler.EventHandler;
 import net.cg360.spookums.server.core.event.type.network.ClientSocketStatusEvent;
+import net.cg360.spookums.server.core.scheduler.Scheduler;
 import net.cg360.spookums.server.network.packet.auth.PacketInLogin;
 import net.cg360.spookums.server.network.packet.auth.PacketInUpdateAccount;
 import net.cg360.spookums.server.network.packet.auth.PacketOutLoginResponse;
-import net.cg360.spookums.server.network.user.ConnectionState;
 import net.cg360.spookums.server.network.user.NetworkClient;
 import net.cg360.spookums.server.util.SecretUtil;
 import net.cg360.spookums.server.util.clean.Check;
@@ -66,12 +66,17 @@ public class AuthenticationManager {
 
     private static AuthenticationManager primaryInstance;
 
-    protected HashMap<UUID, AuthenticatedIdentity> activeNetIDIdentities;
-    protected HashMap<String, AuthenticatedIdentity> activeUsernameIdentities;
+    protected Scheduler scheduler;
+
+    protected HashMap<UUID, AuthenticatedClient> activeNetIDIdentities;
+    protected HashMap<String, AuthenticatedClient> activeAuthenticatedClients;
 
     public AuthenticationManager() {
         this.activeNetIDIdentities = new HashMap<>();
-        this.activeUsernameIdentities = new HashMap<>();
+        this.activeAuthenticatedClients = new HashMap<>();
+
+        this.scheduler = new Scheduler(1);
+        this.scheduler.startScheduler();
     }
 
     public boolean setAsPrimaryInstance(){
@@ -81,7 +86,6 @@ public class AuthenticationManager {
         }
         return false;
     }
-
 
 
 
@@ -115,7 +119,7 @@ public class AuthenticationManager {
      * connected to the server.
      * @return true if the action was successful.
      */
-    public boolean deleteOutdatedTokens() {
+    public boolean deleteAllOutdatedTokens() {
         try {
             Connection connection = getCoreConnection();
             if(connection == null) return false;
@@ -140,7 +144,7 @@ public class AuthenticationManager {
      * they're outdated or not.
      * @return true if the action was successful.
      */
-    public boolean deleteAllUsernameTokens(String username) {
+    public boolean deleteAllTokensFromUsername(String username) {
         try {
             Connection connection = getCoreConnection();
             if(connection == null) return false;
@@ -162,81 +166,12 @@ public class AuthenticationManager {
 
 
     /**
-     * Attempts to create a new user identity on the server, assigning
-     * a UUID lookup and storing a hashed password with their username.
-     *
-     * @param username the username for the account
-     * @param password the password for the account
-     *
-     * @return the enum AccountCreateState indicates how the action went.
-     */
-    public AccountCreateState createNewIdentity(String username, String password) {
-        try {
-            // Check an account doesn't already exist.
-            if(fetchSecureIdentity(username).isPresent()) return AccountCreateState.TAKEN;
-
-            Connection connection = getCoreConnection();
-            if(connection == null) return AccountCreateState.DB_OFFLINE;
-
-            String newAccountID = UUID.randomUUID().toString().toLowerCase(Locale.ROOT);
-            SecretUtil.SaltyHash hashedPassword = SecretUtil.createSHA256Hash(password);
-            String hashPw = hashedPassword.getHash();
-            String hashSalt = hashedPassword.getSaltString().orElse("");
-
-            PreparedStatement s = connection.prepareStatement(SQL_ASSIGN_NEW_LOOKUP);
-            s.setObject(1, newAccountID);
-            s.setObject(2, username);
-            s.execute();
-            ErrorUtil.quietlyClose(s);
-
-
-            PreparedStatement sIdentity = connection.prepareStatement(SQL_ASSIGN_NEW_IDENTITY);
-            sIdentity.setObject(1, newAccountID);
-            sIdentity.setObject(2, hashPw);
-            sIdentity.setObject(3, hashSalt);
-            sIdentity.setObject(4, System.currentTimeMillis());
-            sIdentity.execute();
-            ErrorUtil.quietlyClose(sIdentity);
-            ErrorUtil.quietlyClose(connection);
-
-            return AccountCreateState.CREATED;
-
-        } catch (SQLException err) {
-            err.printStackTrace();
-            return AccountCreateState.ERRORED;
-        }
-    }
-
-    /**
-     * Creates a user identity for a user and automatically logs
-     * them into the user if possible.
-     *
-     * @param client the network record of the client
-     * @param username the username for the account
-     * @param password the password for the account
-     * @return a combination of the return from #createNewIdentify() and a logged in identity.
-     */
-    public Pair<AccountCreateState, AuthenticatedIdentity> createNewIdentityAndLogin(NetworkClient client, String username, String password) {
-        AccountCreateState state = createNewIdentity(username, password);
-
-        if(state == AccountCreateState.CREATED) {
-            AuthToken token = AuthToken.generateToken();
-            this.publishToken(username, token);
-
-            AuthenticatedIdentity identity = new AuthenticatedIdentity(client, username, token);
-            this.addAuthenticatorIdentity(identity);
-            return Pair.of(state, identity);
-
-        } else return Pair.of(state, null);
-    }
-
-    /**
      * Publishes a token using a cached SecureIdentity
      * @param identity
      * @param token
      * @return true if the token was pushed to the database.
      */
-    public boolean publishToken(SecureIdentity identity, AuthToken token) {
+    public boolean publishTokenWithAccountID(StoredIdentity identity, AuthToken token) {
         return this.publishTokenWithAccountID(identity.getAccountID(), token);
     }
 
@@ -247,8 +182,8 @@ public class AuthenticationManager {
      * @param token
      * @return true if the token was pushed to the database.
      */
-    public boolean publishToken(String username, AuthToken token) {
-        Optional<SecureIdentity> i =  this.fetchSecureIdentity(username);
+    public boolean publishTokenWithUsername(String username, AuthToken token) {
+        Optional<StoredIdentity> i =  this.fetchStoredIdentity(username);
         if(!i.isPresent()) return false;
 
         String accountID = i.get().getAccountID();
@@ -294,7 +229,7 @@ public class AuthenticationManager {
      * @param clearIfExpired
      * @return
      */
-    public Optional<AuthToken> fetchToken(String token, boolean clearIfExpired) {
+    public Optional<AuthToken> fetchStoredTokenWithToken(String token, boolean clearIfExpired) {
         try {
             Connection connection = getCoreConnection();
             if(connection == null) return Optional.empty();
@@ -327,7 +262,7 @@ public class AuthenticationManager {
      *
      * @param failIfExpired if the token is expired, should it return an empty
      */
-    public Optional<Pair<String, Long>> fetchUsername(String token, boolean failIfExpired) {
+    public Optional<Pair<String, Long>> fetchUsernameFromToken(String token, boolean failIfExpired) {
         try {
             Connection connection = getCoreConnection();
             if(connection == null) return Optional.empty();
@@ -353,14 +288,14 @@ public class AuthenticationManager {
      * @param username the username to fetch for
      * @return a SecureIdentity record
      */
-    public Optional<SecureIdentity> fetchSecureIdentity(String username) {
+    public Optional<StoredIdentity> fetchStoredIdentity(String username) {
         try {
             Connection connection = getCoreConnection();
             if(connection == null) return Optional.empty();
 
             PreparedStatement s = connection.prepareStatement(SQL_FETCH_USERNAME_IDENTITY);
             s.setObject(1, username);
-            Optional<SecureIdentity> a = processAuthIdentityResults(s.executeQuery());
+            Optional<StoredIdentity> a = processAuthIdentityResults(s.executeQuery());
 
             ErrorUtil.quietlyClose(s);
             ErrorUtil.quietlyClose(connection);
@@ -378,17 +313,77 @@ public class AuthenticationManager {
     public void processRegisterPacket(PacketInUpdateAccount reg, NetworkClient client) {
         //TODO: Do this.
 
-        if(reg.isCreatingNewAccount()) {
-            if(Check.isNull(reg.getNewUsername()) || Check.isNull(reg.getNewPassword())) {
+        this.scheduler.prepareTask(() -> {
+            if(reg.isCreatingNewAccount()) {
+                String username = reg.getNewUsername();
+                String password = reg.getNewPassword();
+
+                Pair<AccountCreateState, AuthenticatedClient> accountState = Pair.of(null, null);
+                        //this.createNewIdentityAndLogin(client, username, password);
+
+
+
+                PacketOutLoginResponse loginResponse = new PacketOutLoginResponse();
+
+                switch (accountState.getFirst()) {
+                    case CREATED:
+                        loginResponse.setStatus(PacketOutLoginResponse.Status.SUCCESS);
+
+                        AuthenticatedClient loginIdentity = accountState.getSecond();
+                        loginResponse.setUsername(loginIdentity.getUsername());
+                        loginResponse.setToken(loginIdentity.getToken().getAuthToken());
+                        break;
+
+                    case TAKEN:
+                        loginResponse.setStatus(PacketOutLoginResponse.Status.TAKEN_USERNAME);
+                        Server.getLogger(Server.AUTH_LOG).warn(String.format(
+                                "%s failed to register an account with the name %s (taken)",
+                                client.getID().toString(),
+                                username
+                        ));
+                        break;
+
+                    case DB_OFFLINE:
+                        loginResponse.setStatus(PacketOutLoginResponse.Status.TECHNICAL_SERVER_ERROR);
+                        Server.getLogger(Server.AUTH_LOG).warn(String.format(
+                                "%s failed to register an account with the name %s (db offline)",
+                                client.getID().toString(),
+                                username
+                        ));
+                        break;
+
+                    case ERRORED:
+                        loginResponse.setStatus(PacketOutLoginResponse.Status.GENERAL_REGISTER_ERROR);
+                        Server.getLogger(Server.AUTH_LOG).warn(String.format(
+                                "%s failed to register an account with the name %s (error)",
+                                client.getID().toString(),
+                                username
+                        ));
+                        break;
+
+                }
+
+                client.send(loginResponse, true);
+
+            } else {
+
+                Server.getLogger(Server.NET_LOG).warn("Protocol issue! - updating existing accounts is not yet implemented server-side");
+                client.send(
+                        new PacketOutLoginResponse()
+                                .setStatus(PacketOutLoginResponse.Status.FAILURE_GENERAL),
+                        true
+                );
 
             }
-        }
+
+        }).setAsynchronous(true).schedule();
     }
 
 
 
     public void processLoginPacket(PacketInLogin login, NetworkClient client) {
-        new Thread(() -> {
+        this.scheduler.prepareTask(() -> {
+            /*
             // If a token was submitted, use that as a login.
             if (login.getToken() != null) {
                 String token = login.getToken();
@@ -399,7 +394,7 @@ public class AuthenticationManager {
                     String username = loginPair.getFirst();
                     long expire = loginPair.getSecond();
 
-                    AuthenticatedIdentity identity = new AuthenticatedIdentity(client, username, new AuthToken(token, expire));
+                    AuthenticatedClient identity = new AuthenticatedClient(client, username, new AuthToken(token, expire));
                     addAuthenticatorIdentity(identity);
                 });
 
@@ -407,10 +402,10 @@ public class AuthenticationManager {
             } else if (login.getUsername() != null && login.getPassword() != null) {
                 String username = login.getUsername();
                 String password = login.getPassword();
-                Optional<SecureIdentity> si = fetchSecureIdentity(login.getUsername());
+                Optional<StoredIdentity> si = fetchSecureIdentity(login.getUsername());
 
                 if(si.isPresent()) {
-                    SecureIdentity remoteIdentity = si.get();
+                    StoredIdentity remoteIdentity = si.get();
                     byte[] salt = remoteIdentity.getPasswordSalt().getBytes(StandardCharsets.UTF_8);
                     SecretUtil.SaltyHash replicaPassword = SecretUtil.createSHA256Hash(password, salt);
 
@@ -421,7 +416,7 @@ public class AuthenticationManager {
                         this.deleteAllUsernameTokens(username);
                         this.publishToken(remoteIdentity, token);
 
-                        AuthenticatedIdentity identity = new AuthenticatedIdentity(client, username, token);
+                        AuthenticatedClient identity = new AuthenticatedClient(client, username, token);
                         addAuthenticatorIdentity(identity);
 
                     } else {
@@ -437,51 +432,31 @@ public class AuthenticationManager {
                             true);
                 }
             }
-        }).start();
+             */
+        }).setAsynchronous(true).schedule();
     }
 
 
-    protected boolean isIdentityLoaded(AuthenticatedIdentity identity) {
-        return activeNetIDIdentities.containsKey(identity.getClient().getID()) || activeUsernameIdentities.containsKey(identity.getUsername());
+    protected boolean isAuthenticatedClientActive(AuthenticatedClient identity) {
+        return activeNetIDIdentities.containsKey(identity.getClient().getID()) || activeAuthenticatedClients.containsKey(identity.getUsername());
     }
 
 
-    protected void addAuthenticatorIdentity(AuthenticatedIdentity identity) {
-        // The user is already logged into the server.
-        if(isIdentityLoaded(identity)) {
-            identity.getClient().send(new PacketOutLoginResponse()
-                            .setStatus(PacketOutLoginResponse.Status.ALREADY_LOGGED_IN),
-                    true);
-            return;
-        }
 
-        addAuthIdentity(identity);
-        identity.getClient().setState(ConnectionState.LOGGED_IN);
 
-        Server.get().getEventManager().call(
-                new ClientSocketStatusEvent.LoggedIn(identity.getClient())
-        );
-
-        identity.getClient().send(new PacketOutLoginResponse()
-                        .setUsername(identity.getUsername())
-                        .setToken(identity.getToken().getAuthToken())
-                        .setStatus(PacketOutLoginResponse.Status.SUCCESS),
-                true);
-    }
-
-    protected boolean addAuthIdentity(AuthenticatedIdentity identity) {
-        if(!isIdentityLoaded(identity)) {
+    protected boolean addAuthenticatedClient(AuthenticatedClient identity) {
+        if(!isAuthenticatedClientActive(identity)) {
             this.activeNetIDIdentities.put(identity.getClient().getID(), identity);
-            this.activeUsernameIdentities.put(identity.getUsername(), identity);
+            this.activeAuthenticatedClients.put(identity.getUsername(), identity);
             return true;
         }
         return false;
     }
 
-    protected boolean removeAuth(UUID id) {
-        AuthenticatedIdentity identity = this.activeNetIDIdentities.remove(id);
+    protected boolean removeAuthenticatedClient(UUID id) {
+        AuthenticatedClient identity = this.activeNetIDIdentities.remove(id);
         if(identity != null) {
-            this.activeUsernameIdentities.remove(identity.getUsername());
+            this.activeAuthenticatedClients.remove(identity.getUsername());
             return true;
         }
         return false;
@@ -491,12 +466,12 @@ public class AuthenticationManager {
 
     @EventHandler
     public void onDisconnect(ClientSocketStatusEvent.Disconnect event) {
-        removeAuth(event.getClient().getID());
+        removeAuthenticatedClient(event.getClient().getID());
     }
 
 
 
-    protected static Optional<SecureIdentity> processAuthIdentityResults(ResultSet set) {
+    protected static Optional<StoredIdentity> processAuthIdentityResults(ResultSet set) {
 
         try {
             if(set.next()) {
@@ -506,7 +481,7 @@ public class AuthenticationManager {
                 long accountCreation = set.getLong("accountCreation");
 
                 if ((accountID != null) && (pwHash != null) && (salt != null)) {
-                    return Optional.of(new SecureIdentity(accountID, pwHash, salt, accountCreation));
+                    return Optional.of(new StoredIdentity(accountID, pwHash, salt, accountCreation));
                 }
             }
         } catch (SQLException ignored) { }
@@ -546,6 +521,8 @@ public class AuthenticationManager {
 
         return Optional.empty();
     }
+
+
 
     protected static Connection getCoreConnection() {
         return Server.get().getDBManager().access("core");
