@@ -253,10 +253,10 @@ public class NetworkBuffer {
 
     /** @return the amount of bytes written. */
     public int putUTF8String(String string) {
-        if(string.length() == 0) return 0;
+        if(string == null || string.length() == 0) return 0;
 
         byte[] strBytes = string.getBytes(StandardCharsets.UTF_8);
-        if(strBytes.length <= MAX_UNSIGNED_SHORT_VALUE) throw new IllegalArgumentException("String exceeds the limit of "+MAX_UNSIGNED_SHORT_VALUE+" bytes.");
+        if(strBytes.length >= MAX_UNSIGNED_SHORT_VALUE) throw new IllegalArgumentException("String exceeds the limit of "+MAX_UNSIGNED_SHORT_VALUE+" bytes.");
 
         // Check if both the length of bytes + the length short can be included.
         if(canReadBytesAhead(2 + strBytes.length)) {
@@ -271,10 +271,10 @@ public class NetworkBuffer {
 
     /** @return the amount of bytes written. */
     public int putSmallUTF8String(String string) {
-        if(string.length() == 0) return 0;
+        if(string == null || string.length() == 0) return 0;
 
         byte[] strBytes = string.getBytes(StandardCharsets.UTF_8);
-        if(strBytes.length <= MAX_UNSIGNED_BYTE_VALUE) throw new IllegalArgumentException("String exceeds the limit of "+MAX_UNSIGNED_BYTE_VALUE+" bytes.");
+        if(strBytes.length >= MAX_UNSIGNED_BYTE_VALUE) throw new IllegalArgumentException("String exceeds the limit of "+MAX_UNSIGNED_BYTE_VALUE+" bytes.");
 
         // Check if both the length of bytes + the length short can be included.
         if(canReadBytesAhead(1 + strBytes.length)) {
@@ -288,7 +288,7 @@ public class NetworkBuffer {
 
     /** A string is added without length marking bytes at the start. */
     public int putUnboundUTF8String(String string) {
-        if(string.length() == 0) return 0;
+        if(string == null || string.length() == 0) return 0;
         byte[] strBytes = string.getBytes(StandardCharsets.UTF_8);
 
         // Check if both the length of bytes + the length short can be included.
