@@ -134,8 +134,7 @@ public class PacketOutLoginResponse extends NetworkPacket {
         FAILURE_GENERAL(1),
 
         // Login
-        INVALID_USERNAME(2), // Applies to login, updating account, and creating account (if username is taken)
-        INVALID_PASSWORD(3),
+        INVALID_CREDENTIALS(2), // Applies to login, updating account, and creating account (if username is taken)
         INVALID_TOKEN(3), // Password required for updating an account so n/a there
         TOO_MANY_ATTEMPTS(4),
         ALREADY_LOGGED_IN(5), // Updating an account refreshes the login so not sent.

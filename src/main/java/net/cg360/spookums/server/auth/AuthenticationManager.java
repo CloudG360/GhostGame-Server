@@ -348,7 +348,6 @@ public class AuthenticationManager {
         if(isClientLoggedIn(client) || isUserLoggedIn(username))
             return Pair.of(AccountLoginState.ALREADY_LOGGED_IN, null);
 
-        //TODO: Login!
         // Note that tokens are not removed from the server when a new one is generated.
         // This is so multiple devices can login.
 
@@ -453,7 +452,7 @@ public class AuthenticationManager {
 
                 switch (accountState.getFirst()) {
                     case CREATED:
-                        Pair<AccountLoginState, AuthenticatedClient> aClient = authenticateClient(client, username, password);
+                        Pair<AccountLoginState, AuthenticatedClient> aClient = this.authenticateClient(client, username, password);
 
                         if(aClient.getFirst() == AccountLoginState.SUCCESS) {
                             AuthenticatedClient authClient = aClient.getSecond();
@@ -467,6 +466,7 @@ public class AuthenticationManager {
                                 case ERRORED: loginResponse.setStatus(PacketOutLoginResponse.Status.GENERAL_LOGIN_ERROR);
                                 case DB_OFFLINE: loginResponse.setStatus(PacketOutLoginResponse.Status.TECHNICAL_SERVER_ERROR);
                                 case ALREADY_LOGGED_IN: loginResponse.setStatus(PacketOutLoginResponse.Status.ALREADY_LOGGED_IN);
+                                case DENIED: loginResponse.setStatus(PacketOutLoginResponse.Status.GENERAL_LOGIN_ERROR);
                             }
 
                             Server.getLogger(Server.AUTH_LOG).error(String.format(
@@ -527,84 +527,53 @@ public class AuthenticationManager {
 
     public void processLoginPacket(PacketInLogin login, NetworkClient client) {
         this.scheduler.prepareTask(() -> {
+            PacketOutLoginResponse loginResponse = new PacketOutLoginResponse();
 
-            switch (login.getMode()) {
-                case 0: // username + password
-                    break;
+            if(login.isValid()) {
+                Pair<AccountLoginState, AuthenticatedClient> authAttempt = Pair.of(AccountLoginState.ERRORED, null);
+                boolean usedToken = false;
 
-                case 1: // token
-                    String token = login.getToken();
-                    Pair<FetchState, Pair<String, Long>> u = this.fetchUsernameFromToken(login.getToken(), true);
+                switch (login.getMode()) {
+                    case 0: // username + password
+                        authAttempt = this.authenticateClient(client, login.getUsername(), login.getPassword());
+                        usedToken = false;
+                        break;
 
-                    if(u.getFirst() == FetchState.SUCCESS){
-                        Pair<String, Long> loginPair = u.getSecond();
-                        String username = loginPair.getFirst();
-                        long expire = loginPair.getSecond();
+                    case 1: // token
+                        authAttempt = this.authenticateClient(client, login.getToken());
+                        usedToken = true;
+                        break;
 
-                        AuthenticatedClient identity = new AuthenticatedClient(client, username, new AuthToken(token, expire));
-                        this.addAuthenticatedClient(identity);
-                        //TODO: Send successful result.
+                    default:
+                        Server.getLogger(Server.AUTH_LOG).warn("Login packet in has an unknown login type");
+                        loginResponse.setStatus(PacketOutLoginResponse.Status.INVALID_PACKET);
+                        break;
+                }
 
-                    } else {
-                        //TODO: Send failed result
-                    }
-                    break;
+                if(authAttempt.getFirst() == AccountLoginState.SUCCESS) {
+                    AuthenticatedClient authClient = authAttempt.getSecond();
+                    loginResponse.setStatus(PacketOutLoginResponse.Status.SUCCESS);
 
-                default:
-                    Server.getLogger(Server.AUTH_LOG).warn("Login packet in has an unknown login type");
-                    break;
-            }
-
-            /*
-            // If a token was submitted, use that as a login.
-            if (login.getToken() != null) {
-                String token = login.getToken();
-                Optional<Pair<String, Long>> u = this.fetchUsername(login.getToken(), true);
-
-                u.ifPresent(i -> {
-                    Pair<String, Long> loginPair = u.get();
-                    String username = loginPair.getFirst();
-                    long expire = loginPair.getSecond();
-
-                    AuthenticatedClient identity = new AuthenticatedClient(client, username, new AuthToken(token, expire));
-                    addAuthenticatorIdentity(identity);
-                });
-
-                // If a user + pass is submitted, verify it matches and then reassign their token.
-            } else if (login.getUsername() != null && login.getPassword() != null) {
-                String username = login.getUsername();
-                String password = login.getPassword();
-                Optional<StoredIdentity> si = fetchSecureIdentity(login.getUsername());
-
-                if(si.isPresent()) {
-                    StoredIdentity remoteIdentity = si.get();
-                    byte[] salt = remoteIdentity.getPasswordSalt().getBytes(StandardCharsets.UTF_8);
-                    SecretUtil.SaltyHash replicaPassword = SecretUtil.createSHA256Hash(password, salt);
-
-                    // Check if password is equal? If so, success!
-                    if (replicaPassword.getHash().equalsIgnoreCase(remoteIdentity.getPasswordHash())) {
-
-                        AuthToken token = AuthToken.generateToken();
-                        this.deleteAllUsernameTokens(username);
-                        this.publishToken(remoteIdentity, token);
-
-                        AuthenticatedClient identity = new AuthenticatedClient(client, username, token);
-                        addAuthenticatorIdentity(identity);
-
-                    } else {
-                        client.send(new PacketOutLoginResponse()
-                                        .setStatus(PacketOutLoginResponse.Status.INVALID_PASSWORD),
-                                true);
-                    }
+                    loginResponse.setUsername(authClient.getUsername());
+                    loginResponse.setToken(authClient.getToken().getAuthToken());
 
                 } else {
-                    // Possibly needs a better implementation. Database errors result in this too.
-                    client.send(new PacketOutLoginResponse()
-                                    .setStatus(PacketOutLoginResponse.Status.INVALID_USERNAME),
-                            true);
+
+                    switch (authAttempt.getFirst()) {
+                        case ERRORED: loginResponse.setStatus(PacketOutLoginResponse.Status.GENERAL_LOGIN_ERROR);
+                        case DB_OFFLINE: loginResponse.setStatus(PacketOutLoginResponse.Status.TECHNICAL_SERVER_ERROR);
+                        case ALREADY_LOGGED_IN: loginResponse.setStatus(PacketOutLoginResponse.Status.ALREADY_LOGGED_IN);
+                        case DENIED:
+                            if(usedToken) loginResponse.setStatus(PacketOutLoginResponse.Status.INVALID_TOKEN);
+                            else loginResponse.setStatus(PacketOutLoginResponse.Status.INVALID_CREDENTIALS);
+                    }
+
                 }
-            }
-             */
+
+            } else loginResponse.setStatus(PacketOutLoginResponse.Status.INVALID_PACKET);
+
+            client.send(loginResponse, true);
+
         }).setAsynchronous(true).schedule();
     }
 

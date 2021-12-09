@@ -1,5 +1,6 @@
 plugins {
     id 'java'
+    //TODO: Use the buildscript section and get a local jar of the shadow plugin.
     //id "com.github.johnrengelman.shadow" version "6.0.0"
 }
 
