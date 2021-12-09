@@ -5,6 +5,7 @@ import net.cg360.spookums.server.auth.record.AuthToken;
 import net.cg360.spookums.server.auth.record.AuthenticatedClient;
 import net.cg360.spookums.server.auth.record.StoredIdentity;
 import net.cg360.spookums.server.auth.state.AccountCreateState;
+import net.cg360.spookums.server.auth.state.FetchState;
 import net.cg360.spookums.server.core.event.handler.EventHandler;
 import net.cg360.spookums.server.core.event.type.network.ClientSocketStatusEvent;
 import net.cg360.spookums.server.core.scheduler.Scheduler;
@@ -20,6 +21,8 @@ import net.cg360.spookums.server.util.clean.Pair;
 import java.nio.charset.StandardCharsets;
 import java.sql.*;
 import java.util.*;
+
+import static net.cg360.spookums.server.auth.state.AccountCreateState.*;
 
 public class AuthenticationManager {
 
@@ -183,10 +186,10 @@ public class AuthenticationManager {
      * @return true if the token was pushed to the database.
      */
     public boolean publishTokenWithUsername(String username, AuthToken token) {
-        Optional<StoredIdentity> i =  this.fetchStoredIdentity(username);
-        if(!i.isPresent()) return false;
+        Pair<FetchState, StoredIdentity> i =  this.fetchStoredIdentity(username);
+        if(i.getFirst() != FetchState.SUCCESS) return false;
 
-        String accountID = i.get().getAccountID();
+        String accountID = i.getSecond().getAccountID();
         return this.publishTokenWithAccountID(accountID, token);
     }
 
@@ -288,14 +291,14 @@ public class AuthenticationManager {
      * @param username the username to fetch for
      * @return a SecureIdentity record
      */
-    public Optional<StoredIdentity> fetchStoredIdentity(String username) {
+    public Pair<FetchState, StoredIdentity> fetchStoredIdentity(String username) {
         try {
             Connection connection = getCoreConnection();
-            if(connection == null) return Optional.empty();
+            if(connection == null) return Pair.of(FetchState.DB_OFFLINE, null);
 
             PreparedStatement s = connection.prepareStatement(SQL_FETCH_USERNAME_IDENTITY);
             s.setObject(1, username);
-            Optional<StoredIdentity> a = processAuthIdentityResults(s.executeQuery());
+            Pair<FetchState, StoredIdentity> a = processAuthIdentityResults(s.executeQuery());
 
             ErrorUtil.quietlyClose(s);
             ErrorUtil.quietlyClose(connection);
@@ -303,35 +306,111 @@ public class AuthenticationManager {
 
         } catch (SQLException err) {
             err.printStackTrace();
+            return Pair.of(FetchState.ERRORED, null);
+        }
+    }
+
+
+    public Optional<AuthenticatedClient> authenticateClient(NetworkClient client, String username, String password) {
+        if(isClientLoggedIn(client) || isUserLoggedIn(username)) return Optional.empty();
+
+        //TODO: Login!
+
+        AuthenticatedClient authClient = new AuthenticatedClient(client, username, new AuthToken("token here", 1000000000));
+        this.addAuthenticatedClient(authClient);
+        return Optional.of(authClient);
+    }
+
+
+    // write docs for this but yeah, stored identities are user data. AuthenticatedClients are actively logged in users.
+    public Pair<AccountCreateState, StoredIdentity> createStoredIdentity(NetworkClient client, String username, String password) {
+        if(Check.isNull(client) || Check.isNull(username) || Check.isNull(password))
+            return Pair.of(AccountCreateState.ERRORED, null);
+
+        //TODO: Check that the account doesn't exist.
+        // Otherwise, create an entry in the identity table and the user_lookup table.
+
+        // Check an account doesn't already exist, remapping it to the AccountCreateState values for everything other than NOT_FOUND
+        Pair<FetchState, StoredIdentity> identityPair = fetchStoredIdentity(username);
+        switch (identityPair.getFirst()) {
+            case DB_OFFLINE: return Pair.of(DB_OFFLINE, null);
+            case ERRORED:    return Pair.of(ERRORED, null);
+            case SUCCESS:    return Pair.of(TAKEN, null);
         }
 
-        return Optional.empty();
+        String newAccountID = UUID.randomUUID().toString();
+        SecretUtil.SaltyHash hashbrown_haha = SecretUtil.createSHA256Hash(password, SecretUtil.generateSalt(8));
+        String passHash = hashbrown_haha.getHash();
+        String passSalt = hashbrown_haha.getSalt().isPresent()
+                ? new String(hashbrown_haha.getSalt().get(), StandardCharsets.UTF_8)
+                : "";
+        long accountCreateTime = System.currentTimeMillis();
+
+
+        try {
+            Connection connection = getCoreConnection();
+            if(connection == null) return Pair.of(DB_OFFLINE, null);
+
+            PreparedStatement statementCreateIdentity = connection.prepareStatement(SQL_ASSIGN_NEW_IDENTITY);
+            statementCreateIdentity.setObject(1, newAccountID); // account id
+            statementCreateIdentity.setObject(2, passHash); // pass hash
+            statementCreateIdentity.setObject(3, passSalt); // pass salt
+            statementCreateIdentity.setObject(4, accountCreateTime); // create time
+            statementCreateIdentity.execute();
+
+            ErrorUtil.quietlyClose(statementCreateIdentity);
+
+
+            PreparedStatement statementLinkIdentity = connection.prepareStatement(SQL_ASSIGN_NEW_LOOKUP);
+            statementLinkIdentity.setObject(1, newAccountID); // account id
+            statementLinkIdentity.setObject(2, username); // username
+            statementLinkIdentity.execute();
+
+            ErrorUtil.quietlyClose(statementLinkIdentity);
+
+            ErrorUtil.quietlyClose(connection);
+            return Pair.of(
+                    CREATED,
+                    new StoredIdentity(newAccountID, passHash, passSalt, accountCreateTime)
+            );
+
+        } catch (SQLException err) {
+            err.printStackTrace();
+            return Pair.of(ERRORED, null);
+        }
     }
 
 
 
-    public void processRegisterPacket(PacketInUpdateAccount reg, NetworkClient client) {
-        //TODO: Do this.
 
+    public void processRegisterPacket(PacketInUpdateAccount reg, NetworkClient client) {
         this.scheduler.prepareTask(() -> {
             if(reg.isCreatingNewAccount()) {
                 String username = reg.getNewUsername();
                 String password = reg.getNewPassword();
 
-                Pair<AccountCreateState, AuthenticatedClient> accountState = Pair.of(null, null);
-                        //this.createNewIdentityAndLogin(client, username, password);
-
-
-
+                Pair<AccountCreateState, StoredIdentity> accountState = this.createStoredIdentity(client, username, password);
                 PacketOutLoginResponse loginResponse = new PacketOutLoginResponse();
 
                 switch (accountState.getFirst()) {
                     case CREATED:
-                        loginResponse.setStatus(PacketOutLoginResponse.Status.SUCCESS);
+                        Optional<AuthenticatedClient> aClient = authenticateClient(client, username, password);
 
-                        AuthenticatedClient loginIdentity = accountState.getSecond();
-                        loginResponse.setUsername(loginIdentity.getUsername());
-                        loginResponse.setToken(loginIdentity.getToken().getAuthToken());
+                        if(aClient.isPresent()) {
+                            AuthenticatedClient authClient = aClient.get();
+                            loginResponse.setStatus(PacketOutLoginResponse.Status.SUCCESS);
+
+                            loginResponse.setUsername(authClient.getUsername());
+                            loginResponse.setToken(authClient.getToken().getAuthToken());
+
+                        } else {
+                            loginResponse.setStatus(PacketOutLoginResponse.Status.FAILURE_GENERAL);
+                            Server.getLogger(Server.AUTH_LOG).error(String.format(
+                                    "%s failed to register an account with the name %s (registered but not logged in!)",
+                                    client.getID().toString(),
+                                    username
+                            ));
+                        }
                         break;
 
                     case TAKEN:
@@ -438,7 +517,17 @@ public class AuthenticationManager {
 
 
     protected boolean isAuthenticatedClientActive(AuthenticatedClient identity) {
-        return activeNetIDIdentities.containsKey(identity.getClient().getID()) || activeAuthenticatedClients.containsKey(identity.getUsername());
+        return isClientLoggedIn(identity.getClient()) || isUserLoggedIn(identity.getUsername());
+    }
+
+
+    protected boolean isClientLoggedIn(NetworkClient client) {
+        return activeNetIDIdentities.containsKey(client.getID());
+    }
+
+
+    protected boolean isUserLoggedIn(String username) {
+        return activeAuthenticatedClients.containsKey(username);
     }
 
 
@@ -471,22 +560,26 @@ public class AuthenticationManager {
 
 
 
-    protected static Optional<StoredIdentity> processAuthIdentityResults(ResultSet set) {
+    protected static Pair<FetchState, StoredIdentity> processAuthIdentityResults(ResultSet set) {
 
         try {
             if(set.next()) {
                 String accountID = set.getString("accountID");
                 String pwHash = set.getString("pwhash");
                 String salt = set.getString("salt");
-                long accountCreation = set.getLong("accountCreation");
+                long accountCreation = set.getLong("account_creation");
 
                 if ((accountID != null) && (pwHash != null) && (salt != null)) {
-                    return Optional.of(new StoredIdentity(accountID, pwHash, salt, accountCreation));
-                }
+                    return Pair.of(FetchState.SUCCESS, new StoredIdentity(accountID, pwHash, salt, accountCreation));
+                } else Server.getLogger(Server.AUTH_LOG).warn("Incomplete StoredIdentity found in database!");
             }
-        } catch (SQLException ignored) { }
 
-        return Optional.empty();
+            return Pair.of(FetchState.NOT_FOUND, null);
+
+        } catch (SQLException err) {
+            err.printStackTrace();
+            return Pair.of(FetchState.ERRORED, null);
+        }
     }
 
     protected static Optional<AuthToken> processAuthTokenResults(ResultSet set) {

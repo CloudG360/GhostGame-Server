@@ -1,4 +1,7 @@
-apply plugin: 'java'
+plugins {
+    id 'java'
+    //id "com.github.johnrengelman.shadow" version "6.0.0"
+}
 
 group 'net.cg360.spookums'
 version 'InDev-1.0'
