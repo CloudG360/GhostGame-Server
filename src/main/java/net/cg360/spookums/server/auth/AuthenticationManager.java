@@ -5,6 +5,7 @@ import net.cg360.spookums.server.auth.record.AuthToken;
 import net.cg360.spookums.server.auth.record.AuthenticatedClient;
 import net.cg360.spookums.server.auth.record.StoredIdentity;
 import net.cg360.spookums.server.auth.state.AccountCreateState;
+import net.cg360.spookums.server.auth.state.AccountLoginState;
 import net.cg360.spookums.server.auth.state.FetchState;
 import net.cg360.spookums.server.core.event.handler.EventHandler;
 import net.cg360.spookums.server.core.event.type.network.ClientSocketStatusEvent;
@@ -232,10 +233,10 @@ public class AuthenticationManager {
      * @param clearIfExpired
      * @return
      */
-    public Optional<AuthToken> fetchStoredTokenWithToken(String token, boolean clearIfExpired) {
+    public Pair<FetchState, AuthToken> fetchStoredTokenWithToken(String token, boolean clearIfExpired) {
         try {
             Connection connection = getCoreConnection();
-            if(connection == null) return Optional.empty();
+            if(connection == null) return Pair.of(FetchState.DB_OFFLINE, null);
 
             if(clearIfExpired) {
                 PreparedStatement c = connection.prepareStatement(SQL_CLEAR_OUTDATED_TOKENS);
@@ -246,7 +247,7 @@ public class AuthenticationManager {
 
             PreparedStatement s = connection.prepareStatement(SQL_FETCH_TOKEN);
             s.setObject(1, token);
-            Optional<AuthToken> a = processAuthTokenResults(s.executeQuery());
+            Pair<FetchState, AuthToken> a = processAuthTokenResults(s.executeQuery());
 
             ErrorUtil.quietlyClose(s);
             ErrorUtil.quietlyClose(connection);
@@ -254,25 +255,25 @@ public class AuthenticationManager {
 
         } catch (SQLException err) {
             err.printStackTrace();
+            return Pair.of(FetchState.ERRORED, null);
         }
-
-        return Optional.empty();
     }
 
+    //TODO: Clean up that return type ffs.
     /**
      * Fetches a users username based on their token. Used
      * during login to quickly verify if their token is valid.
      *
      * @param failIfExpired if the token is expired, should it return an empty
      */
-    public Optional<Pair<String, Long>> fetchUsernameFromToken(String token, boolean failIfExpired) {
+    public Pair<FetchState, Pair<String, Long>> fetchUsernameFromToken(String token, boolean failIfExpired) {
         try {
             Connection connection = getCoreConnection();
-            if(connection == null) return Optional.empty();
+            if(connection == null) return Pair.of(FetchState.DB_OFFLINE, null);
 
             PreparedStatement s = connection.prepareStatement(SQL_FETCH_USERNAME);
             s.setObject(1, token);
-            Optional<Pair<String, Long>> a = processAuthUserResults(s.executeQuery(), failIfExpired);
+            Pair<FetchState, Pair<String, Long>> a = processAuthUserResults(s.executeQuery(), failIfExpired);
 
             ErrorUtil.quietlyClose(s);
             ErrorUtil.quietlyClose(connection);
@@ -280,9 +281,9 @@ public class AuthenticationManager {
 
         } catch (SQLException err) {
             err.printStackTrace();
+            return Pair.of(FetchState.ERRORED, null);
         }
 
-        return Optional.empty();
     }
 
 
@@ -311,14 +312,75 @@ public class AuthenticationManager {
     }
 
 
-    public Optional<AuthenticatedClient> authenticateClient(NetworkClient client, String username, String password) {
-        if(isClientLoggedIn(client) || isUserLoggedIn(username)) return Optional.empty();
+
+
+    public Pair<AccountLoginState, AuthenticatedClient> authenticateClient(NetworkClient client, String token) {
+        if(isClientLoggedIn(client))
+            return Pair.of(AccountLoginState.ALREADY_LOGGED_IN, null);
+
+        // Fetch the username tied to a token. If one is found, a valid token exists as it auto-expires them.
+        Pair<FetchState, Pair<String, Long>> u = this.fetchUsernameFromToken(token, true);
+
+        // Remapping database fetch \/\/\/
+        if(u.getFirst() != FetchState.SUCCESS) {
+            switch (u.getFirst()) {
+                case NOT_FOUND:  return Pair.of(AccountLoginState.DENIED, null);
+                case DB_OFFLINE: return Pair.of(AccountLoginState.DB_OFFLINE, null);
+                case ERRORED:
+                default:         return Pair.of(AccountLoginState.ERRORED, null);
+            }
+
+        }
+
+        // Extract the data, create a new auth client from it.
+        Pair<String, Long> usernameExpire = u.getSecond();
+        if(isUserLoggedIn(usernameExpire.getFirst()))
+            return Pair.of(AccountLoginState.ALREADY_LOGGED_IN, null);
+
+        AuthenticatedClient authClient = new AuthenticatedClient(client, usernameExpire.getFirst(), new AuthToken(token, usernameExpire.getSecond()));
+        this.addAuthenticatedClient(authClient);
+
+        return Pair.of(AccountLoginState.SUCCESS, authClient);
+    }
+
+
+    public Pair<AccountLoginState, AuthenticatedClient> authenticateClient(NetworkClient client, String username, String password) {
+        if(isClientLoggedIn(client) || isUserLoggedIn(username))
+            return Pair.of(AccountLoginState.ALREADY_LOGGED_IN, null);
 
         //TODO: Login!
+        // Note that tokens are not removed from the server when a new one is generated.
+        // This is so multiple devices can login.
 
-        AuthenticatedClient authClient = new AuthenticatedClient(client, username, new AuthToken("token here", 1000000000));
+        Pair<FetchState, StoredIdentity> identityPair = this.fetchStoredIdentity(username);
+
+        if(identityPair.getFirst() != FetchState.SUCCESS) {
+            switch (identityPair.getFirst()) {
+                // Denied. They shouldn't know if it's the username or password that's wrong for better security.
+                case NOT_FOUND:  return Pair.of(AccountLoginState.DENIED, null);
+                case DB_OFFLINE: return Pair.of(AccountLoginState.DB_OFFLINE, null);
+                case ERRORED:
+                default:         return Pair.of(AccountLoginState.ERRORED, null);
+            }
+        }
+
+        StoredIdentity identity = identityPair.getSecond();
+        byte[] passSalt = identity.getPasswordSalt().getBytes(StandardCharsets.UTF_8);
+
+        String passIn = SecretUtil.createSHA256Hash(password, passSalt).getHash();
+        String passExist = identity.getPasswordHash();
+
+        // Hash of password in does not match the stored password hash. It must be wrong :D
+        if(!passIn.equals(passExist))
+            return Pair.of(AccountLoginState.DENIED, null);
+
+        AuthToken token = AuthToken.generateToken();
+        if(publishTokenWithAccountID(identity,  token))
+            return Pair.of(AccountLoginState.ERRORED, null);
+
+        AuthenticatedClient authClient = new AuthenticatedClient(client, username, token);
         this.addAuthenticatedClient(authClient);
-        return Optional.of(authClient);
+        return Pair.of(AccountLoginState.SUCCESS, authClient);
     }
 
 
@@ -326,9 +388,6 @@ public class AuthenticationManager {
     public Pair<AccountCreateState, StoredIdentity> createStoredIdentity(NetworkClient client, String username, String password) {
         if(Check.isNull(client) || Check.isNull(username) || Check.isNull(password))
             return Pair.of(AccountCreateState.ERRORED, null);
-
-        //TODO: Check that the account doesn't exist.
-        // Otherwise, create an entry in the identity table and the user_lookup table.
 
         // Check an account doesn't already exist, remapping it to the AccountCreateState values for everything other than NOT_FOUND
         Pair<FetchState, StoredIdentity> identityPair = fetchStoredIdentity(username);
@@ -394,21 +453,27 @@ public class AuthenticationManager {
 
                 switch (accountState.getFirst()) {
                     case CREATED:
-                        Optional<AuthenticatedClient> aClient = authenticateClient(client, username, password);
+                        Pair<AccountLoginState, AuthenticatedClient> aClient = authenticateClient(client, username, password);
 
-                        if(aClient.isPresent()) {
-                            AuthenticatedClient authClient = aClient.get();
+                        if(aClient.getFirst() == AccountLoginState.SUCCESS) {
+                            AuthenticatedClient authClient = aClient.getSecond();
                             loginResponse.setStatus(PacketOutLoginResponse.Status.SUCCESS);
 
                             loginResponse.setUsername(authClient.getUsername());
                             loginResponse.setToken(authClient.getToken().getAuthToken());
 
                         } else {
-                            loginResponse.setStatus(PacketOutLoginResponse.Status.FAILURE_GENERAL);
+                            switch (aClient.getFirst()) {
+                                case ERRORED: loginResponse.setStatus(PacketOutLoginResponse.Status.GENERAL_LOGIN_ERROR);
+                                case DB_OFFLINE: loginResponse.setStatus(PacketOutLoginResponse.Status.TECHNICAL_SERVER_ERROR);
+                                case ALREADY_LOGGED_IN: loginResponse.setStatus(PacketOutLoginResponse.Status.ALREADY_LOGGED_IN);
+                            }
+
                             Server.getLogger(Server.AUTH_LOG).error(String.format(
-                                    "%s failed to register an account with the name %s (registered but not logged in!)",
+                                    "%s failed to register an account with the name %s (registered but not logged in | %s)",
                                     client.getID().toString(),
-                                    username
+                                    username,
+                                    aClient.getFirst().toString()
                             ));
                         }
                         break;
@@ -462,6 +527,34 @@ public class AuthenticationManager {
 
     public void processLoginPacket(PacketInLogin login, NetworkClient client) {
         this.scheduler.prepareTask(() -> {
+
+            switch (login.getMode()) {
+                case 0: // username + password
+                    break;
+
+                case 1: // token
+                    String token = login.getToken();
+                    Pair<FetchState, Pair<String, Long>> u = this.fetchUsernameFromToken(login.getToken(), true);
+
+                    if(u.getFirst() == FetchState.SUCCESS){
+                        Pair<String, Long> loginPair = u.getSecond();
+                        String username = loginPair.getFirst();
+                        long expire = loginPair.getSecond();
+
+                        AuthenticatedClient identity = new AuthenticatedClient(client, username, new AuthToken(token, expire));
+                        this.addAuthenticatedClient(identity);
+                        //TODO: Send successful result.
+
+                    } else {
+                        //TODO: Send failed result
+                    }
+                    break;
+
+                default:
+                    Server.getLogger(Server.AUTH_LOG).warn("Login packet in has an unknown login type");
+                    break;
+            }
+
             /*
             // If a token was submitted, use that as a login.
             if (login.getToken() != null) {
@@ -582,37 +675,43 @@ public class AuthenticationManager {
         }
     }
 
-    protected static Optional<AuthToken> processAuthTokenResults(ResultSet set) {
+    protected static Pair<FetchState, AuthToken> processAuthTokenResults(ResultSet set) {
 
         try {
             if(set.next()) {
                 String token = set.getString("token");
                 long expire = set.getLong("expire");
 
-                if ((token != null) && (expire != 0)) {
-                    return Optional.of(new AuthToken(token, expire));
-                }
+                if ((token != null) && (expire != 0))
+                    return Pair.of(FetchState.SUCCESS, new AuthToken(token, expire));
             }
-        } catch (SQLException ignored) { }
 
-        return Optional.empty();
+            return Pair.of(FetchState.NOT_FOUND, null);
+
+        } catch (SQLException err) {
+            err.printStackTrace();
+            return Pair.of(FetchState.ERRORED, null);
+        }
     }
 
-    protected static Optional<Pair<String, Long>> processAuthUserResults(ResultSet set, boolean failIfExpired) {
+    protected static Pair<FetchState, Pair<String, Long>> processAuthUserResults(ResultSet set, boolean failIfExpired) {
         try {
             if(set.next()) {
                 String username = set.getString("username");
                 long expire = set.getLong("expire");
 
                 if (username != null) {
-                    if(failIfExpired && (System.currentTimeMillis() > expire)) return Optional.empty();
-                    return Optional.of(Pair.of(username, expire));
+                    if(failIfExpired && (System.currentTimeMillis() > expire)) return Pair.of(FetchState.NOT_FOUND, null);
+                    return Pair.of(FetchState.SUCCESS, Pair.of(username, expire));
                 }
             }
 
-        } catch (SQLException ignored) { }
+            return Pair.of(FetchState.NOT_FOUND, null);
 
-        return Optional.empty();
+        } catch (SQLException err) {
+            err.printStackTrace();
+            return Pair.of(FetchState.ERRORED, null);
+        }
     }
 
 

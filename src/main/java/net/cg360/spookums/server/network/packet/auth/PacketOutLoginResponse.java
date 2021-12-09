@@ -145,6 +145,7 @@ public class PacketOutLoginResponse extends NetworkPacket {
         TAKEN_USERNAME(7),
         TECHNICAL_SERVER_ERROR(8),
         GENERAL_REGISTER_ERROR(9),
+        GENERAL_LOGIN_ERROR(10),
 
 
         INVALID_PACKET(126),
