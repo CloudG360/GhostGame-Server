@@ -143,7 +143,7 @@ public class Server {
                 dbLog.info("Deleted any expired tokens ahead of time? " + getAuthManager().deleteAllOutdatedTokens());
 
 
-                if(this.getSettings().getOrElse(ServerConfig.RUN_LAUNCH_TESTS, false)) runLaunchTests();
+                if(this.getSettings().getOrDefault(ServerConfig.RUN_LAUNCH_TESTS)) runLaunchTests();
 
 
                 btLog.info("Completed pre-scheduler activities.\n");
@@ -157,8 +157,8 @@ public class Server {
                 btLog.info("Starting network threads...");
                 this.networkInterface = new NISocket();
 
-                String serverIP = this.getSettings().getOrElse(ServerConfig.SERVER_IP, "0.0.0.0");
-                int port = this.getSettings().getOrElse(ServerConfig.SERVER_PORT, 22057);
+                String serverIP = this.getSettings().getOrDefault(ServerConfig.SERVER_IP);
+                int port = this.getSettings().getOrDefault(ServerConfig.SERVER_PORT);
 
                 if(!serverIP.matches(Patterns.IPV4_ADDRESS))
                     throw new ConfigFormatException("The property 'server-ip' must be an IPv4 address!");
@@ -262,7 +262,7 @@ public class Server {
     @EventHandler(ignoreIfCancelled = true, priority = Priority.HIGHEST)
     public void onPacketIn(PacketEvent.In<?> event) {
 
-        if(this.settings.getOrElse(ServerConfig.LOG_PACKET_IO, false)) {
+        if(this.settings.getOrDefault(ServerConfig.LOG_PACKET_IO)) {
             Server.getLogger(Server.NET_LOG).info(String.format("IN | %s << %s %s",
                     event.getClientNetID().toString(),
                     event.getPacket().toCoreString(),
@@ -319,9 +319,9 @@ public class Server {
 
 
             case VanillaProtocol.PACKET_SERVER_PING_REQUEST:
-                String name = this.settings.getOrElse(ServerConfig.SERVER_NAME, "????");
-                String region = this.settings.getOrElse(ServerConfig.REGION, "?????");
-                String description = this.settings.getOrElse(ServerConfig.DESCRIPTION, "??? : D ???");
+                String name = this.settings.getOrDefault(ServerConfig.SERVER_NAME);
+                String region = this.settings.getOrDefault(ServerConfig.REGION);
+                String description = this.settings.getOrDefault(ServerConfig.DESCRIPTION);
 
                 client.send(new PacketOutServerDetail(name, region, description), true);
                 break;
@@ -376,7 +376,7 @@ public class Server {
 
             case VanillaProtocol.PACKET_PROTOCOL_INVALID_PACKET:
             default:
-                if(settings.getOrElse(ServerConfig.LOG_UNSUPPORTED_PACKETS, false))
+                if(settings.getOrDefault(ServerConfig.LOG_UNSUPPORTED_PACKETS))
                     Server.getLogger(NET_LOG).warn(
                             String.format("Client %s sent a packet with an invalid/unregistered ID.", id.toString())
                     );
@@ -390,7 +390,7 @@ public class Server {
 
     @EventHandler(ignoreIfCancelled = true, priority = Priority.HIGHEST)
     public void onPacketOut(PacketEvent.Out<?> event) {
-        if(this.settings.getOrElse(ServerConfig.LOG_PACKET_IO, false)) {
+        if(this.settings.getOrDefault(ServerConfig.LOG_PACKET_IO)) {
             Server.getLogger(Server.NET_LOG).info(String.format("OUT | %s >> %s %s",
                     event.getClientNetID().toString(),
                     event.getPacket().toCoreString(),

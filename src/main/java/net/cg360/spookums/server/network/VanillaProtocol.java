@@ -17,7 +17,7 @@ public class VanillaProtocol {
 
     public static final int MAX_BUFFER_SIZE = 8192;
     public static final int MAX_PACKET_SIZE = 4096;
-    public static final int TIMEOUT = 30000;
+    //public static final int TIMEOUT = 10000;  -- Use ServerConfig value.
 
 
     // -- Packet Identifiers --

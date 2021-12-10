@@ -1,6 +1,7 @@
 package net.cg360.spookums.server.network.netimpl.socket;
 
 import net.cg360.spookums.server.Server;
+import net.cg360.spookums.server.ServerConfig;
 import net.cg360.spookums.server.core.event.EventManager;
 import net.cg360.spookums.server.core.event.type.network.ClientSocketStatusEvent;
 import net.cg360.spookums.server.core.event.type.network.PacketEvent;
@@ -48,7 +49,7 @@ public class NISocket implements NetworkInterface {
                     while (isRunning) {
                         Socket clientSocket = this.netSocket.accept();
                         clientSocket.setKeepAlive(true);
-                        clientSocket.setSoTimeout(VanillaProtocol.TIMEOUT);
+                        clientSocket.setSoTimeout(Server.get().getSettings().getOrDefault(ServerConfig.CONNECTION_TIMEOUT));
                         clientSocket.setReceiveBufferSize(VanillaProtocol.MAX_BUFFER_SIZE);
                         clientSocket.setSendBufferSize(VanillaProtocol.MAX_BUFFER_SIZE);
 
