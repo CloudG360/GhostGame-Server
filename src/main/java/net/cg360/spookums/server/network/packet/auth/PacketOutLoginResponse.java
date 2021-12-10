@@ -168,9 +168,9 @@ public class PacketOutLoginResponse extends NetworkPacket {
                     return FAILURE_GENERAL;
 
                 case 2:
-                    return INVALID_USERNAME;
+                    return INVALID_CREDENTIALS;
                 case 3:
-                    return INVALID_PASSWORD; // Pass/Token
+                    return INVALID_TOKEN;
                 case 4:
                     return TOO_MANY_ATTEMPTS;
                 case 5:
@@ -184,6 +184,8 @@ public class PacketOutLoginResponse extends NetworkPacket {
                     return TECHNICAL_SERVER_ERROR;
                 case 9:
                     return GENERAL_REGISTER_ERROR;
+                case 10:
+                    return GENERAL_LOGIN_ERROR;
 
                 case 126:
                     return INVALID_PACKET;

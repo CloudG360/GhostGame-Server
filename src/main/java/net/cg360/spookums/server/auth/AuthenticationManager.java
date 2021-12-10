@@ -34,7 +34,7 @@ public class AuthenticationManager {
 
     private static final String SQL_CREATE_USER_LOOKUP_TABLE = "CREATE TABLE IF NOT EXISTS user_lookup (accountID TEXT, username TEXT, PRIMARY KEY (accountID, username));";
 
-    private static final String SQL_CREATE_IDENTITY_TABLE = "CREATE TABLE IF NOT EXISTS identity (accountID TEXT PRIMARY KEY, pwhash TEXT, salt TEXT, account_creation INTEGER);";
+    private static final String SQL_CREATE_IDENTITY_TABLE = "CREATE TABLE IF NOT EXISTS identity (accountID TEXT PRIMARY KEY, pwhash TEXT, salt BLOB, account_creation INTEGER);";
 
     // Integer supports longs.
     private static final String SQL_CREATE_AUTH_TABLE = "CREATE TABLE IF NOT EXISTS authentication (accountID TEXT PRIMARY KEY, token TEXT, expire INTEGER);";
@@ -364,7 +364,7 @@ public class AuthenticationManager {
         }
 
         StoredIdentity identity = identityPair.getSecond();
-        byte[] passSalt = identity.getPasswordSalt().getBytes(StandardCharsets.UTF_8);
+        byte[] passSalt = identity.getPasswordSalt();
 
         String passIn = SecretUtil.createSHA256Hash(password, passSalt).getHash();
         String passExist = identity.getPasswordHash();
@@ -374,7 +374,7 @@ public class AuthenticationManager {
             return Pair.of(AccountLoginState.DENIED, null);
 
         AuthToken token = AuthToken.generateToken();
-        if(publishTokenWithAccountID(identity,  token))
+        if(!publishTokenWithAccountID(identity,  token))
             return Pair.of(AccountLoginState.ERRORED, null);
 
         AuthenticatedClient authClient = new AuthenticatedClient(client, username, token);
@@ -397,11 +397,9 @@ public class AuthenticationManager {
         }
 
         String newAccountID = UUID.randomUUID().toString();
-        SecretUtil.SaltyHash hashbrown_haha = SecretUtil.createSHA256Hash(password, SecretUtil.generateSalt(8));
+        SecretUtil.SaltyHash hashbrown_haha = SecretUtil.createSHA256Hash(password, SecretUtil.generateSalt(16));
         String passHash = hashbrown_haha.getHash();
-        String passSalt = hashbrown_haha.getSalt().isPresent()
-                ? new String(hashbrown_haha.getSalt().get(), StandardCharsets.UTF_8)
-                : "";
+        byte[] passSalt = hashbrown_haha.getSalt();
         long accountCreateTime = System.currentTimeMillis();
 
 
@@ -463,10 +461,11 @@ public class AuthenticationManager {
 
                         } else {
                             switch (aClient.getFirst()) {
-                                case ERRORED: loginResponse.setStatus(PacketOutLoginResponse.Status.GENERAL_LOGIN_ERROR);
-                                case DB_OFFLINE: loginResponse.setStatus(PacketOutLoginResponse.Status.TECHNICAL_SERVER_ERROR);
-                                case ALREADY_LOGGED_IN: loginResponse.setStatus(PacketOutLoginResponse.Status.ALREADY_LOGGED_IN);
-                                case DENIED: loginResponse.setStatus(PacketOutLoginResponse.Status.GENERAL_LOGIN_ERROR);
+                                case DB_OFFLINE: loginResponse.setStatus(PacketOutLoginResponse.Status.TECHNICAL_SERVER_ERROR); break;
+                                case ALREADY_LOGGED_IN: loginResponse.setStatus(PacketOutLoginResponse.Status.ALREADY_LOGGED_IN); break;
+                                case DENIED:
+                                case ERRORED:
+                                default: loginResponse.setStatus(PacketOutLoginResponse.Status.GENERAL_LOGIN_ERROR); break;
                             }
 
                             Server.getLogger(Server.AUTH_LOG).error(String.format(
@@ -560,12 +559,14 @@ public class AuthenticationManager {
                 } else {
 
                     switch (authAttempt.getFirst()) {
-                        case ERRORED: loginResponse.setStatus(PacketOutLoginResponse.Status.GENERAL_LOGIN_ERROR);
-                        case DB_OFFLINE: loginResponse.setStatus(PacketOutLoginResponse.Status.TECHNICAL_SERVER_ERROR);
-                        case ALREADY_LOGGED_IN: loginResponse.setStatus(PacketOutLoginResponse.Status.ALREADY_LOGGED_IN);
+                        case ERRORED: loginResponse.setStatus(PacketOutLoginResponse.Status.GENERAL_LOGIN_ERROR); break;
+                        case DB_OFFLINE: loginResponse.setStatus(PacketOutLoginResponse.Status.TECHNICAL_SERVER_ERROR); break;
+                        case ALREADY_LOGGED_IN: loginResponse.setStatus(PacketOutLoginResponse.Status.ALREADY_LOGGED_IN); break;
                         case DENIED:
                             if(usedToken) loginResponse.setStatus(PacketOutLoginResponse.Status.INVALID_TOKEN);
                             else loginResponse.setStatus(PacketOutLoginResponse.Status.INVALID_CREDENTIALS);
+                            break;
+
                     }
 
                 }
@@ -628,7 +629,7 @@ public class AuthenticationManager {
             if(set.next()) {
                 String accountID = set.getString("accountID");
                 String pwHash = set.getString("pwhash");
-                String salt = set.getString("salt");
+                byte[] salt = set.getBytes("salt");
                 long accountCreation = set.getLong("account_creation");
 
                 if ((accountID != null) && (pwHash != null) && (salt != null)) {

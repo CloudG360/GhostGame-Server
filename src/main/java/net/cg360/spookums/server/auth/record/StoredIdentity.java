@@ -6,10 +6,10 @@ public class StoredIdentity {
 
     private final String accountID;
     private final String passwordHash;
-    private final String passwordSalt;
+    private final byte[] passwordSalt;
     private final long accountCreationTime;
 
-    public StoredIdentity(String accountID, String passwordHash, String passwordSalt, long accountCreationTime) {
+    public StoredIdentity(String accountID, String passwordHash, byte[] passwordSalt, long accountCreationTime) {
         Check.nullParam(accountID, "accountID");
         Check.nullParam(passwordHash, "passwordHash");
         Check.nullParam(passwordSalt, "passwordSalt");
@@ -31,7 +31,7 @@ public class StoredIdentity {
         return passwordHash;
     }
 
-    public String getPasswordSalt() {
+    public byte[] getPasswordSalt() {
         return passwordSalt;
     }
 

@@ -18,7 +18,7 @@ public abstract class PacketInOutTokenHolder extends NetworkPacket {
     @Override
     protected int encodeBody() {
         String finalToken = this.token == null ? NO_TOKEN : this.token;
-        byte[] encodedToken = finalToken.getBytes(StandardCharsets.UTF_8);
+        byte[] encodedToken = finalToken.getBytes(StandardCharsets.US_ASCII);
 
         this.getBodyData().reset();
         this.getBodyData().put((byte) encodedToken.length); // tokens should be small. Use byte.

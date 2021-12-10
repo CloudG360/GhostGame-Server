@@ -211,14 +211,8 @@ public class SecretUtil {
             return hash;
         }
 
-        public Optional<byte[]> getSalt() {
-            return Optional.ofNullable(salt);
-        }
-
-        public Optional<String> getSaltString() {
-            if(salt == null) return Optional.empty();
-            String s = new String(salt, StandardCharsets.UTF_8);
-            return Optional.of(s);
+        public byte[] getSalt() {
+            return salt;
         }
 
         @Override
