@@ -7,7 +7,7 @@ import java.util.Objects;
 
 public class Key<T> {
 
-    private String key;
+    private final String key;
 
     public Key(Identifier key) {
         Check.nullParam(key, "Key Identifier");
@@ -29,7 +29,7 @@ public class Key<T> {
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
+        if (!(o instanceof Key<?>)) return false;
         Key<?> key1 = (Key<?>) o;
         return Objects.equals(key, key1.key);
     }

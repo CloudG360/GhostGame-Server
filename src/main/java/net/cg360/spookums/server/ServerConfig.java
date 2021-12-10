@@ -53,19 +53,19 @@ public class ServerConfig {
     protected static int verifyAllDefaultKeys(Settings settings) {
         int replacements = 0;
 
-        if(!checkSetting(settings, SERVER_IP)) replacements++;
-        if(!checkSetting(settings, SERVER_PORT)) replacements++;
-        if(!checkSetting(settings, CONNECTION_TIMEOUT)) replacements++;
+        if(isSettingNull(settings, SERVER_IP)) replacements++;
+        if(isSettingNull(settings, SERVER_PORT)) replacements++;
+        if(isSettingNull(settings, CONNECTION_TIMEOUT)) replacements++;
 
-        if(!checkSetting(settings, LOG_UNSUPPORTED_PACKETS)) replacements++;
-        if(!checkSetting(settings, LOG_PACKET_IO)) replacements++;
-        if(!checkSetting(settings, RUN_LAUNCH_TESTS)) replacements++;
+        if(isSettingNull(settings, LOG_UNSUPPORTED_PACKETS)) replacements++;
+        if(isSettingNull(settings, LOG_PACKET_IO)) replacements++;
+        if(isSettingNull(settings, RUN_LAUNCH_TESTS)) replacements++;
 
-        if(!checkSetting(settings, SERVER_NAME)) replacements++;
-        if(!checkSetting(settings, DESCRIPTION)) replacements++;
-        if(!checkSetting(settings, REGION)) replacements++;
+        if(isSettingNull(settings, SERVER_NAME)) replacements++;
+        if(isSettingNull(settings, DESCRIPTION)) replacements++;
+        if(isSettingNull(settings, REGION)) replacements++;
 
-        if(!checkSetting(settings, AUTH_TOKEN_TIMEOUT)) replacements++;
+        if(isSettingNull(settings, AUTH_TOKEN_TIMEOUT)) replacements++;
 
         return replacements;
     }
@@ -125,13 +125,13 @@ public class ServerConfig {
 
     // Just going to assume settings isn't null as this isn't
     // an important utility method.
-    public static <T> boolean checkSetting(Settings settings, DefaultKey<T> key) {
+    public static <T> boolean isSettingNull(Settings settings, DefaultKey<T> key) {
         if(settings.get(key) == null) {
             settings.set(key, key.getDefaultValue());
-            return false; // invalid, replaced.
+            return true; // invalid, replaced.
         }
 
-        return true; // valid
+        return false; // valid
     }
 
     // A little method to cleanup the default config

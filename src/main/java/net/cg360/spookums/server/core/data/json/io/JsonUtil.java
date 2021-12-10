@@ -14,7 +14,6 @@ import java.util.IllegalFormatException;
 
 public final class JsonUtil {
 
-    // It is checked! Java is dumb! :)
     public static LockableSettings jsonToSettings(JsonObject parent, boolean isLocked) {
         Check.nullParam(parent, "parent");
         LockableSettings settings = new LockableSettings();
@@ -32,7 +31,7 @@ public final class JsonUtil {
             Object saveObj = element.getValue();
 
             if(saveObj instanceof JsonObject) {
-                saveObj = jsonToSettings((JsonObject) saveObj, isLocked);
+                saveObj = JsonUtil.jsonToSettings((JsonObject) saveObj, isLocked);
 
             // Json Array: Get the values in object[] form.
             } else if (saveObj instanceof JsonArray) {

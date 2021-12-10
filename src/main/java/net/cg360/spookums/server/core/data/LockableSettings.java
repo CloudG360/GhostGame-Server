@@ -39,28 +39,10 @@ public final class LockableSettings extends Settings {
 
     /** Sets a key within the settings if they are unlocked. */
     public <T> LockableSettings set(Key<T> key, T value) {
-        if(!isLocked) {
-            super.set(key, value);
-        }
+        if(!isLocked) super.set(key, value);
         return this;
     }
 
-
-    /**
-     * Returns a property with the same type as the key. If not
-     * present, the object from the 2nd parameter is returned.
-     */
-    public <T> T getOrElse(Key<T> id, T orElse) {
-        return super.getOrElse(id, orElse);
-    }
-
-    /**
-     * Returns a property with the same type as the key. If not
-     * present, null is returned.
-     */
-    public <T> T get(Key<T> id) {
-        return getOrElse(id, null);
-    }
 
     /** Complete duplicate of settings, lock status included. */
     @Override

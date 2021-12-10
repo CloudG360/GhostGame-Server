@@ -31,7 +31,8 @@ public class Settings {
 
     /** Sets a key within the settings if they are unlocked. */
     public <T> Settings set(Key<T> key, T value) {
-        dataMap.put(key, new Value<>(value));
+        if(value == null) return this;
+        this.dataMap.put(key, new Value<>(value));
         return this;
     }
 
