@@ -73,19 +73,19 @@ public class ObjectParsingFrame extends ParsingFrame {
                     if(this.valueLineNum != getJsonIO().getCurrentLine()) {
                         this.parseAndAddCollectedDigits();
                         this.currentReaderState = State.COMMA;
-                        processCharacter(character);
+                        this.processCharacter(character);
                         return;
                     }
 
                     if(character == ' ') {
-                        parseAndAddCollectedDigits();
+                        this.parseAndAddCollectedDigits();
                         this.currentReaderState = State.COMMA;
                         return;
                     }
 
                     if(character == ',') {
-                        parseAndAddCollectedDigits();
-                        this.currentReaderState = State.VALUE;
+                        this.parseAndAddCollectedDigits();
+                        this.currentReaderState = State.AWAITING_IDENTIFIER;
                         return;
                     }
 
@@ -178,7 +178,8 @@ public class ObjectParsingFrame extends ParsingFrame {
 
             case VALUE:
 
-                if(this.hasFoundNumber()) throw new JsonFormatException("Unexpected element - number preceding json element "+getErrorLineNumber());
+                if(this.hasFoundNumber() || this.hasFoundBoolean())
+                    throw new JsonFormatException("Unexpected element - number/boolean preceding child json element "+getErrorLineNumber());
 
                 this.holdingObject.getValue().addChild(lastFoundIdentifier, frame);
                 this.lastFoundIdentifier = null;
@@ -199,7 +200,7 @@ public class ObjectParsingFrame extends ParsingFrame {
         if(this.currentReaderState == State.FIRST_AWAITING_IDENTIFIER || this.currentReaderState == State.COMMA) return holdingObject;
         else {
             if(this.currentReaderState == State.VALUE && hasFoundNumber()) {
-                parseAndAddCollectedDigits();
+                this.parseAndAddCollectedDigits();
                 return holdingObject;
             }
             throw new JsonFormatException("Unexpected ending - the object was closed after an invalid character "+getErrorLineNumber());
@@ -214,10 +215,22 @@ public class ObjectParsingFrame extends ParsingFrame {
 
         try {
             if (foundFloatingPoint) number = Float.parseFloat(construct);
-            else                    number = Integer.parseInt(construct);
+            else {
+                try {
+                    number = Integer.parseInt(construct);
+                } catch (Exception err) {
+                    number = Long.parseLong(construct);
+                }
+            }
 
         } catch (Exception err) {
-            throw new JsonFormatException(String.format("Invalid element [Is decimal? %s] - unable to parse number: %s ", foundFloatingPoint?"true":"false", err.getMessage()) + getErrorLineNumber());
+            throw new JsonFormatException(String.format(
+                    "Invalid element [Is decimal? %s] - unable to parse number: %s ",
+                    foundFloatingPoint
+                            ?"true"
+                            :"false",
+                    err.getMessage()
+            ) + getErrorLineNumber());
         }
 
         Json<Number> numberJson = Json.from(number);
