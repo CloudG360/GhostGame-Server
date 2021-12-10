@@ -1,5 +1,6 @@
 package net.cg360.spookums.server.core.data;
 
+import net.cg360.spookums.server.core.data.keyvalue.DefaultKey;
 import net.cg360.spookums.server.core.data.keyvalue.Key;
 import net.cg360.spookums.server.core.data.keyvalue.Value;
 
@@ -47,11 +48,21 @@ public class Settings {
 
     /**
      * Returns a property with the same type as the key. If not
+     * present, the default value of the default key is returned.
+     */
+    public <T> T getOrDefault(DefaultKey<T> id) {
+        return getOrElse(id, id.getDefaultValue());
+    }
+
+    /**
+     * Returns a property with the same type as the key. If not
      * present, null is returned.
      */
     public <T> T get(Key<T> id) {
         return getOrElse(id, null);
     }
+
+
 
     /** @return a copy of these settings which is unlocked. */
     public Settings getCopy() {

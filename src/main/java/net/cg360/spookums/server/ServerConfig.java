@@ -8,56 +8,64 @@ import net.cg360.spookums.server.core.data.json.io.JsonUtil;
 import net.cg360.spookums.server.core.data.json.io.error.JsonEmptyException;
 import net.cg360.spookums.server.core.data.json.io.error.JsonFormatException;
 import net.cg360.spookums.server.core.data.json.io.error.JsonParseException;
-import net.cg360.spookums.server.core.data.keyvalue.Key;
+import net.cg360.spookums.server.core.data.keyvalue.DefaultKey;
 import org.slf4j.Logger;
 
 import java.io.*;
 
 /**
- * The keys used within the server's main config
+ * The DefaultKeys used within the server's main config
  */
 public class ServerConfig {
 
-    public static final Key<String> SERVER_IP = new Key<>("ip");
-    public static final Key<Integer> SERVER_PORT = new Key<>("port");
+    public static final DefaultKey<String> SERVER_IP = new DefaultKey<>("ip", "0.0.0.0");
+    public static final DefaultKey<Integer> SERVER_PORT = new DefaultKey<>("port", 22057);
+    public static final DefaultKey<Integer> CONNECTION_TIMEOUT = new DefaultKey<>("connection_timeout", 10000);
 
-    public static final Key<Boolean> LOG_UNSUPPORTED_PACKETS = new Key<>("log_unsupported_packets");
-    public static final Key<Boolean> LOG_PACKET_IO = new Key<>("log_packet_io");
-    public static final Key<Boolean> RUN_LAUNCH_TESTS = new Key<>("should_run_launch_tests");
+    public static final DefaultKey<Boolean> LOG_UNSUPPORTED_PACKETS = new DefaultKey<>("log_unsupported_packets", true);
+    public static final DefaultKey<Boolean> LOG_PACKET_IO = new DefaultKey<>("log_packet_io", false);
+    public static final DefaultKey<Boolean> RUN_LAUNCH_TESTS = new DefaultKey<>("should_run_launch_tests", false);
 
-    public static final Key<String> SERVER_NAME = new Key<>("name");
-    public static final Key<String> DESCRIPTION = new Key<>("description");
-    public static final Key<String> REGION = new Key<>("region");
+    public static final DefaultKey<String> SERVER_NAME = new DefaultKey<>("name", "Ghost Game Server");
+    public static final DefaultKey<String> DESCRIPTION = new DefaultKey<>("description", "No description provided");
+    public static final DefaultKey<String> REGION = new DefaultKey<>("region", "en-gb");
 
+    public static final DefaultKey<Long> AUTH_TOKEN_TIMEOUT = new DefaultKey<>("auth_token_timeout", 1000L * 60 * 60 * 24 * 30);
 
 
     public static String DEFAULT_CONFIG =
             "{" + "\n" +
-            String.format("     \"%s\": %s", SERVER_IP              .get(), "\"0.0.0.0\"") + "," + "\n" +
-            String.format("     \"%s\": %s", SERVER_PORT            .get(), "22057") + "," + "\n" +
+                    "    " + formatLine(SERVER_IP) + "," + "\n" +
+                    "    " + formatLine(SERVER_PORT) + "," + "\n" +
+                    "    " + formatLine(CONNECTION_TIMEOUT) + "," + "\n" +
 
-            String.format("     \"%s\": %s", LOG_UNSUPPORTED_PACKETS.get(), "true") + "," + "\n" +
-            String.format("     \"%s\": %s", LOG_PACKET_IO          .get(), "false") + "," + "\n" +
-            String.format("     \"%s\": %s", RUN_LAUNCH_TESTS       .get(), "false") + "," + "\n" +
-            "" + "\n" +
-            String.format("     \"%s\": %s", SERVER_NAME.get(), "\"Test Server\"") + "," + "\n" +
-            String.format("     \"%s\": %s", DESCRIPTION.get(), "\"Unfinished business on an unfinished server. It'll be done soon! :)\"") + "," + "\n" +
-            String.format("     \"%s\": %s", REGION     .get(), "\"en-gb\"") + " " + "\n" +
+                    "    " + formatLine(LOG_UNSUPPORTED_PACKETS) + "," + "\n" +
+                    "    " + formatLine(LOG_PACKET_IO) + "," + "\n" +
+                    "    " + formatLine(RUN_LAUNCH_TESTS) + "," + "\n" +
+
+                    "    " + formatLine(SERVER_NAME) + "," + "\n" +
+                    "    " + formatLine(DESCRIPTION) + "," + "\n" +
+                    "    " + formatLine(REGION) + "," + "\n" +
+
+                    "    " + formatLine(AUTH_TOKEN_TIMEOUT) + "\n" + // When extending, add comma!
             "}";
 
-    protected static int verifyAllKeys(Settings settings) {
+    protected static int verifyAllDefaultKeys(Settings settings) {
         int replacements = 0;
 
-        if(!checkSetting(settings, SERVER_IP, "0.0.0.0")) replacements++;
-        if(!checkSetting(settings, SERVER_PORT, 22057)) replacements++;
+        if(!checkSetting(settings, SERVER_IP)) replacements++;
+        if(!checkSetting(settings, SERVER_PORT)) replacements++;
+        if(!checkSetting(settings, CONNECTION_TIMEOUT)) replacements++;
 
-        if(!checkSetting(settings, LOG_UNSUPPORTED_PACKETS, true)) replacements++;
-        if(!checkSetting(settings, LOG_PACKET_IO, false)) replacements++;
-        if(!checkSetting(settings, RUN_LAUNCH_TESTS, false)) replacements++;
+        if(!checkSetting(settings, LOG_UNSUPPORTED_PACKETS)) replacements++;
+        if(!checkSetting(settings, LOG_PACKET_IO)) replacements++;
+        if(!checkSetting(settings, RUN_LAUNCH_TESTS)) replacements++;
 
-        if(!checkSetting(settings, SERVER_NAME, "Test Server")) replacements++;
-        if(!checkSetting(settings, DESCRIPTION, "Unfinished business on an unfinished server. It'll be done soon! :)")) replacements++;
-        if(!checkSetting(settings, REGION, "en-gb")) replacements++;
+        if(!checkSetting(settings, SERVER_NAME)) replacements++;
+        if(!checkSetting(settings, DESCRIPTION)) replacements++;
+        if(!checkSetting(settings, REGION)) replacements++;
+
+        if(!checkSetting(settings, AUTH_TOKEN_TIMEOUT)) replacements++;
 
         return replacements;
     }
@@ -106,7 +114,7 @@ public class ServerConfig {
 
         if(fillInDefaults) {
             cfgLog.warn("Filling in the blanks!");
-            int replacements = verifyAllKeys(loadedSettings); //todo: print count of replacements
+            int replacements = verifyAllDefaultKeys(loadedSettings); //todo: print count of replacements
 
             cfgLog.warn("Using the defaults for "+replacements+" properties!");
         }
@@ -117,12 +125,25 @@ public class ServerConfig {
 
     // Just going to assume settings isn't null as this isn't
     // an important utility method.
-    public static <T> boolean checkSetting(Settings settings, Key<T> key, T defaultValue) {
+    public static <T> boolean checkSetting(Settings settings, DefaultKey<T> key) {
         if(settings.get(key) == null) {
-            settings.set(key, defaultValue);
+            settings.set(key, key.getDefaultValue());
             return false; // invalid, replaced.
         }
 
         return true; // valid
+    }
+
+    // A little method to cleanup the default config
+    @SuppressWarnings("unchecked")
+    public static <T> String formatLine(DefaultKey<T> key) {
+
+        Object value = key.getDefaultValue();
+
+        // String can't be extended, this is fine.
+        if(key.getDefaultValue() instanceof String)
+            value = "\"" + key.getDefaultValue() + "\"";
+
+        return String.format("\"%s\": %s", key.get(), value);
     }
 }

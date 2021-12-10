@@ -5,7 +5,7 @@ import net.cg360.spookums.server.core.data.id.Identifier;
 
 import java.util.Objects;
 
-public final class Key<T> {
+public class Key<T> {
 
     private String key;
 
