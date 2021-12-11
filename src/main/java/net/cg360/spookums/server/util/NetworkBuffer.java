@@ -1,5 +1,7 @@
 package net.cg360.spookums.server.util;
 
+import net.cg360.spookums.server.util.math.Vector2;
+
 import java.nio.BufferUnderflowException;
 import java.nio.charset.StandardCharsets;
 
@@ -13,8 +15,13 @@ import java.nio.charset.StandardCharsets;
  */
 public class NetworkBuffer {
 
-    public static int MAX_UNSIGNED_SHORT_VALUE = (int) (Math.pow(2, 16) - 1);
-    public static short MAX_UNSIGNED_BYTE_VALUE = (short) (Math.pow(2, 8) - 1);
+    public static final int MAX_UNSIGNED_SHORT_VALUE = (int) (Math.pow(2, 16) - 1);
+    public static final short MAX_UNSIGNED_BYTE_VALUE = (short) (Math.pow(2, 8) - 1);
+
+    public static final int SHORT_BYTE_COUNT = 2;
+    public static final int INT_BYTE_COUNT = 4;
+    public static final int LONG_BYTE_COUNT = 8;
+    public static final int VECTOR2_BYTE_COUNT = 8;
 
     protected byte[] buffer;
     protected int pointerIndex;
@@ -156,6 +163,21 @@ public class NetworkBuffer {
         throw new BufferUnderflowException();
     }
 
+    /** @return an unsigned int from the current pointer position in the network buffer. */
+    public long getUnsignedInt() {
+        if(canReadBytesAhead(4)) {
+            long total = 0;
+
+            total += (((long) fetchRawByte()) << 24) & 0xFF000000;
+            total += (((long) fetchRawByte()) << 16) & 0x00FF0000;
+            total += (((long) fetchRawByte()) << 8 ) & 0x0000FF00;
+            total +=  ((long) fetchRawByte())        & 0x000000FF;
+
+            return total & 0xFFFFFFFF;
+        }
+        throw new BufferUnderflowException();
+    }
+
     /** @return a UTF8 formatted string (<256 bytes length) from the current pointer position in the network buffer. */
     public String getSmallUTF8String() {
         if(canReadBytesAhead(1)) {
@@ -177,6 +199,11 @@ public class NetworkBuffer {
            return new String(strBytes, StandardCharsets.UTF_8);
         }
         throw new BufferUnderflowException();
+    }
+
+    /** @return a Vector2 from the current pointer position in the network buffer. **/
+    public Vector2 getVector2() {
+
     }
 
 
@@ -251,6 +278,38 @@ public class NetworkBuffer {
         return false;
     }
 
+    public boolean putUnsignedInt(long value) {
+        if(value >= Math.pow(2, 32)) throw new IllegalArgumentException("Provided an 'unsigned int' with a value greater than 2^32");
+        if(value < 0) throw new IllegalArgumentException("Provided an 'unsigned int' with a value less than 0");
+
+        if(canReadBytesAhead(4)) {
+            int rawShort = 0x00000000;
+            long degradedValue = value;
+
+            for (byte i = 31; i >= 0; i--) {
+                double valCheck = Math.pow(2, i);
+
+                if ((degradedValue - valCheck) >= 0) {
+                    degradedValue -= valCheck;
+                    rawShort |= 1 << i;
+                }
+            }
+
+            byte bUpper =    (byte) ((rawShort & 0xFF000000) >> 24);
+            byte bUpperMid = (byte) ((rawShort & 0x00FF0000) >> 16);
+            byte bLowerMid = (byte) ((rawShort & 0x0000FF00) >> 8 );
+            byte bLower =    (byte)  (rawShort & 0x000000FF);
+
+            writeByte(bUpper);
+            writeByte(bUpperMid);
+            writeByte(bLowerMid);
+            writeByte(bLower);
+            return true;
+        }
+
+        return false;
+    }
+
     /** @return the amount of bytes written. */
     public int putUTF8String(String string) {
         if(string == null || string.length() == 0) return 0;
@@ -298,5 +357,11 @@ public class NetworkBuffer {
         }
         return 0;
     }
+
+    public int putVector2(Vector2 string) {
+        //TODO: Add vector 2, convert to 2 ints/longs
+        return ;
+    }
+
 
 }

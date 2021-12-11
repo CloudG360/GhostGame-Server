@@ -7,16 +7,18 @@ import net.cg360.spookums.server.util.clean.Check;
 import net.cg360.spookums.server.util.math.Vector2;
 
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 
 public abstract class Entity {
 
-    private static AtomicInteger entityCount; // Uniquely identifies entities as it ticks up. Increments on spawn.
+    // 0 is reserved for the client's entity, always. Entities add 1 and THEN get.
+    private static final AtomicLong entityCount = new AtomicLong(0); // Uniquely identifies entities as it ticks up. Increments on spawn.
 
     // Still considering. Might hardcode behaviours and implement behaviour trees later.
     //private EntityBehaviourTree behaviour;
 
     // The unique ID of the entity in a game session.
-    protected int runtimeID;
+    protected long runtimeID;
 
     protected Floor floor;
     protected Vector2 lastPosition;

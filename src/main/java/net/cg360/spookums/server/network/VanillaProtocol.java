@@ -4,6 +4,8 @@ import net.cg360.spookums.server.Server;
 import net.cg360.spookums.server.network.packet.auth.PacketInLogin;
 import net.cg360.spookums.server.network.packet.auth.PacketInUpdateAccount;
 import net.cg360.spookums.server.network.packet.auth.PacketOutLoginResponse;
+import net.cg360.spookums.server.network.packet.game.entity.PacketOutAddEntity;
+import net.cg360.spookums.server.network.packet.game.entity.PacketOutRemoveEntity;
 import net.cg360.spookums.server.network.packet.generic.PacketInOutChatMessage;
 import net.cg360.spookums.server.network.packet.generic.PacketInOutDisconnect;
 import net.cg360.spookums.server.network.packet.generic.PacketInOutError;
@@ -71,6 +73,18 @@ public class VanillaProtocol {
     public static final byte PACKET_GAME_DETAIL = 0x35; // out - Sends details of the game to the client
 
 
+    public static final byte PACKET_ENTITY_ADD = 0x50; // out - Spawns an entity on the client side based on its runtime id.
+    public static final byte PACKET_ENTITY_REMOVE = 0x51; // out - Removes an entity from the client side based on its runtime id
+    public static final byte PACKET_ENTITY_MOVE = 0x52; // out - Moves an entity on the client. Big, small, whatever, done in one packet.
+
+
+    //TODO: As you'll be looking at this before the C# project
+    //      Instead of storing the next tick a task will run, store an
+    //      offset of ticks. This can be decremented as each task is already
+    //      looped through recursively. It should eliminate timing issues.
+
+
+
     public static void applyToRegistry(PacketRegistry packetRegistry) {
         packetRegistry
                 .r(PACKET_PROTOCOL_INVALID_PACKET, null)
@@ -99,7 +113,11 @@ public class VanillaProtocol {
                 .r(PACKET_GAME_STATUS, null)
                 //.r(PACKET_FETCH_GAME_LIST, null)
                 .r(PACKET_REQUEST_GAME_DETAIL, null)
-                .r(PACKET_GAME_DETAIL, null);
+                .r(PACKET_GAME_DETAIL, null)
+
+                .r(PACKET_ENTITY_ADD, PacketOutAddEntity.class)
+                .r(PACKET_ENTITY_REMOVE, PacketOutRemoveEntity.class)
+                .r(PACKET_ENTITY_MOVE, null);
 
         Server.getLogger(Server.NET_LOG).info(
                 String.format("Applied protocol version %s to %s packet registry.",
