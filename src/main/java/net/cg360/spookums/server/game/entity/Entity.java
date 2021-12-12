@@ -27,6 +27,7 @@ public abstract class Entity {
     //protected Vector2 acceleration; Really only used for projectiles?
     protected Vector2 velocity;
 
+
     public Entity(Floor floor, Vector2 position) {
         this.runtimeID = entityCount.addAndGet(1);
 
@@ -34,17 +35,26 @@ public abstract class Entity {
         this.lastPosition = new Vector2(position);
         this.position = new Vector2(position);
 
-        this.velocity = Vector2.zero();
+        this.velocity = Vector2.ZERO;
     }
+
+
+
+    // The entity type
+    public abstract String getTypeID();
+
 
     public void tick() {
         // Physics
         this.lastPosition = position;
-        this.position.add(this.velocity);
+        this.position = this.position.add(this.velocity);
+
+        if(!this.lastPosition.equals(this.position)) {
+            //TODO: Send delta packet.
+        }
     }
 
-    // The entity type
-    public abstract String getTypeID();
+
 
 
 

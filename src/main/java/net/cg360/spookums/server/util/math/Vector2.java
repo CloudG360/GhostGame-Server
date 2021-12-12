@@ -1,24 +1,28 @@
 package net.cg360.spookums.server.util.math;
 
+import java.util.Objects;
+
 /**
  * A vector representation with a few helper methods.
  */
-public class Vector2 {
+public final class Vector2 {
 
-    protected double x;
-    protected double z;
+    public static final Vector2 ZERO = new Vector2(0, 0);
+    public static final Vector2 ONE = new Vector2(1, 1);
+
+    private double x;
+    private double z;
+
 
     public Vector2(Vector2 vec) {
-        this(
-                vec == null ? 0 : vec.x,
-                vec == null ? 0 : vec.z
-        );
+        this(vec.getX(), vec.getZ());
     }
 
     public Vector2(double x, double z) {
         this.x = x;
         this.z = z;
     }
+
 
 
     public Vector2 duplicate() {
@@ -33,35 +37,30 @@ public class Vector2 {
 
 
 
-    public Vector2 add(Vector2 vec) { return add(vec.x, vec.z); }
+    public Vector2 add(Vector2 vec) { return this.add(vec.x, vec.z); }
     public Vector2 add(double x, double z) {
-        this.x += x;
-        this.z += z;
-        return this;
+        return new Vector2(this.x + x, this.z + z);
     }
 
-    public Vector2 sub(Vector2 vec) { return sub(vec.x, vec.z); }
+    public Vector2 sub(Vector2 vec) { return this.sub(vec.x, vec.z); }
     public Vector2 sub(double x, double z) {
-        return add(-x, -z);
+        return new Vector2(this.x-x, this.z-z);
     }
 
     public Vector2 mul(Vector2 vec) { return mul(vec.x, vec.z); }
     public Vector2 mul(double x, double z) {
-        this.x *= x;
-        this.z *= z;
-        return this;
+        return new Vector2(this.x * x, this.z * z);
     }
 
-    public Vector2 div(Vector2 vec) { return div(vec.x, vec.z); }
+    public Vector2 div(Vector2 vec) { return this.div(vec.x, vec.z); }
     public Vector2 div(double x, double z) {
-        return mul(1 / x, 1 / z);
+        return new Vector2(this.x / x, this.z / z);
     }
+
 
     public Vector2 normalize() {
         double magnitude = getMagnitude();
-        this.x = this.x / magnitude;
-        this.z = this.z / magnitude;
-        return this;
+        return this.div(magnitude, magnitude);
     }
 
     public double dot(Vector2 other) {
@@ -80,19 +79,24 @@ public class Vector2 {
     }
 
 
-
     public double getMagnitude() {
         return Math.sqrt((this.x * this.x) + (this.z * this.z));
     }
 
-    public double getX() { return x; }
-    public double getZ() { return z; }
+    public double getX() { return this.x; }
+    public double getZ() { return this.z; }
 
-    public static Vector2 zero() {
-        return new Vector2(0, 0);
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        Vector2 vector2 = (Vector2) o;
+        return Double.compare(vector2.x, x) == 0 && Double.compare(vector2.z, z) == 0;
     }
 
-    public static Vector2 one() {
-        return new Vector2(1, 1);
+    @Override
+    public int hashCode() {
+        return Objects.hash(x, z);
     }
 }
