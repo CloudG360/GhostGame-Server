@@ -1,5 +1,6 @@
 package net.cg360.spookums.server.network.packet.game.entity;
 
+import net.cg360.spookums.server.core.data.id.Identifier;
 import net.cg360.spookums.server.network.VanillaProtocol;
 import net.cg360.spookums.server.util.Constants;
 import net.cg360.spookums.server.util.NetworkBuffer;
@@ -34,8 +35,8 @@ public class PacketOutAddEntity extends PacketInOutEntity {
 
         total += this.getBodyData().putSmallUTF8String(this.entityTypeId);
         total += this.getBodyData().putVector2(this.position);
-        total += 1; this.getBodyData().putUnsignedByte(floorNumber);
-        total += this.getBodyData().putUnboundUTF8String(this.propertiesJSON);
+        total += 1; this.getBodyData().putUnsignedByte(this.floorNumber);
+        total += this.getBodyData().putUTF8String(this.propertiesJSON);
 
         return total;
     }
@@ -54,10 +55,56 @@ public class PacketOutAddEntity extends PacketInOutEntity {
                 this.position = this.getBodyData().getVector2();
                 this.floorNumber = this.getBodyData().getUnsignedByte();
 
-                this.propertiesJSON = this.getBodyData().countBytesRemaining() > 0
-                        ? this.getBodyData().getUnboundUTF8String(this.getBodyData().countBytesRemaining())
-                        : "{}";
+                this.propertiesJSON = this.getBodyData().getUTF8String();
             }
         }
+    }
+
+
+    public String getEntityTypeId() {
+        return entityTypeId;
+    }
+
+    public Vector2 getPosition() {
+        return position;
+    }
+
+    public short getFloorNumber() {
+        return floorNumber;
+    }
+
+    public String getPropertiesJSON() {
+        return propertiesJSON;
+    }
+
+
+    public PacketOutAddEntity setEntityRuntimeID(long entityRuntimeID) {
+        this.entityRuntimeID = entityRuntimeID;
+        return this;
+    }
+
+    public PacketOutAddEntity setEntityTypeId(String entityTypeId) {
+        this.entityTypeId = entityTypeId;
+        return this;
+    }
+
+    public PacketOutAddEntity setEntityTypeId(Identifier entityTypeId) {
+        this.entityTypeId = entityTypeId.toString();
+        return this;
+    }
+
+    public PacketOutAddEntity setPosition(Vector2 position) {
+        this.position = position;
+        return this;
+    }
+
+    public PacketOutAddEntity setFloorNumber(short floorNumber) {
+        this.floorNumber = floorNumber;
+        return this;
+    }
+
+    public PacketOutAddEntity setPropertiesJSON(String propertiesJSON) {
+        this.propertiesJSON = propertiesJSON;
+        return this;
     }
 }

@@ -23,7 +23,7 @@ public abstract class PacketInOutEntity extends NetworkPacket {
     }
 
 
-    public long getRuntimeID() {
+    public long getEntityRuntimeID() {
         return entityRuntimeID;
     }
 }

@@ -178,6 +178,21 @@ public class NetworkBuffer {
         throw new BufferUnderflowException();
     }
 
+    /** @return an int from the current pointer position in the network buffer. */
+    public int getInt() {
+        if(canReadBytesAhead(4)) {
+            int number = 0x00000000;
+
+            number |= fetchRawByte() << 24;
+            number |= fetchRawByte() << 16;
+            number |= fetchRawByte() << 8;
+            number |= fetchRawByte();
+
+            return number;
+        }
+        throw new BufferUnderflowException();
+    }
+
     /** @return a UTF8 formatted string (<256 bytes length) from the current pointer position in the network buffer. */
     public String getSmallUTF8String() {
         if(canReadBytesAhead(1)) {
@@ -192,18 +207,24 @@ public class NetworkBuffer {
         throw new BufferUnderflowException();
     }
 
-    /** @return a UTF8 formatted string (the remaining length of the buffer) from the current pointer position in the network buffer. */
-    public String getUnboundUTF8String(int byteCount) {
-        if(canReadBytesAhead(byteCount)) {
-           byte[] strBytes = fetchRawBytes(byteCount);
-           return new String(strBytes, StandardCharsets.UTF_8);
+    public String getUTF8String() {
+        if(canReadBytesAhead(2)) {
+            int length = getUnsignedShort();
+
+            if(canReadBytesAhead(length)) {
+                byte[] strBytes = fetchRawBytes(length);
+                return new String(strBytes, StandardCharsets.UTF_8);
+            }
         }
+
         throw new BufferUnderflowException();
     }
 
     /** @return a Vector2 from the current pointer position in the network buffer. **/
     public Vector2 getVector2() {
-
+        double xIn = this.getInt();
+        double zIn = this.getInt();
+        return new Vector2(xIn / 4096D, zIn / 4096D);
     }
 
 
@@ -310,6 +331,18 @@ public class NetworkBuffer {
         return false;
     }
 
+
+    public int putInt(int value) {
+        if(canReadBytesAhead(4)) {
+            writeByte( (byte) ((value & 0xFF000000) >> 24) );
+            writeByte( (byte) ((value & 0x00FF0000) >> 16) );
+            writeByte( (byte) ((value & 0x0000FF00) >> 8 ) );
+            writeByte( (byte)  (value & 0x000000FF)        );
+            return INT_BYTE_COUNT;
+        }
+        return 0;
+    }
+
     /** @return the amount of bytes written. */
     public int putUTF8String(String string) {
         if(string == null || string.length() == 0) return 0;
@@ -321,7 +354,7 @@ public class NetworkBuffer {
         if(canReadBytesAhead(2 + strBytes.length)) {
             if(putUnsignedShort(strBytes.length)) {
                 writeBytes(strBytes);
-                return 2 + strBytes.length;
+                return SHORT_BYTE_COUNT + strBytes.length;
             }
         }
 
@@ -345,22 +378,14 @@ public class NetworkBuffer {
         return 0;
     }
 
-    /** A string is added without length marking bytes at the start. */
-    public int putUnboundUTF8String(String string) {
-        if(string == null || string.length() == 0) return 0;
-        byte[] strBytes = string.getBytes(StandardCharsets.UTF_8);
+    public int putVector2(Vector2 vector) {
+        double lX = vector.getX() * 4096;
+        double lZ = vector.getZ() * 4096;
 
-        // Check if both the length of bytes + the length short can be included.
-        if(canReadBytesAhead(strBytes.length)) {
-            writeBytes(strBytes);
-            return strBytes.length;
-        }
-        return 0;
-    }
+        this.putInt((int) Math.floor(lX));
+        this.putInt((int) Math.floor(lZ));
 
-    public int putVector2(Vector2 string) {
-        //TODO: Add vector 2, convert to 2 ints/longs
-        return ;
+        return VECTOR2_BYTE_COUNT;
     }
 
 

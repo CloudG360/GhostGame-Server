@@ -14,7 +14,7 @@ public abstract class PacketInOutCallbackStatus extends NetworkPacket {
         this.getBodyData().reset();
 
         this.getBodyData().putUnsignedShort(statusCode);
-        int strLen = content == null ? 0 : this.getBodyData().putUnboundUTF8String(content);
+        int strLen = content == null ? 0 : this.getBodyData().putUTF8String(content);
 
         return 2 + strLen;
     }
@@ -24,7 +24,7 @@ public abstract class PacketInOutCallbackStatus extends NetworkPacket {
         this.getBodyData().reset();
         if(this.getBodyData().canReadBytesAhead(2)) {
             this.statusCode = this.getBodyData().getUnsignedShort();
-            this.content = this.getBodyData().getUnboundUTF8String(inboundSize - 2);
+            this.content = this.getBodyData().getUTF8String();
 
             // Ironic, an invalid error packet, just set some defaults
         } else {

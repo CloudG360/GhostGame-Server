@@ -33,7 +33,7 @@ public class PacketOutProtocolError extends NetworkPacket {
 
         this.getBodyData().reset();
         this.getBodyData().putUnsignedShort(requiredProtocolVersion);
-        int strSize = this.getBodyData().putUnboundUTF8String(targetString);
+        int strSize = this.getBodyData().putUTF8String(targetString);
 
         return strSize + 1; // Update if more is added
     }
@@ -42,6 +42,6 @@ public class PacketOutProtocolError extends NetworkPacket {
     protected void decodeBody(int inboundSize) {
         this.getBodyData().reset();
         this.requiredProtocolVersion = this.getBodyData().getUnsignedShort();
-        this.requiredClientVersionString = this.getBodyData().getUnboundUTF8String(inboundSize - 1);
+        this.requiredClientVersionString = this.getBodyData().getUTF8String();
     }
 }

@@ -99,4 +99,9 @@ public final class Vector2 {
     public int hashCode() {
         return Objects.hash(x, z);
     }
+
+    @Override
+    public String toString() {
+        return String.format("(%s, %s)", this.x, this.z);
+    }
 }

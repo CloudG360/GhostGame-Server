@@ -9,6 +9,7 @@ import net.cg360.spookums.server.network.PacketRegistry;
 import net.cg360.spookums.server.network.VanillaProtocol;
 import net.cg360.spookums.server.network.netimpl.NetworkInterface;
 import net.cg360.spookums.server.network.packet.NetworkPacket;
+import net.cg360.spookums.server.network.packet.game.entity.PacketOutAddEntity;
 import net.cg360.spookums.server.network.packet.generic.PacketInOutDisconnect;
 import net.cg360.spookums.server.network.user.ConnectionState;
 import net.cg360.spookums.server.network.user.NetworkClient;
@@ -180,6 +181,22 @@ public class NISocket implements NetworkInterface {
                 byte[] contents = new byte[content.capacity()-2];
                 content.get(sizeBytes); // Split it into two, send the size first.
                 content.get(contents);
+
+                if(packet instanceof PacketOutAddEntity) {
+                    PacketOutAddEntity newEntityAddPacket = (PacketOutAddEntity) new PacketOutAddEntity().decode(content);
+                    Server.getLogger(Server.NET_LOG).info(
+                            String.format(
+                                    "Entity | rID = %s | type = %s | position = %s | " +
+                                            "Floor = %s | JSON = %s | JSON Length = %s",
+                                    newEntityAddPacket.getEntityRuntimeID(),
+                                    newEntityAddPacket.getEntityTypeId(),
+                                    newEntityAddPacket.getPosition(),
+                                    newEntityAddPacket.getFloorNumber(),
+                                    newEntityAddPacket.getPropertiesJSON(),
+                                    newEntityAddPacket.getPropertiesJSON().length()
+                            )
+                    );
+                }
 
                 try {
                     DataOutputStream outputStream = new DataOutputStream(client.getOutputStream());

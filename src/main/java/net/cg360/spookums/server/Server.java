@@ -15,7 +15,9 @@ import net.cg360.spookums.server.core.event.handler.Priority;
 import net.cg360.spookums.server.core.event.type.network.ClientSocketStatusEvent;
 import net.cg360.spookums.server.core.event.type.network.PacketEvent;
 import net.cg360.spookums.server.core.scheduler.CommandingScheduler;
+import net.cg360.spookums.server.core.scheduler.Scheduler;
 import net.cg360.spookums.server.db.DatabaseManager;
+import net.cg360.spookums.server.game.entity.Entity;
 import net.cg360.spookums.server.network.PacketRegistry;
 import net.cg360.spookums.server.network.VanillaProtocol;
 import net.cg360.spookums.server.network.netimpl.NetworkInterface;
@@ -23,6 +25,7 @@ import net.cg360.spookums.server.network.netimpl.socket.NISocket;
 import net.cg360.spookums.server.network.packet.auth.PacketInLogin;
 import net.cg360.spookums.server.network.packet.auth.PacketInUpdateAccount;
 import net.cg360.spookums.server.network.packet.auth.PacketOutLoginResponse;
+import net.cg360.spookums.server.network.packet.game.entity.PacketOutAddEntity;
 import net.cg360.spookums.server.network.packet.generic.PacketInOutDisconnect;
 import net.cg360.spookums.server.network.packet.info.PacketInProtocolCheck;
 import net.cg360.spookums.server.network.packet.info.PacketOutProtocolError;
@@ -30,10 +33,12 @@ import net.cg360.spookums.server.network.packet.info.PacketOutProtocolSuccess;
 import net.cg360.spookums.server.network.packet.info.PacketOutServerDetail;
 import net.cg360.spookums.server.network.user.ConnectionState;
 import net.cg360.spookums.server.network.user.NetworkClient;
+import net.cg360.spookums.server.util.Constants;
 import net.cg360.spookums.server.util.MicroBoolean;
 import net.cg360.spookums.server.util.Patterns;
 import net.cg360.spookums.server.util.clean.Check;
 import net.cg360.spookums.server.util.clean.Pair;
+import net.cg360.spookums.server.util.math.Vector2;
 import org.slf4j.Logger;
 import org.slf4j.impl.SimpleLoggerFactory;
 
@@ -41,6 +46,7 @@ import java.awt.*;
 import java.io.*;
 import java.util.*;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * The main class of the server, collecting all the managers together
@@ -74,6 +80,7 @@ public class Server {
 
     protected Logger logger;
     protected CommandingScheduler serverScheduler;
+    protected Scheduler defaultScheduler;
     protected EventManager serverEventManager;
     protected DatabaseManager databaseManager;
     protected AuthenticationManager authenticationManager;
@@ -112,6 +119,7 @@ public class Server {
 
                 // -- Core Components --
                 this.serverScheduler = new CommandingScheduler();
+                this.defaultScheduler = new Scheduler(1);
                 this.serverEventManager = new EventManager();
                 this.databaseManager = new DatabaseManager();
                 this.authenticationManager = new AuthenticationManager();
@@ -151,7 +159,8 @@ public class Server {
 
 
                 this.serverScheduler.startScheduler();
-                btLog.info("Started the scheduler! ");
+                this.defaultScheduler.startScheduler();
+                btLog.info("Started the schedulers! ");
 
 
                 btLog.info("Starting network threads...");
@@ -324,6 +333,45 @@ public class Server {
                 String description = this.settings.getOrDefault(ServerConfig.DESCRIPTION);
 
                 client.send(new PacketOutServerDetail(name, region, description), true);
+
+                AtomicLong atomicLong = new AtomicLong(0);
+
+                this.getDefaultScheduler().prepareTask(() -> {
+
+                    //TODO: Remove test code \/\/\/
+
+                    if(this.getNetworkInterface().isRunning() && this.getNetworkInterface().isClientConnected(client.getID())) {
+                        PacketOutAddEntity newEntityAddPacket = new PacketOutAddEntity();
+                        Random random = new Random();
+
+                        newEntityAddPacket.setEntityRuntimeID(1);
+                        newEntityAddPacket.setEntityTypeId(Constants.NAMESPACE.id("random_entity"));
+                        newEntityAddPacket.setPosition(
+                                new Vector2(
+                                        1.0d, //(random.nextDouble() * 10000) - 5000,
+                                        -1.0d  //(random.nextDouble() * 10000) - 5000
+                                )
+                        );
+                        newEntityAddPacket.setFloorNumber((short) 10);
+                        newEntityAddPacket.setPropertiesJSON("{\"testJson\":truee");
+
+                        Server.getLogger(Server.NET_LOG).info(
+                                String.format(
+                                        "Entity | rID = %s | type = %s | position = %s | " +
+                                                "Floor = %s | JSON = %s | JSON Length = %s",
+                                        newEntityAddPacket.getEntityRuntimeID(),
+                                        newEntityAddPacket.getEntityTypeId(),
+                                        newEntityAddPacket.getPosition(),
+                                        newEntityAddPacket.getFloorNumber(),
+                                        newEntityAddPacket.getPropertiesJSON(),
+                                        newEntityAddPacket.getPropertiesJSON().length()
+                                )
+                        );
+
+                        client.send(newEntityAddPacket, true);
+                    }
+
+                }).setInterval(80).schedule();
                 break;
 
 
@@ -406,6 +454,7 @@ public class Server {
     public boolean isRunning() { return isRunning; }
 
     public CommandingScheduler getServerScheduler() { return serverScheduler; }
+    public Scheduler getDefaultScheduler() {return defaultScheduler;}
     public EventManager getEventManager() { return serverEventManager; }
     public DatabaseManager getDBManager() { return databaseManager; }
     public AuthenticationManager getAuthManager() {return authenticationManager;}

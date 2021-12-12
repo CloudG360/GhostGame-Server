@@ -50,7 +50,7 @@ public class PacketOutServerNotice extends NetworkPacket {
         this.getBodyData().put(this.type);
 
         // Using a "simple" string rather than a "tracked" string.
-        int size = this.getBodyData().putUnboundUTF8String(this.text);
+        int size = this.getBodyData().putUTF8String(this.text);
 
         return (short) (size + 1); // Return the size of the body
     }

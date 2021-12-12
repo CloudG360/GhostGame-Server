@@ -41,17 +41,17 @@ public class PacketInOutDisconnect extends NetworkPacket {
         String selectedText = this.text == null ? DEFAULT_OUTBOUND_TEXT : this.text;
 
         this.getBodyData().reset();
-        return this.getBodyData().putUnboundUTF8String(selectedText);
+        return this.getBodyData().putUTF8String(selectedText);
     }
 
     @Override
     protected void decodeBody(int inboundSize) {
 
-        if(inboundSize == 0) {
+        if(inboundSize < 2) {
             this.text = DEFAULT_INBOUND_TEXT;
 
         } else {
-            this.text = this.getBodyData().getUnboundUTF8String(inboundSize);
+            this.text = this.getBodyData().getUTF8String();
         }
 
         this.getBodyData().reset();

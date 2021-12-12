@@ -25,17 +25,17 @@ public class PacketInOutChatMessage extends NetworkPacket {
         String selectedText = this.text == null ? " " : this.text;
 
         this.getBodyData().reset();
-        return this.getBodyData().putUnboundUTF8String(selectedText);
+        return this.getBodyData().putUTF8String(selectedText);
     }
 
     @Override
     protected void decodeBody(int inboundSize) {
 
-        if(inboundSize == 0) {
-            this.text = " ";
+        if(inboundSize < 2) {
+            this.text = "";
 
         } else {
-            this.text = this.getBodyData().getUnboundUTF8String(inboundSize);
+            this.text = this.getBodyData().getUTF8String();
         }
 
         this.getBodyData().reset();
