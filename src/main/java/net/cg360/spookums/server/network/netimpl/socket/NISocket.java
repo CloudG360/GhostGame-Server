@@ -182,22 +182,6 @@ public class NISocket implements NetworkInterface {
                 content.get(sizeBytes); // Split it into two, send the size first.
                 content.get(contents);
 
-                if(packet instanceof PacketOutAddEntity) {
-                    PacketOutAddEntity newEntityAddPacket = (PacketOutAddEntity) new PacketOutAddEntity().decode(content);
-                    Server.getLogger(Server.NET_LOG).info(
-                            String.format(
-                                    "Entity | rID = %s | type = %s | position = %s | " +
-                                            "Floor = %s | JSON = %s | JSON Length = %s",
-                                    newEntityAddPacket.getEntityRuntimeID(),
-                                    newEntityAddPacket.getEntityTypeId(),
-                                    newEntityAddPacket.getPosition(),
-                                    newEntityAddPacket.getFloorNumber(),
-                                    newEntityAddPacket.getPropertiesJSON(),
-                                    newEntityAddPacket.getPropertiesJSON().length()
-                            )
-                    );
-                }
-
                 try {
                     DataOutputStream outputStream = new DataOutputStream(client.getOutputStream());
                     outputStream.write(sizeBytes);

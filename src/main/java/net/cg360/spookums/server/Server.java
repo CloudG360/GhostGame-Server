@@ -344,16 +344,16 @@ public class Server {
                         PacketOutAddEntity newEntityAddPacket = new PacketOutAddEntity();
                         Random random = new Random();
 
-                        newEntityAddPacket.setEntityRuntimeID(1);
+                        newEntityAddPacket.setEntityRuntimeID(atomicLong.incrementAndGet());
                         newEntityAddPacket.setEntityTypeId(Constants.NAMESPACE.id("random_entity"));
                         newEntityAddPacket.setPosition(
                                 new Vector2(
-                                        1.0d, //(random.nextDouble() * 10000) - 5000,
-                                        -1.0d  //(random.nextDouble() * 10000) - 5000
+                                        (random.nextDouble() * 10000) - 5000,
+                                        (random.nextDouble() * 10000) - 5000
                                 )
                         );
                         newEntityAddPacket.setFloorNumber((short) 10);
-                        newEntityAddPacket.setPropertiesJSON("{\"testJson\":truee");
+                        newEntityAddPacket.setPropertiesJSON("{\"testJson\":true}");
 
                         Server.getLogger(Server.NET_LOG).info(
                                 String.format(

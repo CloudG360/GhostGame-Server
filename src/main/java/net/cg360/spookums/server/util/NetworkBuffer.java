@@ -18,6 +18,8 @@ public class NetworkBuffer {
     public static final int MAX_UNSIGNED_SHORT_VALUE = (int) (Math.pow(2, 16) - 1);
     public static final short MAX_UNSIGNED_BYTE_VALUE = (short) (Math.pow(2, 8) - 1);
 
+    public static final double VECTOR2_ACCURACY = 100000D;
+
     public static final int SHORT_BYTE_COUNT = 2;
     public static final int INT_BYTE_COUNT = 4;
     public static final int LONG_BYTE_COUNT = 8;
@@ -224,7 +226,7 @@ public class NetworkBuffer {
     public Vector2 getVector2() {
         double xIn = this.getInt();
         double zIn = this.getInt();
-        return new Vector2(xIn / 4096D, zIn / 4096D);
+        return new Vector2(xIn / VECTOR2_ACCURACY, zIn / VECTOR2_ACCURACY);
     }
 
 
@@ -379,8 +381,8 @@ public class NetworkBuffer {
     }
 
     public int putVector2(Vector2 vector) {
-        double lX = vector.getX() * 4096;
-        double lZ = vector.getZ() * 4096;
+        double lX = vector.getX() * VECTOR2_ACCURACY;
+        double lZ = vector.getZ() * VECTOR2_ACCURACY;
 
         this.putInt((int) Math.floor(lX));
         this.putInt((int) Math.floor(lZ));
