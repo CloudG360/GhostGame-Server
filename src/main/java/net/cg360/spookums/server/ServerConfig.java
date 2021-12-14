@@ -30,6 +30,8 @@ public class ServerConfig {
     public static final DefaultKey<String> DESCRIPTION = new DefaultKey<>("description", "No description provided");
     public static final DefaultKey<String> REGION = new DefaultKey<>("region", "en-gb");
 
+    public static final DefaultKey<Integer> MAX_GAME_QUEUE_LENGTH = new DefaultKey<>("max_game_queue_length",  1024);
+
     public static final DefaultKey<Long> AUTH_TOKEN_TIMEOUT = new DefaultKey<>("auth_token_timeout", 1000L * 60 * 60 * 24 * 30);
 
 
@@ -46,6 +48,8 @@ public class ServerConfig {
                     "    " + formatLine(SERVER_NAME) + "," + "\n" +
                     "    " + formatLine(DESCRIPTION) + "," + "\n" +
                     "    " + formatLine(REGION) + "," + "\n" +
+
+                    "    " + formatLine(MAX_GAME_QUEUE_LENGTH) + "," + "\n" +
 
                     "    " + formatLine(AUTH_TOKEN_TIMEOUT) + "\n" + // When extending, add comma!
             "}";
@@ -64,6 +68,8 @@ public class ServerConfig {
         if(isSettingNull(settings, SERVER_NAME)) replacements++;
         if(isSettingNull(settings, DESCRIPTION)) replacements++;
         if(isSettingNull(settings, REGION)) replacements++;
+
+        if(isSettingNull(settings, MAX_GAME_QUEUE_LENGTH)) replacements++;
 
         if(isSettingNull(settings, AUTH_TOKEN_TIMEOUT)) replacements++;
 

@@ -5,6 +5,7 @@ import net.cg360.spookums.server.auth.AuthenticationManager;
 import net.cg360.spookums.server.auth.record.AuthenticatedClient;
 import net.cg360.spookums.server.auth.state.AccountCreateState;
 import net.cg360.spookums.server.core.data.LockableSettings;
+import net.cg360.spookums.server.core.data.Queue;
 import net.cg360.spookums.server.core.data.json.JsonArray;
 import net.cg360.spookums.server.core.data.json.JsonObject;
 import net.cg360.spookums.server.core.data.json.io.JsonIO;
@@ -219,6 +220,7 @@ public class Server {
     protected void runLaunchTests() {
         test_databaseControl();
         test_jsonParsing();
+        test_queueFillAndEmpty();
     }
 
 
@@ -255,6 +257,48 @@ public class Server {
         JsonObject rootObjTest = json.read(jsonObjectTest);
         log.info(((JsonObject) rootObjTest.getChild("this").getValue()).getChild("bool").getValue().toString());
         log.info(((JsonObject) rootObjTest.getChild("this").getValue()).getChild("number").getValue().toString());
+    }
+
+    public void test_queueFillAndEmpty() {
+        Logger log = Server.getLogger(Server.TEST_LOG + "/Queue");
+        Queue<Integer> testQueue = Queue.ofLength(1024);
+        log.info("Filling queue of size 1024 (round 1)");
+
+        int elementsQueue = 0;
+        while (!testQueue.isFull()) {
+            testQueue.enqueue(elementsQueue);
+            elementsQueue++;
+        }
+
+        log.info(String.format("Filled the queue with %s amount of entries", elementsQueue));
+        log.info(String.format("Attempting to dequeue %s amount of entries", elementsQueue));
+
+        int elementsDequeue = 0;
+        while (!testQueue.isEmpty()) {
+            testQueue.dequeue();
+            elementsDequeue++;
+        }
+
+        log.info(String.format("Dequeued %s amount of entries", elementsDequeue));
+
+        log.info("Filling queue of size 1024 (round 2)");
+
+        elementsQueue = 0;
+        while (!testQueue.isFull()) {
+            testQueue.enqueue(elementsQueue);
+            elementsQueue++;
+        }
+
+        log.info(String.format("Filled the queue with %s amount of entries", elementsQueue));
+        log.info(String.format("Attempting to dequeue %s amount of entries", elementsQueue));
+
+        elementsDequeue = 0;
+        while (!testQueue.isEmpty()) {
+            testQueue.dequeue();
+            elementsDequeue++;
+        }
+
+        log.info(String.format("Dequeued %s amount of entries", elementsDequeue));
     }
 
 
