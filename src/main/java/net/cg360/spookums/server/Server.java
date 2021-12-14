@@ -333,45 +333,6 @@ public class Server {
                 String description = this.settings.getOrDefault(ServerConfig.DESCRIPTION);
 
                 client.send(new PacketOutServerDetail(name, region, description), true);
-
-                AtomicLong atomicLong = new AtomicLong(0);
-
-                this.getDefaultScheduler().prepareTask(() -> {
-
-                    //TODO: Remove test code \/\/\/
-
-                    if(this.getNetworkInterface().isRunning() && this.getNetworkInterface().isClientConnected(client.getID())) {
-                        PacketOutAddEntity newEntityAddPacket = new PacketOutAddEntity();
-                        Random random = new Random();
-
-                        newEntityAddPacket.setEntityRuntimeID(atomicLong.incrementAndGet());
-                        newEntityAddPacket.setEntityTypeId(Constants.NAMESPACE.id("random_entity"));
-                        newEntityAddPacket.setPosition(
-                                new Vector2(
-                                        (random.nextDouble() * 10000) - 5000,
-                                        (random.nextDouble() * 10000) - 5000
-                                )
-                        );
-                        newEntityAddPacket.setFloorNumber((short) 10);
-                        newEntityAddPacket.setPropertiesJSON("{\"testJson\":true}");
-
-                        Server.getLogger(Server.NET_LOG).info(
-                                String.format(
-                                        "Entity | rID = %s | type = %s | position = %s | " +
-                                                "Floor = %s | JSON = %s | JSON Length = %s",
-                                        newEntityAddPacket.getEntityRuntimeID(),
-                                        newEntityAddPacket.getEntityTypeId(),
-                                        newEntityAddPacket.getPosition(),
-                                        newEntityAddPacket.getFloorNumber(),
-                                        newEntityAddPacket.getPropertiesJSON(),
-                                        newEntityAddPacket.getPropertiesJSON().length()
-                                )
-                        );
-
-                        client.send(newEntityAddPacket, true);
-                    }
-
-                }).setInterval(80).schedule();
                 break;
 
 

@@ -4,6 +4,7 @@ import net.cg360.spookums.server.Server;
 import net.cg360.spookums.server.network.packet.auth.PacketInLogin;
 import net.cg360.spookums.server.network.packet.auth.PacketInUpdateAccount;
 import net.cg360.spookums.server.network.packet.auth.PacketOutLoginResponse;
+import net.cg360.spookums.server.network.packet.game.entity.PacketInOutEntityMove;
 import net.cg360.spookums.server.network.packet.game.entity.PacketOutAddEntity;
 import net.cg360.spookums.server.network.packet.game.entity.PacketOutRemoveEntity;
 import net.cg360.spookums.server.network.packet.generic.PacketInOutChatMessage;
@@ -117,7 +118,7 @@ public class VanillaProtocol {
 
                 .r(PACKET_ENTITY_ADD, PacketOutAddEntity.class)
                 .r(PACKET_ENTITY_REMOVE, PacketOutRemoveEntity.class)
-                .r(PACKET_ENTITY_MOVE, null);
+                .r(PACKET_ENTITY_MOVE, PacketInOutEntityMove.class);
 
         Server.getLogger(Server.NET_LOG).info(
                 String.format("Applied protocol version %s to %s packet registry.",
