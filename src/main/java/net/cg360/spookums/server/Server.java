@@ -2,8 +2,6 @@ package net.cg360.spookums.server;
 
 import net.cg360.spookums.server.auth.record.AuthToken;
 import net.cg360.spookums.server.auth.AuthenticationManager;
-import net.cg360.spookums.server.auth.record.AuthenticatedClient;
-import net.cg360.spookums.server.auth.state.AccountCreateState;
 import net.cg360.spookums.server.core.data.LockableSettings;
 import net.cg360.spookums.server.core.data.Queue;
 import net.cg360.spookums.server.core.data.json.JsonArray;
@@ -13,12 +11,13 @@ import net.cg360.spookums.server.core.data.json.io.error.ConfigFormatException;
 import net.cg360.spookums.server.core.event.EventManager;
 import net.cg360.spookums.server.core.event.handler.EventHandler;
 import net.cg360.spookums.server.core.event.handler.Priority;
+import net.cg360.spookums.server.core.event.type.flow.ServerStartedEvent;
 import net.cg360.spookums.server.core.event.type.network.ClientSocketStatusEvent;
 import net.cg360.spookums.server.core.event.type.network.PacketEvent;
 import net.cg360.spookums.server.core.scheduler.CommandingScheduler;
 import net.cg360.spookums.server.core.scheduler.Scheduler;
 import net.cg360.spookums.server.db.DatabaseManager;
-import net.cg360.spookums.server.game.entity.Entity;
+import net.cg360.spookums.server.game.manage.GameManager;
 import net.cg360.spookums.server.network.PacketRegistry;
 import net.cg360.spookums.server.network.VanillaProtocol;
 import net.cg360.spookums.server.network.netimpl.NetworkInterface;
@@ -26,7 +25,6 @@ import net.cg360.spookums.server.network.netimpl.socket.NISocket;
 import net.cg360.spookums.server.network.packet.auth.PacketInLogin;
 import net.cg360.spookums.server.network.packet.auth.PacketInUpdateAccount;
 import net.cg360.spookums.server.network.packet.auth.PacketOutLoginResponse;
-import net.cg360.spookums.server.network.packet.game.entity.PacketOutAddEntity;
 import net.cg360.spookums.server.network.packet.generic.PacketInOutDisconnect;
 import net.cg360.spookums.server.network.packet.info.PacketInProtocolCheck;
 import net.cg360.spookums.server.network.packet.info.PacketOutProtocolError;
@@ -34,12 +32,9 @@ import net.cg360.spookums.server.network.packet.info.PacketOutProtocolSuccess;
 import net.cg360.spookums.server.network.packet.info.PacketOutServerDetail;
 import net.cg360.spookums.server.network.user.ConnectionState;
 import net.cg360.spookums.server.network.user.NetworkClient;
-import net.cg360.spookums.server.util.Constants;
-import net.cg360.spookums.server.util.MicroBoolean;
+import net.cg360.spookums.server.util.type.MicroBoolean;
 import net.cg360.spookums.server.util.Patterns;
 import net.cg360.spookums.server.util.clean.Check;
-import net.cg360.spookums.server.util.clean.Pair;
-import net.cg360.spookums.server.util.math.Vector2;
 import org.slf4j.Logger;
 import org.slf4j.impl.SimpleLoggerFactory;
 
@@ -47,7 +42,6 @@ import java.awt.*;
 import java.io.*;
 import java.util.*;
 import java.util.List;
-import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * The main class of the server, collecting all the managers together
@@ -80,11 +74,14 @@ public class Server {
     protected Thread netClientsThread;
 
     protected Logger logger;
+
     protected CommandingScheduler serverScheduler;
     protected Scheduler defaultScheduler;
+
     protected EventManager serverEventManager;
     protected DatabaseManager databaseManager;
     protected AuthenticationManager authenticationManager;
+    protected GameManager gameManager;
 
     protected PacketRegistry packetRegistry;
 
@@ -142,6 +139,7 @@ public class Server {
 
                 this.getEventManager().addListener(this);
                 this.serverEventManager.addListener(this.authenticationManager);
+                this.serverEventManager.addListener(this.gameManager);
 
 
                 // Tests && Setup
@@ -196,6 +194,8 @@ public class Server {
                 btLog.info("Starting network server thread!");
 
                 VanillaProtocol.applyToRegistry(this.packetRegistry);
+
+                this.getEventManager().call(new ServerStartedEvent());
 
                 // Scheduler ticking is done here now.
                 // TODO: Account for variation in ticks otherwise clients will become desynchronized with the server.
@@ -462,12 +462,14 @@ public class Server {
     public boolean isRunning() { return isRunning; }
 
     public CommandingScheduler getServerScheduler() { return serverScheduler; }
-    public Scheduler getDefaultScheduler() {return defaultScheduler;}
+    public Scheduler getDefaultScheduler() { return defaultScheduler; }
+
     public EventManager getEventManager() { return serverEventManager; }
     public DatabaseManager getDBManager() { return databaseManager; }
-    public AuthenticationManager getAuthManager() {return authenticationManager;}
+    public AuthenticationManager getAuthManager() { return authenticationManager; }
+    public GameManager getGameManager() { return gameManager; }
 
-    public NetworkInterface getNetworkInterface() {return networkInterface;}
+    public NetworkInterface getNetworkInterface() { return networkInterface; }
 
     public static Server get() { return instance; }
     public static Logger getLogger(String name) { return Server.loggerFactory.getLogger(name); }

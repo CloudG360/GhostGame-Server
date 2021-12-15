@@ -41,6 +41,24 @@ public class PacketInOutEntityMove extends PacketInOutEntity {
         }
     }
 
+
+    public PacketInOutEntityMove setMovement(Vector2 movement) {
+        this.movement = movement;
+        return this;
+    }
+
+    public PacketInOutEntityMove setType(Type type) {
+        this.type = type.getId();
+        return this;
+    }
+
+    public PacketInOutEntityMove setType(short type) {
+        this.type = type;
+        return this;
+    }
+
+
+
     public enum Type {
         DELTA(0),
         ABSOLUTE(1),

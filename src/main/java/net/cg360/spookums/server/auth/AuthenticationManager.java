@@ -579,20 +579,28 @@ public class AuthenticationManager {
     }
 
 
-    protected boolean isAuthenticatedClientActive(AuthenticatedClient identity) {
+    public boolean isAuthenticatedClientActive(AuthenticatedClient identity) {
         return isClientLoggedIn(identity.getClient()) || isUserLoggedIn(identity.getUsername());
     }
 
 
-    protected boolean isClientLoggedIn(NetworkClient client) {
-        return activeNetIDIdentities.containsKey(client.getID());
+    public boolean isClientLoggedIn(NetworkClient client) {
+        return this.activeNetIDIdentities.containsKey(client.getID());
+    }
+
+    public boolean isClientLoggedIn(UUID clientID) {
+        return this.activeNetIDIdentities.containsKey(clientID);
     }
 
 
-    protected boolean isUserLoggedIn(String username) {
-        return activeAuthenticatedClients.containsKey(username);
+    public boolean isUserLoggedIn(String username) {
+        return this.activeAuthenticatedClients.containsKey(username);
     }
 
+
+    public Optional<AuthenticatedClient> getAuthenticatedClientForUUID(UUID uuid) {
+        return Optional.ofNullable(this.activeNetIDIdentities.get(uuid));
+    }
 
 
 

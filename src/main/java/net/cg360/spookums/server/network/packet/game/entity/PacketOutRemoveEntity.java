@@ -26,4 +26,11 @@ public class PacketOutRemoveEntity extends PacketInOutEntity {
     protected void decodeBody(int inboundSize) {
         super.decodeBody(inboundSize);
     }
+
+
+
+    public PacketOutRemoveEntity setEntityRuntimeID(long entityRuntimeID) {
+        this.entityRuntimeID = entityRuntimeID;
+        return this;
+    }
 }
