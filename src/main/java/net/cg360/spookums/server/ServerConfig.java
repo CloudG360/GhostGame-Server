@@ -88,7 +88,7 @@ public class ServerConfig {
 
     public static LockableSettings loadServerConfiguration(Server server, boolean fillInDefaults) {
         Logger cfgLog = Server.getLogger("Server/Config");
-        cfgLog.warn("Loading configuration...");
+        cfgLog.info("Loading configuration...");
 
         File cfgFile = new File(server.getDataPath(), "server_config.json");
         JsonIO json = new JsonIO();
@@ -129,13 +129,13 @@ public class ServerConfig {
 
 
         if(fillInDefaults) {
-            cfgLog.warn("Filling in the blanks!");
+            cfgLog.info("Filling in the blanks!");
             int replacements = verifyAllDefaultKeys(loadedSettings); //todo: print count of replacements
 
-            cfgLog.warn("Using the defaults for "+replacements+" properties!");
+            cfgLog.info("Using the defaults for "+replacements+" properties!");
         }
 
-        cfgLog.warn("Loaded configuration!");
+        cfgLog.info("Loaded configuration!");
         return loadedSettings.lock();
     }
 

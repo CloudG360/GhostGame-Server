@@ -426,6 +426,9 @@ public class Server {
             // This ensures the protocol is compatible.
 
 
+            // when handled elsewhere, add your packets in here.
+            case VanillaProtocol.PACKET_GAME_SEARCH_REQUEST:
+                break;
 
             case VanillaProtocol.PACKET_PROTOCOL_INVALID_PACKET:
             default:
