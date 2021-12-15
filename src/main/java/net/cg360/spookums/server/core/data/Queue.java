@@ -30,6 +30,7 @@ public class Queue<T> {
 
         this.backPointer = this.incrementWithWrapCheck(this.backPointer);
         Object val = this.backend[this.backPointer];
+        this.backend[this.backPointer] = null;
 
         return val == null ? null : (T) val;
     }
@@ -78,6 +79,13 @@ public class Queue<T> {
 
     public static <T> Queue<T> ofLength(int size) {
         return new Queue<>(new Object[size + 1], -1, -1);
+    }
+
+    public static <T> Queue<T> copy(Queue<T> src) {
+        Object[] dest = new Object[src.backend.length];
+        System.arraycopy(src.backend, 0, dest, 0, src.backend.length);
+
+        return new Queue<>(dest, src.getFrontPointerPos(), src.getBackPointerPos());
     }
 
 }
