@@ -7,6 +7,7 @@ import net.cg360.spookums.server.network.packet.auth.PacketOutLoginResponse;
 import net.cg360.spookums.server.network.packet.game.entity.PacketInOutEntityMove;
 import net.cg360.spookums.server.network.packet.game.entity.PacketOutAddEntity;
 import net.cg360.spookums.server.network.packet.game.entity.PacketOutRemoveEntity;
+import net.cg360.spookums.server.network.packet.game.info.PacketInQueueSearchRequest;
 import net.cg360.spookums.server.network.packet.generic.PacketInOutChatMessage;
 import net.cg360.spookums.server.network.packet.generic.PacketInOutDisconnect;
 import net.cg360.spookums.server.network.packet.generic.PacketInOutError;
@@ -109,8 +110,8 @@ public class VanillaProtocol {
                 .r(PACKET_UPDATE_ACCOUNT, PacketInUpdateAccount.class)
                 .r(PACKET_LOGIN_RESPONSE, PacketOutLoginResponse.class)
 
-                .r(PACKET_GAME_JOIN_REQUEST, null)
-                .r(PACKET_GAME_SEARCH_REQUEST, null)
+                //.r(PACKET_GAME_JOIN_REQUEST, PacketInGameJoinRequest.class)
+                .r(PACKET_GAME_SEARCH_REQUEST, PacketInQueueSearchRequest.class)
                 .r(PACKET_GAME_STATUS, null)
                 //.r(PACKET_FETCH_GAME_LIST, null)
                 .r(PACKET_REQUEST_GAME_DETAIL, null)
