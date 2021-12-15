@@ -2,7 +2,7 @@ package net.cg360.spookums.server.network.packet.auth;
 
 import net.cg360.spookums.server.network.VanillaProtocol;
 import net.cg360.spookums.server.network.packet.NetworkPacket;
-import net.cg360.spookums.server.util.MicroBoolean;
+import net.cg360.spookums.server.util.type.MicroBoolean;
 import net.cg360.spookums.server.util.clean.Check;
 
 // This packet contains a lot of optional peices of data. They are

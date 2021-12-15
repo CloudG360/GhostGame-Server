@@ -17,11 +17,12 @@ public class Queue<T> {
     }
 
 
-    public void enqueue(T value) {
+    public Queue<T> enqueue(T value) {
         if(this.isFull()) throw new ArrayIndexOutOfBoundsException("Cannot add to a full queue");
 
         this.frontPointer = this.incrementWithWrapCheck(this.frontPointer);
         this.backend[this.frontPointer] = value;
+        return this;
     }
 
     @SuppressWarnings("unchecked")
@@ -33,6 +34,17 @@ public class Queue<T> {
         this.backend[this.backPointer] = null;
 
         return val == null ? null : (T) val;
+    }
+
+
+    /**
+     * Dequeues an item and adds it to the end of the queue.
+     * @return the dequeued item
+     */
+    public T cycle() {
+        T returnElement = this.dequeue();
+        this.enqueue(returnElement);
+        return returnElement;
     }
 
 

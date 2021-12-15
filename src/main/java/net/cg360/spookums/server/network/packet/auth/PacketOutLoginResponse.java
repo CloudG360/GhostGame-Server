@@ -2,7 +2,7 @@ package net.cg360.spookums.server.network.packet.auth;
 
 import net.cg360.spookums.server.network.VanillaProtocol;
 import net.cg360.spookums.server.network.packet.NetworkPacket;
-import net.cg360.spookums.server.util.MicroBoolean;
+import net.cg360.spookums.server.util.type.MicroBoolean;
 
 // Format:
 // IF successful:
