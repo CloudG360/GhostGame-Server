@@ -121,6 +121,7 @@ public class Server {
                 this.serverEventManager = new EventManager();
                 this.databaseManager = new DatabaseManager();
                 this.authenticationManager = new AuthenticationManager();
+                this.gameManager = new GameManager();
 
                 // -- Core Registries --
                 this.packetRegistry = new PacketRegistry();
@@ -131,9 +132,11 @@ public class Server {
                 boolean resultEventManager = this.serverEventManager.setAsPrimaryInstance();
                 boolean resultDatabaseManager = this.databaseManager.setAsPrimaryInstance();
                 boolean resultAuthManager = this.authenticationManager.setAsPrimaryInstance();
+                boolean resultGameManager = this.gameManager.setAsPrimaryInstance();
                 boolean resultPacketRegistry = this.packetRegistry.setAsPrimaryInstance();
 
-                if(resultScheduler && resultEventManager && resultDatabaseManager && resultAuthManager && resultPacketRegistry){
+
+                if(resultScheduler && resultEventManager && resultDatabaseManager && resultAuthManager && resultGameManager && resultPacketRegistry){
                     btLog.info("Claimed primary instances! This is the main server! :)");
                 }
 

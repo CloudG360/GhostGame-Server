@@ -23,6 +23,8 @@ import java.util.UUID;
 
 public class GameManager {
 
+    private static GameManager primaryInstance = null;
+
     protected Scheduler scheduler;
     protected Logger logger;
 
@@ -36,6 +38,15 @@ public class GameManager {
         this.clientQueue = Queue.ofLength(Server.get().getSettings().getOrDefault(ServerConfig.MAX_GAME_QUEUE_LENGTH));
         this.currentSessions = new HashMap<>();
     }
+
+    public boolean setAsPrimaryInstance(){
+        if(primaryInstance == null) {
+            primaryInstance = this;
+            return true;
+        }
+        return false;
+    }
+
 
 
     public GameSession createGame(boolean isPrivate) {

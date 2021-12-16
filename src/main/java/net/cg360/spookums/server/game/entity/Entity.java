@@ -92,7 +92,7 @@ public abstract class Entity {
         if(!this.isDestroyed) {
             this.isDestroyed = true;
 
-            for (Player player : this.visibleTo)
+            for (Player player : new ArrayList<>(this.visibleTo))
                 this.hideFrom(player);
 
             this.getFloor().removeEntity(this);
