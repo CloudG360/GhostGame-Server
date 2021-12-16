@@ -58,6 +58,17 @@ public class PacketInOutEntityMove extends PacketInOutEntity {
     }
 
 
+    public byte getTypeId() {
+        return (byte) type;
+    }
+
+    public Type getType() {
+        return Type.getTypeFromID((byte) this.type);
+    }
+
+    public Vector2 getMovement() {
+        return movement;
+    }
 
     public enum Type {
         DELTA(0),

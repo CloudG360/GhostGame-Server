@@ -1,6 +1,7 @@
 package net.cg360.spookums.server.game.level;
 
 import net.cg360.spookums.server.game.entity.Entity;
+import net.cg360.spookums.server.game.manage.GameSession;
 import net.cg360.spookums.server.util.clean.Check;
 
 import java.util.HashMap;
@@ -21,6 +22,26 @@ public class Floor {
         this.entityLookup = new HashMap<>();
     }
 
+    public boolean addEntity(Entity entity) {
+        if(entity.getFloor() == this && !this.entityLookup.containsKey(entity.getRuntimeID())) {
+            this.entityLookup.put(entity.getRuntimeID(), entity);
+            return true;
+        }
+        return false;
+    }
+
+    public boolean removeEntity(Entity entity) {
+        if(this.entityLookup.containsKey(entity.getRuntimeID())) {
+            if (entity.isDestroyed()) {
+                this.entityLookup.remove(entity.getRuntimeID());
+
+            } else entity.destroy();
+
+            return true;
+        }
+        return false;
+    }
+
 
     public byte getFloorNumber() {
         return this.floorNumber;
@@ -28,6 +49,10 @@ public class Floor {
 
     public Map getMap() {
         return this.map;
+    }
+
+    public GameSession getSession() {
+        return this.getMap().getSession();
     }
 
     public Entity[] getEntities() {

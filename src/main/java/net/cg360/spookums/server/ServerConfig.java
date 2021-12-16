@@ -33,7 +33,8 @@ public class ServerConfig {
     public static final DefaultKey<Integer> MAX_GAME_QUEUE_LENGTH = new DefaultKey<>("max_game_queue_length",  1024);
     public static final DefaultKey<Integer> GAME_MIN_PLAYERS = new DefaultKey<>("game_min_players",  1);
     public static final DefaultKey<Integer> GAME_MAX_PLAYERS = new DefaultKey<>("game_max_players",  8);
-    public static final DefaultKey<Integer> GAME_TIMER_LENGTH = new DefaultKey<>("game_timer_length",  300);
+    public static final DefaultKey<Integer> GAME_TIMER_LENGTH = new DefaultKey<>("game_timer_length",  300 * 20);
+    public static final DefaultKey<Integer> GAME_COUNTDOWN_LENGTH = new DefaultKey<>("game_countdown_length",  15 * 20);
 
     public static final DefaultKey<Long> AUTH_TOKEN_TIMEOUT = new DefaultKey<>("auth_token_timeout", 1000L * 60 * 60 * 24 * 30);
 
@@ -56,6 +57,7 @@ public class ServerConfig {
                     "    " + formatLine(GAME_MIN_PLAYERS) + "," + "\n" +
                     "    " + formatLine(GAME_MAX_PLAYERS) + "," + "\n" +
                     "    " + formatLine(GAME_TIMER_LENGTH) + "," + "\n" +
+                    "    " + formatLine(GAME_COUNTDOWN_LENGTH) + "," + "\n" +
 
 
                     "    " + formatLine(AUTH_TOKEN_TIMEOUT) + "\n" + // When extending, add comma!
@@ -80,6 +82,7 @@ public class ServerConfig {
         if(isSettingNull(settings, GAME_MIN_PLAYERS)) replacements++;
         if(isSettingNull(settings, GAME_MAX_PLAYERS)) replacements++;
         if(isSettingNull(settings, GAME_TIMER_LENGTH)) replacements++;
+        if(isSettingNull(settings, GAME_COUNTDOWN_LENGTH)) replacements++;
 
         if(isSettingNull(settings, AUTH_TOKEN_TIMEOUT)) replacements++;
 

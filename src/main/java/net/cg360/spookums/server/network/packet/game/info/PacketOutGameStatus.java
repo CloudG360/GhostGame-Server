@@ -22,7 +22,13 @@ public class PacketOutGameStatus extends NetworkPacket {
 
     @Override
     protected int encodeBody() {
-        return 0;
+        this.getBodyData().reset();
+
+        int total = 0;
+        total += this.getBodyData().putUnsignedByte(type) ? 1 : 0;
+        total += this.getBodyData().putSmallUTF8String(gameID);
+        total += this.getBodyData().putUTF8String(reason);
+        return total;
     }
 
     @Override
@@ -53,8 +59,8 @@ public class PacketOutGameStatus extends NetworkPacket {
 
     public enum StatusType {
         QUEUE_JOINED(1), QUEUE_REJECTED(2),
-        GAME_JOIN(3), GAME_REJECTED(4), GAME_JOIN_AS_SPECTATOR(5),
-        GAME_DISCONNECT(6),
+        GAME_JOIN(3), GAME_REJECTED(4), GAME_JOIN_AS_SPECTATOR(5), GAME_DISCONNECT(6),
+        GAME_COUNTDOWN(7), GAME_STARTED(8), GAME_CONCLUDED(9),
 
 
         UNKNOWN(127);
@@ -72,20 +78,17 @@ public class PacketOutGameStatus extends NetworkPacket {
 
         public static StatusType getTypeFromID(int i) {
             switch (i) {
-                case 1:
-                    return QUEUE_JOINED;
-                case 2:
-                    return QUEUE_REJECTED;
-                case 3:
-                    return GAME_JOIN;
-                case 4:
-                    return GAME_REJECTED;
-                case 5:
-                    return GAME_JOIN_AS_SPECTATOR;
-                case 6:
-                    return GAME_DISCONNECT;
-                default:
-                    return UNKNOWN;
+                case 1: return QUEUE_JOINED;
+                case 2: return QUEUE_REJECTED;
+                case 3: return GAME_JOIN;
+                case 4: return GAME_REJECTED;
+                case 5: return GAME_JOIN_AS_SPECTATOR;
+                case 6: return GAME_DISCONNECT;
+                case 7: return GAME_COUNTDOWN;
+                case 8: return GAME_STARTED;
+                case 9: return GAME_CONCLUDED;
+
+                default: return UNKNOWN;
             }
         }
     }

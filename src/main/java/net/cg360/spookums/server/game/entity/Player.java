@@ -4,6 +4,8 @@ import net.cg360.spookums.server.auth.record.AuthenticatedClient;
 import net.cg360.spookums.server.core.data.Queue;
 import net.cg360.spookums.server.core.data.id.Identifier;
 import net.cg360.spookums.server.game.level.Floor;
+import net.cg360.spookums.server.network.packet.game.entity.PacketOutAddEntity;
+import net.cg360.spookums.server.network.packet.game.entity.PacketOutRemoveEntity;
 import net.cg360.spookums.server.util.Constants;
 import net.cg360.spookums.server.util.math.Vector2;
 
@@ -46,6 +48,10 @@ public class Player extends Entity {
     }
 
 
+    @Override
+    public Player init() {
+        return (Player) super.init();
+    }
 
     @Override
     public Identifier getTypeID() {
@@ -60,6 +66,49 @@ public class Player extends Entity {
                 Integer.toHexString(this.getColour().getRGB())
         );
     }
+
+    @Override
+    public boolean showTo(Player player) {
+        //Overrides behaviour for when this is a player's own entity.
+        if(this.getAuthClient() == player.getAuthClient()) {
+            if ((!isDestroyed) && (!player.visibleEntities.containsKey(this.getRuntimeID()))) {
+
+                PacketOutAddEntity packetOutAddEntity = new PacketOutAddEntity()
+                        .setEntityRuntimeID(0)
+                        .setEntityTypeId(this.getTypeID())
+                        .setPosition(this.getPosition())
+                        .setPropertiesJSON(this.serializePropertiesToJson())
+                        .setFloorNumber(this.getFloor().getFloorNumber());
+                player.getAuthClient().getClient().send(packetOutAddEntity, true);
+
+                player.visibleEntities.put(this.getRuntimeID(), this);
+                this.visibleTo.add(player);
+                return true;
+            }
+            return false;
+
+        } else return super.showTo(player);
+    }
+
+
+    @Override
+    public boolean hideFrom(Player player) {
+        if(this.getAuthClient() == player.getAuthClient()) {
+            if(player.visibleEntities.containsKey(this.getRuntimeID())) {
+
+                PacketOutRemoveEntity packetOutRemoveEntity = new PacketOutRemoveEntity()
+                        .setEntityRuntimeID(0);
+                player.getAuthClient().getClient().send(packetOutRemoveEntity, true);
+
+                player.visibleEntities.remove(this.getRuntimeID());
+                this.visibleTo.remove(player);
+                return true;
+            }
+            return false;
+
+        } else return super.hideFrom(player);
+    }
+
 
 
     public AuthenticatedClient getAuthClient() {

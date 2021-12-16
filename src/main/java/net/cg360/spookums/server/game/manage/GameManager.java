@@ -9,9 +9,14 @@ import net.cg360.spookums.server.core.event.type.flow.ServerStartedEvent;
 import net.cg360.spookums.server.core.event.type.network.ClientSocketStatusEvent;
 import net.cg360.spookums.server.core.event.type.network.PacketEvent;
 import net.cg360.spookums.server.core.scheduler.Scheduler;
+import net.cg360.spookums.server.game.entity.Player;
 import net.cg360.spookums.server.network.VanillaProtocol;
+import net.cg360.spookums.server.network.packet.game.entity.PacketInOutEntityMove;
 import net.cg360.spookums.server.network.packet.game.info.PacketOutGameStatus;
+import net.cg360.spookums.server.network.user.NetworkClient;
+import org.slf4j.Logger;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Optional;
 import java.util.UUID;
@@ -19,19 +24,37 @@ import java.util.UUID;
 public class GameManager {
 
     protected Scheduler scheduler;
+    protected Logger logger;
 
     protected Queue<AuthenticatedClient> clientQueue;
-    protected HashMap<UUID, GameSession> currentSessions;
+    protected HashMap<String, GameSession> currentSessions;
 
     public GameManager() {
+        this.scheduler = new Scheduler(1);
+        this.logger = Server.getLogger("Game/Manager");
+
         this.clientQueue = Queue.ofLength(Server.get().getSettings().getOrDefault(ServerConfig.MAX_GAME_QUEUE_LENGTH));
         this.currentSessions = new HashMap<>();
-        this.scheduler = new Scheduler(1);
+    }
+
+
+    public GameSession createGame(boolean isPrivate) {
+        return this.createGame(
+                isPrivate,
+                Server.get().getSettings().getOrDefault(ServerConfig.GAME_MIN_PLAYERS),
+                Server.get().getSettings().getOrDefault(ServerConfig.GAME_MAX_PLAYERS)
+        );
+    }
+
+    public GameSession createGame(boolean isPrivate, int minPlayers, int maxPlayers) {
+        GameSession session = new GameSession(isPrivate, minPlayers, maxPlayers).postInit();
+        this.currentSessions.put(session.getSessionID(), session);
+        return session;
     }
 
 
 
-    public int removePlayerFromAllGames(UUID clientID) {
+    public int removePlayerFromAllGames(NetworkClient clientID) {
         int gameRemovals = 0;
         for(GameSession session: currentSessions.values())
             if(session.removePlayerFromGame(clientID)) gameRemovals++;
@@ -93,17 +116,50 @@ public class GameManager {
 
                 } //break; -- if you remove the return
 
+            case VanillaProtocol.PACKET_ENTITY_MOVE:
+            {
+                if(e.getPacket() instanceof PacketInOutEntityMove) {
+                    PacketInOutEntityMove packet = new PacketInOutEntityMove();
+
+                    for(GameSession session: this.currentSessions.values()) {
+                        if(session.containsPlayer(auth.getClient())) {
+                            session.processPlayerMovement(auth.getClient(), packet);
+                            return;
+                        }
+                    }
+
+                    this.logger.warn("Inbound movement packet received from a player not in a game");
+                }
+                return;
+            } //break; -- if you remove the return
+
         }
     }
 
     @EventHandler
     public void onClientDisconnect(ClientSocketStatusEvent.Disconnect e) {
-        this.removePlayerFromAllGames(e.getClient().getID());
+        this.removePlayerFromAllGames(e.getClient());
     }
 
     @EventHandler
     public void onServerStart(ServerStartedEvent e) {
-        Server.get().getDefaultScheduler().startScheduler();
+        this.scheduler.startScheduler();
+
+        this.scheduler.prepareTask(() -> {
+            for(GameSession session: new ArrayList<>(this.currentSessions.values()))
+                session.getScheduler().schedulerTick();
+
+        }).setInterval(1).schedule();
+
+        // makes game sessions check the queue.
+        this.scheduler.prepareTask(() -> {
+            for(GameSession session: new ArrayList<>(this.currentSessions.values()))
+                session.reviewQueue(this.clientQueue);
+
+        }).setInterval(40).setDelay(40).schedule();
+
+        // Create a queue game
+        this.createGame(false);
     }
 
 }

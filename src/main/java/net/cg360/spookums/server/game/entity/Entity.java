@@ -6,6 +6,7 @@ import net.cg360.spookums.server.core.data.json.JsonObject;
 import net.cg360.spookums.server.game.entity.behaviour.EntityBehaviourTree;
 import net.cg360.spookums.server.game.level.Floor;
 import net.cg360.spookums.server.game.level.Map;
+import net.cg360.spookums.server.game.manage.GameSession;
 import net.cg360.spookums.server.network.packet.game.entity.PacketInOutEntityMove;
 import net.cg360.spookums.server.network.packet.game.entity.PacketOutAddEntity;
 import net.cg360.spookums.server.network.packet.game.entity.PacketOutRemoveEntity;
@@ -26,6 +27,7 @@ public abstract class Entity {
 
     // The unique ID of the entity in a game session.
     protected long runtimeID;
+    protected boolean isDestroyed;
 
     protected ArrayList<Player> visibleTo;
 
@@ -39,6 +41,7 @@ public abstract class Entity {
 
     public Entity(Floor floor, Vector2 position) {
         this.runtimeID = entityCount.addAndGet(1);
+        this.isDestroyed = false;
 
         this.visibleTo = new ArrayList<>();
 
@@ -58,26 +61,47 @@ public abstract class Entity {
     public abstract String serializePropertiesToJson();
 
 
+    public Entity init() {
+        this.getMap().getFloors()[0].addEntity(this);
+
+        return this;
+    }
+
+
     public void tick(int tickDelta) {
-        // Physics
-        this.lastPosition = position;
-        this.position = this.position.add(this.velocity.mul(tickDelta, tickDelta));
+        if(!this.isDestroyed) {
+            // Physics
+            this.lastPosition = position;
+            this.position = this.position.add(this.velocity.mul(tickDelta, tickDelta));
 
-        if(!this.lastPosition.equals(this.position)) {
-            Vector2 delta = this.position.sub(this.lastPosition);
-            PacketInOutEntityMove move = new PacketInOutEntityMove()
-                    .setMovement(delta)
-                    .setType(PacketInOutEntityMove.Type.DELTA);
+            if (!this.lastPosition.equals(this.position)) {
+                Vector2 delta = this.position.sub(this.lastPosition);
+                PacketInOutEntityMove move = new PacketInOutEntityMove()
+                        .setMovement(delta)
+                        .setType(PacketInOutEntityMove.Type.DELTA);
 
-            for(Player player: visibleTo) {
-                player.getAuthClient().getClient().send(move, true);
+                for (Player player : this.visibleTo) {
+                    player.getAuthClient().getClient().send(move, true);
+                }
             }
         }
     }
 
 
-    public boolean showEntityTo(Player player) {
-        if(!player.visibleEntities.containsKey(this.getRuntimeID())) {
+    public void destroy() {
+        if(!this.isDestroyed) {
+            this.isDestroyed = true;
+
+            for (Player player : this.visibleTo)
+                this.hideFrom(player);
+
+            this.getFloor().removeEntity(this);
+        }
+    }
+
+
+    public boolean showTo(Player player) {
+        if((!isDestroyed) && (!player.visibleEntities.containsKey(this.getRuntimeID())) ) {
 
             PacketOutAddEntity packetOutAddEntity = new PacketOutAddEntity()
                     .setEntityRuntimeID(this.getRuntimeID())
@@ -95,7 +119,7 @@ public abstract class Entity {
         return false;
     }
 
-    public boolean hideEntityFrom(Player player) {
+    public boolean hideFrom(Player player) {
         if(player.visibleEntities.containsKey(this.getRuntimeID())) {
 
             PacketOutRemoveEntity packetOutRemoveEntity = new PacketOutRemoveEntity()
@@ -111,28 +135,31 @@ public abstract class Entity {
     }
 
 
-    public long getRuntimeID() {
-        return this.runtimeID;
+    public Entity setPosition(Vector2 position) {
+        this.position = position;
+        return this;
     }
 
-    public Vector2 getLastPosition() {
-        return this.lastPosition;
+    public Entity setLastPosition(Vector2 lastPosition) {
+        this.lastPosition = lastPosition;
+        return this;
     }
 
-    public Vector2 getPosition() {
-        return this.position;
+    public Entity setVelocity(Vector2 velocity) {
+        this.velocity = velocity;
+        return this;
     }
 
-    public Vector2 getVelocity() {
-        return this.velocity;
-    }
 
-    public Map getMap() {
-        return this.floor.getMap();
-    }
+    public long getRuntimeID() { return this.runtimeID; }
+    public boolean isDestroyed() { return isDestroyed; }
 
-    public Floor getFloor() {
-        return this.floor;
-    }
+    public Vector2 getLastPosition() { return this.lastPosition; }
+    public Vector2 getPosition() { return this.position; }
+    public Vector2 getVelocity() { return this.velocity; }
+
+    public Map getMap() { return this.floor.getMap(); }
+    public Floor getFloor() { return this.floor; }
+    public GameSession getSession() { return this.getFloor().getSession(); }
 
 }

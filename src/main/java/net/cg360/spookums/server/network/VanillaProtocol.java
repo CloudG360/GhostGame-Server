@@ -4,6 +4,7 @@ import net.cg360.spookums.server.Server;
 import net.cg360.spookums.server.network.packet.auth.PacketInLogin;
 import net.cg360.spookums.server.network.packet.auth.PacketInUpdateAccount;
 import net.cg360.spookums.server.network.packet.auth.PacketOutLoginResponse;
+import net.cg360.spookums.server.network.packet.game.PacketOutUpdateGameTimer;
 import net.cg360.spookums.server.network.packet.game.entity.PacketInOutEntityMove;
 import net.cg360.spookums.server.network.packet.game.entity.PacketOutAddEntity;
 import net.cg360.spookums.server.network.packet.game.entity.PacketOutRemoveEntity;
@@ -80,6 +81,8 @@ public class VanillaProtocol {
     public static final byte PACKET_ENTITY_REMOVE = 0x51; // out - Removes an entity from the client side based on its runtime id
     public static final byte PACKET_ENTITY_MOVE = 0x52; // out - Moves an entity on the client. Big, small, whatever, done in one packet.
 
+    public static final byte PACKET_TIMER_UPDATE = 0x60;
+
 
     //TODO: As you'll be looking at this before the C# project
     //      Instead of storing the next tick a task will run, store an
@@ -120,7 +123,10 @@ public class VanillaProtocol {
 
                 .r(PACKET_ENTITY_ADD, PacketOutAddEntity.class)
                 .r(PACKET_ENTITY_REMOVE, PacketOutRemoveEntity.class)
-                .r(PACKET_ENTITY_MOVE, PacketInOutEntityMove.class);
+                .r(PACKET_ENTITY_MOVE, PacketInOutEntityMove.class)
+
+                .r(PACKET_TIMER_UPDATE, PacketOutUpdateGameTimer.class)
+        ;
 
         Server.getLogger(Server.NET_LOG).info(
                 String.format("Applied protocol version %s to %s packet registry.",
