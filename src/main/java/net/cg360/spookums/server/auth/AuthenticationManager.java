@@ -13,6 +13,7 @@ import net.cg360.spookums.server.core.scheduler.Scheduler;
 import net.cg360.spookums.server.network.packet.auth.PacketInLogin;
 import net.cg360.spookums.server.network.packet.auth.PacketInUpdateAccount;
 import net.cg360.spookums.server.network.packet.auth.PacketOutLoginResponse;
+import net.cg360.spookums.server.network.user.ConnectionState;
 import net.cg360.spookums.server.network.user.NetworkClient;
 import net.cg360.spookums.server.util.SecretUtil;
 import net.cg360.spookums.server.util.clean.Check;
@@ -608,6 +609,10 @@ public class AuthenticationManager {
         if(!isAuthenticatedClientActive(identity)) {
             this.activeNetIDIdentities.put(identity.getClient().getID(), identity);
             this.activeAuthenticatedClients.put(identity.getUsername(), identity);
+
+            identity.getClient().setState(ConnectionState.LOGGED_IN);
+
+            Server.get().getEventManager().call(new ClientSocketStatusEvent.LoggedIn(identity.getClient(), identity.getUsername()));
             return true;
         }
         return false;

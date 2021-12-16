@@ -311,6 +311,11 @@ public class Server {
     }
 
     @EventHandler
+    public void onClientDisconnect(ClientSocketStatusEvent.LoggedIn event) {
+        Server.getLogger(Server.NET_LOG).info(String.format("Logged in | %s (%s)", event.getClient().getID().toString(), event.getUsername()));
+    }
+
+    @EventHandler
     public void onClientDisconnect(ClientSocketStatusEvent.Disconnect event) {
         Server.getLogger(Server.NET_LOG).info("Disconnected | " + event.getClient().getID().toString());
     }

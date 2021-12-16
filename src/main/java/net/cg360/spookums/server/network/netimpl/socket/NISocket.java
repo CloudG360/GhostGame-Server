@@ -189,7 +189,9 @@ public class NISocket implements NetworkInterface {
 
 
                 } catch (SocketException err) {
-                    err.printStackTrace();
+                    //err.printStackTrace();
+                    if(!(packet instanceof PacketInOutDisconnect))
+                        this.disconnectClient(clientNetID);
 
                 } catch (IOException ioErr) {
                     throw new RuntimeException("An IOException was raised whilst sending a packet: " + ioErr.getMessage());
@@ -214,7 +216,7 @@ public class NISocket implements NetworkInterface {
             if(conn.isConnected() && (!conn.isClosed())) {
 
                 if(disconnectPacket != null) {
-                    try { sendDataPacket(clientNetID, disconnectPacket, true); }
+                    try { this.sendDataPacket(clientNetID, disconnectPacket, true); }
                     catch (RuntimeException err) { Server.getLogger(Server.NET_LOG).warn("Client disconnected with a IOException"); }
                 }
 

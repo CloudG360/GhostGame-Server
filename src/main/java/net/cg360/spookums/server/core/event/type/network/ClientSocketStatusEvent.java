@@ -44,8 +44,16 @@ public class ClientSocketStatusEvent extends Event {
     }
 
     public static class LoggedIn extends ClientSocketStatusEvent {
-        public LoggedIn(NetworkClient clientNetID) {
+
+        protected String username;
+
+        public LoggedIn(NetworkClient clientNetID, String username) {
             super(checkState(clientNetID, ConnectionState.LOGGED_IN));
+            this.username = username;
+        }
+
+        public String getUsername() {
+            return username;
         }
     }
 
